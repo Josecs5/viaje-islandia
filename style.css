@@ -887,45 +887,94 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .legend__empty { color: var(--c-text-2); font-size: var(--step-0); padding: var(--space-8); }
 
 /* ============================================================
-   RECOMENDACIONES
+   RECOMENDACIONES  ("Ideas")
    ============================================================ */
-.reco-cat { margin-bottom: var(--space-24); }
-.reco-cat h3 {
+.reco-cat {
+  --rc: 168;
+  --rc-accent: oklch(0.80 0.13 var(--rc));
+  --rc-soft: oklch(0.30 0.055 var(--rc));
+  margin-bottom: var(--space-24);
+}
+.reco-cat__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  margin-bottom: var(--space-12);
+}
+.reco-cat__badge {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  border-radius: 12px;
+  background: var(--rc-soft);
+  border: 1px solid color-mix(in oklab, var(--rc-accent) 45%, transparent);
+}
+.reco-cat__head h3 {
   font-family: var(--font-display);
   font-size: var(--step-2);
   font-weight: 600;
-  margin: 0 0 var(--space-10);
+  line-height: 1.25;
+  margin: 0;
 }
-.reco-cat ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-8); }
-.reco-cat li {
+.reco-cat__list { display: grid; gap: var(--space-8); }
+
+.reco-card {
   position: relative;
-  padding: var(--space-12) var(--space-16) var(--space-12) var(--space-32);
+  padding: var(--space-12) var(--space-16);
+  padding-left: calc(var(--space-16) + 3px);
   background: var(--c-surface);
   border: 1px solid var(--c-border-soft);
+  border-left: 3px solid var(--rc-accent);
   border-radius: var(--radius-m);
   font-size: var(--step-1);
   line-height: 1.5;
   color: var(--c-text-1);
 }
-.reco-cat li::before {
-  content: "";
-  position: absolute;
-  left: var(--space-16);
-  top: 1.15em;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--c-accent);
-}
+
 .reco-cat--mine {
-  padding-top: var(--space-16);
-  border-top: 1px solid var(--c-border-soft);
+  margin-top: var(--space-8);
+  padding-top: var(--space-20);
+  border-top: 1px dashed var(--c-border);
 }
-.reco-cat--mine .list { display: flex; flex-direction: column; }
+.reco-cat--mine .reco-cat__badge {
+  background: var(--c-accent-soft);
+  border-color: color-mix(in oklab, var(--c-accent) 45%, transparent);
+}
 .reco-empty {
-  padding: var(--space-12) var(--space-8);
+  padding: var(--space-16);
+  text-align: center;
   color: var(--c-text-2);
   font-size: var(--step-1);
+  background: var(--c-bg-1);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-m);
+}
+.reco-usercard { border-left: 3px solid var(--c-accent); }
+.reco-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
+  margin-top: var(--space-8);
+}
+.reco-chip {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step--1);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  color: var(--c-accent);
+  background: var(--c-accent-soft);
+  border: 1px solid color-mix(in oklab, var(--c-accent) 40%, transparent);
+}
+.reco-link {
+  font-size: var(--step-0);
+  font-weight: 500;
+  color: var(--c-accent);
+  text-decoration: none;
 }
 
 /* Coche de alquiler — bloques recogida / devolución */

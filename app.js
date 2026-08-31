@@ -1753,7 +1753,7 @@
      ========================================================== */
   const RECOS = [
     {
-      cat: '🌌 Experiencias que no te puedes perder',
+      ico: '🌌', tint: '168', cat: 'Experiencias que no te puedes perder',
       items: [
         'Auroras boreales: octubre es buena época. Busca noche despejada y aléjate de las luces del pueblo (mejor entre las 21:00 y las 02:00). Pronóstico en vedur.is (pestaña «Aurora») o apps tipo «My Aurora Forecast».',
         'Baños geotérmicos además de la Laguna Azul: Mývatn Nature Baths (norte, días 5-6), Sky Lagoon (Reikiavik) o las piscinas municipales de cualquier pueblo — baratísimas y muy locales; la de Hofsós tiene vistas al fiordo.',
@@ -1762,7 +1762,7 @@
       ]
     },
     {
-      cat: '📸 Paradas y desvíos que merecen la pena',
+      ico: '📸', tint: '232', cat: 'Paradas y desvíos que merecen la pena',
       items: [
         'Sur (días 2-3): cascadas Seljalandsfoss (se pasa por detrás) y Skógafoss, cráter Kerið, cañón Fjaðrárgljúfur y la Playa de los Diamantes junto a Jökulsárlón.',
         'Este (día 4): cañón Stuðlagil (columnas de basalto y río turquesa) y Vestrahorn / Stokksnes cerca de Höfn (montaña de postal sobre playa negra).',
@@ -1771,7 +1771,7 @@
       ]
     },
     {
-      cat: '🍽️ Para probar',
+      ico: '🍽️', tint: '75', cat: 'Para probar',
       items: [
         'Pylsa: el perrito caliente islandés, con cebolla crujiente y salsa remoulade (pídelo «eina með öllu», con todo).',
         'Langostino (humar) en Höfn, cordero islandés, sopa de cordero (kjötsúpa) y skyr.',
@@ -1780,7 +1780,7 @@
       ]
     },
     {
-      cat: '🧭 Consejos prácticos',
+      ico: '🧭', tint: '256', cat: 'Consejos prácticos',
       items: [
         'Ropa por capas + chubasquero y cortavientos impermeables. El tiempo cambia en minutos.',
         'Antes de conducir cada día: road.is (estado de carreteras) y vedur.is (tiempo y viento). Info y avisos en safetravel.is.',
@@ -1793,13 +1793,17 @@
     }
   ];
 
+  const RECO_CAT_ICO = { Ver: '👁️', Hacer: '🎯', Comer: '🍴', Comprar: '🛍️', Consejo: '💬', Otro: '📌' };
+
   function recoSummary(it) {
+    const chip = it.categoria
+      ? `<span class="reco-chip">${esc(RECO_CAT_ICO[it.categoria] || '')} ${esc(it.categoria)}</span>`
+      : '';
     const link = it.link
-      ? ` · <a href="${esc(it.link)}" target="_blank" rel="noopener">enlace</a>`
+      ? `<a class="reco-link" href="${esc(it.link)}" target="_blank" rel="noopener">Abrir enlace ›</a>`
       : '';
     return `<div class="item__title">${esc(it.texto || '')}</div>` +
-      (it.categoria ? `<div class="item__meta">${esc(it.categoria)}${link}</div>`
-        : (link ? `<div class="item__meta">${link}</div>` : ''));
+      ((chip || link) ? `<div class="reco-foot">${chip}${link}</div>` : '');
   }
 
   function renderReco() {
@@ -1808,29 +1812,44 @@
     body.innerHTML = '';
 
     RECOS.forEach(g => {
-      const sec = el('div', 'reco-cat');
-      sec.innerHTML = `<h3>${esc(g.cat)}</h3><ul>${g.items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+      const sec = el('section', 'reco-cat');
+      if (g.tint) sec.style.setProperty('--rc', g.tint);
+      sec.innerHTML =
+        `<div class="reco-cat__head">` +
+        `<span class="reco-cat__badge">${esc(g.ico || '•')}</span>` +
+        `<h3>${esc(g.cat)}</h3>` +
+        `</div>` +
+        `<div class="reco-cat__list">` +
+        g.items.map(t => `<div class="reco-card">${esc(t)}</div>`).join('') +
+        `</div>`;
       body.appendChild(sec);
     });
 
-    const mine = el('div', 'reco-cat reco-cat--mine');
-    const h = el('h3');
-    h.textContent = '✍️ Tus recomendaciones';
-    mine.appendChild(h);
+    const mine = el('section', 'reco-cat reco-cat--mine');
+    mine.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">✍️</span>` +
+      `<h3>Tus recomendaciones</h3>` +
+      `</div>`;
 
-    const list = el('div', 'list');
+    const list = el('div', 'reco-cat__list');
     if (!state.recomendaciones.length) {
       const e = el('p', 'reco-empty');
-      e.textContent = 'Apunta aquí cosas que te recomienden o que quieras hacer.';
+      e.textContent = 'Apunta aquí cosas que te recomienden o que quieras hacer durante el viaje.';
       list.appendChild(e);
     } else {
-      state.recomendaciones.forEach(it => list.appendChild(itemCard('recomendacion', it, recoSummary(it))));
+      state.recomendaciones.forEach(it => {
+        const c = itemCard('recomendacion', it, recoSummary(it));
+        c.classList.add('reco-usercard');
+        list.appendChild(c);
+      });
     }
     mine.appendChild(list);
 
-    const add = el('button', 'btn btn--ghost btn--block');
+    const add = el('button', 'btn btn--accent btn--block');
     add.type = 'button';
     add.textContent = '+ Añadir recomendación';
+    add.style.marginTop = 'var(--space-12)';
     add.addEventListener('click', () => openSheet('recomendacion'));
     mine.appendChild(add);
 
