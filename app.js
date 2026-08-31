@@ -101,7 +101,7 @@
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
-    vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: []
+    vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: []
   });
 
   // Vuelo de ida real (TAP, vía Lisboa) precargado en el primer arranque.
@@ -311,7 +311,8 @@
         alojamientos: p.alojamientos || [],
         excursiones: p.excursiones || [],
         comidas: p.comidas || [],
-        lugares: p.lugares || []
+        lugares: p.lugares || [],
+        recomendaciones: p.recomendaciones || []
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -332,8 +333,8 @@
     }, 150);
   }
 
-  const COL_OF  = { vuelo: 'vuelos', coche: 'coches', alojamiento: 'alojamientos', excursion: 'excursiones', comida: 'comidas', lugar: 'lugares' };
-  const KIND_OF = { vuelos: 'vuelo', coches: 'coche', alojamientos: 'alojamiento', excursiones: 'excursion', comidas: 'comida', lugares: 'lugar' };
+  const COL_OF  = { vuelo: 'vuelos', coche: 'coches', alojamiento: 'alojamientos', excursion: 'excursiones', comida: 'comidas', lugar: 'lugares', recomendacion: 'recomendaciones' };
+  const KIND_OF = { vuelos: 'vuelo', coches: 'coche', alojamientos: 'alojamiento', excursiones: 'excursion', comidas: 'comida', lugares: 'lugar', recomendaciones: 'recomendacion' };
 
   /* ==========================================================
      Lugares conocidos de Islandia (autocompletado + coordenadas)
@@ -378,6 +379,14 @@
   const SCHEMAS = {
     // Los vuelos usan un formulario propio (openFlightSheet) que admite escalas.
     vuelo: { sing: 'vuelo', icon: '✈️', fields: [] },
+    recomendacion: {
+      sing: 'recomendación', icon: '💡',
+      fields: [
+        { k: 'texto', l: 'Recomendación', t: 'textarea', req: true, ph: 'Ej.: Parar en el cañón Stuðlagil de camino a Egilsstaðir' },
+        { k: 'categoria', l: 'Categoría', t: 'select', opts: ['Ver', 'Hacer', 'Comer', 'Comprar', 'Consejo', 'Otro'], def: 'Hacer' },
+        { k: 'link', l: 'Enlace (opcional)', t: 'text', ph: 'https://…' }
+      ]
+    },
     coche: {
       sing: 'coche de alquiler', icon: '🚗',
       fields: [
@@ -864,7 +873,7 @@
 
   // Los datos del viaje (fechas, vuelos, coche, alojamientos, excursiones) son de
   // solo lectura. Solo "Dónde comer" y "Qué ver" admiten añadir / editar / eliminar.
-  const EDITABLE_COLS = ['comidas', 'lugares'];
+  const EDITABLE_COLS = ['comidas', 'lugares', 'recomendaciones'];
   const isSeed = it => String(it && it.id || '').startsWith('seed-');
 
   function metaCard() {
@@ -937,7 +946,7 @@
 
     // Solo se pueden editar/eliminar los elementos añadidos por el usuario
     // en "Dónde comer" y "Qué ver"; el resto es de solo lectura.
-    const canEdit = (kind === 'comida' || kind === 'lugar') && !isSeed(it);
+    const canEdit = (kind === 'comida' || kind === 'lugar' || kind === 'recomendacion') && !isSeed(it);
     if (canEdit) {
       const acts = el('div', 'item__acts');
       const edit = el('button', 'icon-btn');
@@ -1041,12 +1050,32 @@
 
   function cocheSummary(v) {
     const r = dtParts(v.recogida), d = dtParts(v.devolucion);
-    return `<div class="item__title">${esc(v.empresa || 'Coche')}${v.modelo ? ' · ' + esc(v.modelo) : ''}</div>
-      <div class="item__meta">Recogida: ${r.date ? fmtFecha(r.date, true) : '—'} ${r.time || ''}${v.recogidaLugar && v.recogidaLugar.texto ? '<br>' + esc(v.recogidaLugar.texto) : ''}</div>
-      <div class="item__meta">Devolución: ${d.date ? fmtFecha(d.date, true) : '—'} ${d.time || ''}${v.devolucionLugar && v.devolucionLugar.texto ? '<br>' + esc(v.devolucionLugar.texto) : ''}</div>
-      ${v.notas ? `<div class="item__meta">${escLines(v.notas)}</div>` : ''}
-      ${v.telefono ? `<div class="item__meta">Tel.: ${esc(v.telefono)}</div>` : ''}
-      ${(v.reserva || v.precio) ? `<div class="item__meta">${[v.reserva ? 'Reserva: ' + esc(v.reserva) : '', v.precio ? esc(v.precio) : ''].filter(Boolean).join(' · ')}</div>` : ''}`;
+    const dias = (v.recogida && v.devolucion)
+      ? Math.max(1, Math.round((new Date(v.devolucion) - new Date(v.recogida)) / 86400000))
+      : 0;
+
+    const when = (mod, lbl, dp, loc) =>
+      `<div class="coche-when ${mod}">` +
+      `<div class="coche-when__lbl">${lbl}</div>` +
+      `<div class="coche-when__val">${dp.date ? fmtFecha(dp.date, true) : '—'}${dp.time ? ' · ' + dp.time : ''}</div>` +
+      `${loc && loc.texto ? `<div class="coche-when__loc">${esc(loc.texto)}</div>` : ''}` +
+      `</div>`;
+
+    let html = `<div class="item__title">${esc(v.empresa || 'Coche')}${v.modelo ? ' · ' + esc(v.modelo) : ''}${dias ? ` <span class="prio prio--media">${dias} día${dias !== 1 ? 's' : ''}</span>` : ''}</div>`;
+    html += '<div class="coche-whens">' +
+      when('is-in', 'Recogida', r, v.recogidaLugar) +
+      when('is-out', 'Devolución', d, v.devolucionLugar) +
+      '</div>';
+
+    const metas = [];
+    if (v.reserva) metas.push('Reserva: ' + esc(v.reserva));
+    if (v.precio) metas.push(esc(v.precio));
+    if (v.franquicia) metas.push('Franquicia: ' + esc(v.franquicia));
+    if (v.telefono) metas.push('Tel.: ' + esc(v.telefono));
+    if (metas.length) html += `<div class="item__meta">${metas.join(' · ')}</div>`;
+
+    if (v.notas) html += `<details class="fly-bags" open><summary>ℹ️ Detalles y condiciones</summary><p>${esc(v.notas)}</p></details>`;
+    return html;
   }
   function excSummary(e) {
     return `<div class="item__title">${esc(e.nombre || 'Excursión')}</div>
@@ -1717,177 +1746,93 @@
   }
 
   /* ==========================================================
-     Pantalla: RESUMEN
+     Pantalla: RECOMENDACIONES
      ========================================================== */
-  function renderResumen() {
-    const pre = $('#resumen-text');
-    pre.textContent = buildText();
+  const RECOS = [
+    {
+      cat: '🌌 Experiencias que no te puedes perder',
+      items: [
+        'Auroras boreales: octubre es buena época. Busca noche despejada y aléjate de las luces del pueblo (mejor entre las 21:00 y las 02:00). Pronóstico en vedur.is (pestaña «Aurora») o apps tipo «My Aurora Forecast».',
+        'Baños geotérmicos además de la Laguna Azul: Mývatn Nature Baths (norte, días 5-6), Sky Lagoon (Reikiavik) o las piscinas municipales de cualquier pueblo — baratísimas y muy locales; la de Hofsós tiene vistas al fiordo.',
+        'Snorkel o buceo en Silfra (Þingvellir): flotar en agua glaciar transparente entre las placas tectónicas de América y Europa.',
+        'Excursión sobre glaciar: caminata con crampones o moto de nieve en Vatnajökull / Sólheimajökull.'
+      ]
+    },
+    {
+      cat: '📸 Paradas y desvíos que merecen la pena',
+      items: [
+        'Sur (días 2-3): cascadas Seljalandsfoss (se pasa por detrás) y Skógafoss, cráter Kerið, cañón Fjaðrárgljúfur y la Playa de los Diamantes junto a Jökulsárlón.',
+        'Este (día 4): cañón Stuðlagil (columnas de basalto y río turquesa) y Vestrahorn / Stokksnes cerca de Höfn (montaña de postal sobre playa negra).',
+        'Norte (días 5-6): zona de Mývatn — Dimmuborgir, cráter Hverfjall, fumarolas de Hverir, gruta caliente de Grjótagjá; y Dettifoss, la cascada más caudalosa de Europa.',
+        'Círculo Dorado, si te sobra un día desde Reikiavik: Þingvellir + Geysir + Gullfoss.'
+      ]
+    },
+    {
+      cat: '🍽️ Para probar',
+      items: [
+        'Pylsa: el perrito caliente islandés, con cebolla crujiente y salsa remoulade (pídelo «eina með öllu», con todo).',
+        'Langostino (humar) en Höfn, cordero islandés, sopa de cordero (kjötsúpa) y skyr.',
+        'Pan de centeno horneado bajo tierra con calor geotérmico (rúgbrauð) y kleinur de panadería.',
+        'Para valientes: hákarl (tiburón fermentado) con un chupito de Brennivín.'
+      ]
+    },
+    {
+      cat: '🧭 Consejos prácticos',
+      items: [
+        'Ropa por capas + chubasquero y cortavientos impermeables. El tiempo cambia en minutos.',
+        'Antes de conducir cada día: road.is (estado de carreteras) y vedur.is (tiempo y viento). Info y avisos en safetravel.is.',
+        'Reposta a menudo (N1, Olís, Orkan); en el este y el interior hay tramos largos sin gasolineras. Muchas son automáticas: lleva tarjeta con PIN.',
+        'El agua del grifo es excelente: no compres agua embotellada.',
+        'Se paga con tarjeta en todas partes. El alcohol solo se vende en tiendas Vínbúðin (caro y con horario corto).',
+        'En octubre hay unas 10 h de luz (amanece ~08:15, anochece ~18:45). Planifica las paradas con luz.',
+        'Nunca te salgas de las pistas marcadas con el coche: multas muy altas.'
+      ]
+    }
+  ];
 
-    const hasDates = state.meta.fechaInicio && state.meta.fechaFin;
-    const it = hasDates ? buildItinerary() : null;
-    const km = it ? it.days.reduce((s, d) => s + d.km, 0) : 0;
-    const nights = state.alojamientos.reduce(
-      (s, a) => s + Math.max(0, eachDay(a.checkin, a.checkout).length - 1), 0
-    );
-
-    const stats = $('#resumen-stats');
-    stats.innerHTML = '';
-    [
-      [it ? it.count : '—', 'días'],
-      [state.vuelos.length, 'vuelos'],
-      [nights, 'noches'],
-      [state.excursiones.length, 'excursiones'],
-      [state.lugares.length, 'lugares'],
-      [km ? Math.round(km) + ' km' : '—', 'trayecto est.']
-    ].forEach(([b, l]) => {
-      const s = el('div', 'stat');
-      s.innerHTML = `<b>${esc(String(b))}</b><span>${esc(l)}</span>`;
-      stats.appendChild(s);
-    });
+  function recoSummary(it) {
+    const link = it.link
+      ? ` · <a href="${esc(it.link)}" target="_blank" rel="noopener">enlace</a>`
+      : '';
+    return `<div class="item__title">${esc(it.texto || '')}</div>` +
+      (it.categoria ? `<div class="item__meta">${esc(it.categoria)}${link}</div>`
+        : (link ? `<div class="item__meta">${link}</div>` : ''));
   }
 
-  function buildText() {
-    const m = state.meta;
-    const L = [];
-    L.push((m.titulo || 'Viaje a Islandia').toUpperCase());
+  function renderReco() {
+    const body = $('#reco-body');
+    if (!body) return;
+    body.innerHTML = '';
 
-    if (m.fechaInicio && m.fechaFin) {
-      const it = buildItinerary();
-      L.push(`${fmtFecha(m.fechaInicio, true)} – ${fmtFecha(m.fechaFin, true)} · ${it.count} días`);
-      L.push('');
-      it.days.forEach(d => {
-        L.push(`── DÍA ${d.idx} · ${cap(fmtDiaSemana(d.date))} ${fmtFecha(d.date)} ──`);
-        if (!d.items.length) L.push('   (día libre)');
-        let prev = null;
-        d.items.forEach(i => {
-          if (i.loc && i.loc.lat != null && prev) {
-            const km = haversine(prev, i.loc);
-            if (km >= MIN_LEG_KM) L.push(`          ↳ ≈ ${fmtDur(driveEst(km))} · ${km.toFixed(0)} km`);
-          }
-          if (i.loc && i.loc.lat != null) prev = i.loc;
-          const h = (i.hora || '').padEnd(5, ' ');
-          L.push(`   ${i.hora ? h : '     '}  ${i.titulo}${i.sub ? '  — ' + i.sub : ''}`);
-        });
-        L.push('');
-      });
-      if (it.unassigned.length) {
-        L.push('── POR PLANIFICAR ──');
-        it.unassigned.forEach(i => L.push(`   • ${i.titulo}${i.sub ? '  — ' + i.sub : ''}`));
-        L.push('');
-      }
+    RECOS.forEach(g => {
+      const sec = el('div', 'reco-cat');
+      sec.innerHTML = `<h3>${esc(g.cat)}</h3><ul>${g.items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+      body.appendChild(sec);
+    });
+
+    const mine = el('div', 'reco-cat reco-cat--mine');
+    const h = el('h3');
+    h.textContent = '✍️ Tus recomendaciones';
+    mine.appendChild(h);
+
+    const list = el('div', 'list');
+    if (!state.recomendaciones.length) {
+      const e = el('p', 'reco-empty');
+      e.textContent = 'Apunta aquí cosas que te recomienden o que quieras hacer.';
+      list.appendChild(e);
     } else {
-      L.push('(Añade las fechas del viaje para generar el itinerario por días.)');
-      L.push('');
+      state.recomendaciones.forEach(it => list.appendChild(itemCard('recomendacion', it, recoSummary(it))));
     }
+    mine.appendChild(list);
 
-    const block = (title, arr, fn) => {
-      if (!arr.length) return;
-      L.push(title);
-      arr.forEach(fn);
-      L.push('');
-    };
+    const add = el('button', 'btn btn--ghost btn--block');
+    add.type = 'button';
+    add.textContent = '+ Añadir recomendación';
+    add.addEventListener('click', () => openSheet('recomendacion'));
+    mine.appendChild(add);
 
-    block('VUELOS', state.vuelos.slice().sort(itemSorter('vuelos')), v => {
-      const tr = v.tramos || [];
-      const a0 = tr[0] || {}, zN = tr[tr.length - 1] || {};
-      L.push(`   ${v.tipo || ''}: ${a0.origen || ''} → ${zN.destino || ''}${v.reserva ? `  ·  Reserva: ${v.reserva}` : ''}`);
-      tr.forEach((t, i) => {
-        const s = dtParts(t.salida), a = dtParts(t.llegada);
-        L.push(`     ${t.aerolinea || ''} ${t.numero || ''}${t.operadoPor ? ` (op. ${t.operadoPor})` : ''}${t.clase ? ` · ${t.clase}` : ''}`);
-        L.push(`       ${t.origen || ''}${t.origenTerminal ? ` T${t.origenTerminal}` : ''} ${s.date ? fmtFecha(s.date) : ''} ${s.time || ''}  →  ${t.destino || ''}${t.destinoTerminal ? ` T${t.destinoTerminal}` : ''} ${a.date ? fmtFecha(a.date) : ''} ${a.time || ''}${t.duracion ? `  (${t.duracion})` : ''}`);
-        if (i < tr.length - 1) {
-          const lay = layoverMin(t.llegada, tr[i + 1].salida);
-          L.push(`       -- escala${lay ? ' ' + fmtDur(lay) : ''} en ${t.destino || ''} --`);
-        }
-      });
-      if (v.antelacion) {
-        const mins = parseDurLoose(v.antelacion);
-        const st = dtParts(a0.salida).time;
-        L.push(`     Estar en el aeropuerto con ${v.antelacion} de antelación${mins != null && st ? ` (sobre las ${minusMin(st, mins)})` : ''}.`);
-      }
-      if (v.notas) L.push(`     ${v.notas}`);
-      if (v.equipaje) String(v.equipaje).split('\n').forEach(ln => L.push(ln ? '     ' + ln : ''));
-    });
-
-    block('COCHE DE ALQUILER', state.coches.slice().sort(itemSorter('coches')), v => {
-      const r = dtParts(v.recogida), d = dtParts(v.devolucion);
-      L.push(`   ${v.empresa || ''}${v.modelo ? ' — ' + v.modelo : ''}${v.reserva ? `  ·  Reserva: ${v.reserva}` : ''}`);
-      L.push(`     Recogida:  ${r.date ? fmtFecha(r.date) : '—'} ${r.time || ''}${v.recogidaLugar && v.recogidaLugar.texto ? ' · ' + v.recogidaLugar.texto : ''}`);
-      L.push(`     Devolución: ${d.date ? fmtFecha(d.date) : '—'} ${d.time || ''}${v.devolucionLugar && v.devolucionLugar.texto ? ' · ' + v.devolucionLugar.texto : ''}`);
-      if (v.precio) L.push(`     Precio: ${v.precio}`);
-      if (v.franquicia) L.push(`     Franquicia: ${v.franquicia}`);
-      if (v.telefono) L.push(`     Tel.: ${v.telefono}`);
-      if (v.notas) L.push(`     ${v.notas}`);
-    });
-
-    block('ALOJAMIENTOS', state.alojamientos.slice().sort(itemSorter('alojamientos')), a => {
-      L.push(`   ${a.nombre || ''} — ${a.loc && a.loc.texto || ''}`);
-      L.push(`     ${a.checkin ? fmtFecha(a.checkin) : '—'} → ${a.checkout ? fmtFecha(a.checkout) : '—'}${a.reserva ? `  ·  Reserva: ${a.reserva}` : ''}`);
-      if (a.notas) L.push(`     ${a.notas}`);
-    });
-
-    block('EXCURSIONES', state.excursiones.slice().sort(itemSorter('excursiones')), e => {
-      L.push(`   ${e.nombre || ''} — ${e.fecha ? fmtFecha(e.fecha) : 'sin fecha'} ${e.hora || ''}${e.duracion ? ` (${fmtDur(+e.duracion)})` : ''}`);
-      if (e.encuentro && e.encuentro.texto) L.push(`     Encuentro: ${e.encuentro.texto}`);
-      if (e.reserva) L.push(`     Reserva: ${e.reserva}`);
-      if (e.notas) L.push(`     ${e.notas}`);
-    });
-
-    block('DÓNDE COMER', state.comidas.slice().sort(itemSorter('comidas')), c => {
-      L.push(`   ${c.nombre || ''}${c.tipo ? ` (${c.tipo})` : ''} — ${c.loc && c.loc.texto || ''}${c.horario ? `  ·  ${c.horario}` : ''}${c.fecha ? `  ·  ${fmtFecha(c.fecha)}` : ''}`);
-    });
-
-    block('QUÉ VER', state.lugares.slice().sort((a, b) => (a.prioridad || '') < (b.prioridad || '') ? -1 : 1), l => {
-      L.push(`   ${l.nombre || ''} [${l.prioridad || 'Media'}]${l.visita ? ` — ${fmtDur(+l.visita)}` : ''}${l.fecha ? `  ·  ${fmtFecha(l.fecha)}` : ''}`);
-      if (l.loc && l.loc.texto) L.push(`     ${l.loc.texto}`);
-    });
-
-    L.push('— Generado con el planificador de viaje a Islandia —');
-    return L.join('\n');
+    body.appendChild(mine);
   }
-
-  $('#btn-copiar').addEventListener('click', async () => {
-    const text = $('#resumen-text').textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast('Itinerario copiado.');
-    } catch (e) {
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents($('#resumen-text'));
-      sel.removeAllRanges();
-      sel.addRange(range);
-      try {
-        document.execCommand('copy');
-        toast('Itinerario copiado.');
-      } catch (_) {
-        toast('No se pudo copiar automáticamente.');
-      }
-      sel.removeAllRanges();
-    }
-  });
-
-  $('#btn-compartir').addEventListener('click', async () => {
-    const text = $('#resumen-text').textContent;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: state.meta.titulo || 'Viaje a Islandia', text });
-      } catch (e) { /* cancelado */ }
-    } else {
-      toast('Compartir no está disponible en este navegador.');
-    }
-  });
-
-  $('#btn-descargar').addEventListener('click', () => {
-    const blob = new Blob([$('#resumen-text').textContent], { type: 'text/plain;charset=utf-8' });
-    const a = el('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (state.meta.titulo || 'viaje-islandia').replace(/[^\w\-]+/g, '_').toLowerCase() + '.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
 
   /* ==========================================================
      Ruta Google Maps
@@ -1905,7 +1850,7 @@
   /* ==========================================================
      Navegación por pestañas
      ========================================================== */
-  const SCREENS = ['datos', 'itinerario', 'mapas', 'resumen', 'ruta'];
+  const SCREENS = ['datos', 'itinerario', 'mapas', 'reco', 'ruta'];
 
   function showScreen(name) {
     if (!SCREENS.includes(name)) name = 'datos';
@@ -2080,7 +2025,7 @@
     renderDatos();
     renderItinerario();
     renderMapas();
-    renderResumen();
+    renderReco();
   }
 
   function initGazList() {
