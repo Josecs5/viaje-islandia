@@ -75,6 +75,23 @@
     const h = Math.floor(min / 60), m = min % 60;
     return m ? `${h} h ${m} min` : `${h} h`;
   }
+  // "2 h 30 min" / "2h30" / "90 min" -> minutos (o null)
+  function parseDurLoose(s) {
+    s = String(s || '');
+    const hm = s.match(/(\d+)\s*h[^0-9]*(\d+)?/i);
+    if (hm) return (+hm[1]) * 60 + (+(hm[2] || 0));
+    const mm = s.match(/(\d+)\s*m/i);
+    if (mm) return +mm[1];
+    const n = s.match(/^\s*(\d+)\s*$/);
+    return n ? +n[1] : null;
+  }
+  const minusMin = (hhmm, mins) => {
+    const [h, m] = String(hhmm).split(':').map(Number);
+    if (isNaN(h)) return '';
+    let t = h * 60 + m - mins;
+    t = ((t % 1440) + 1440) % 1440;
+    return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  };
 
   /* ==========================================================
      Estado
@@ -91,7 +108,16 @@
     id: 'seed-ida',
     tipo: 'Ida',
     reserva: '',
-    notas: '',
+    antelacion: '2 h 30 min',
+    equipaje: [
+      'Por persona (según tu reserva):',
+      '• 1 bolso pequeño 40×30×15 cm — debajo del asiento de delante.',
+      '• 1 maleta de mano — política TAP: 55×40×20 cm y máx. 8 kg (compartimento superior).',
+      '• 1 maleta facturada — política TAP: máx. 23 kg y 158 cm (largo+ancho+alto).',
+      '',
+      'Restricciones: líquidos de mano solo en envases ≤ 100 ml dentro de una bolsa transparente de 1 L. Power banks y cigarrillos electrónicos únicamente en cabina, nunca en la maleta facturada. Objetos punzantes o cortantes solo en la maleta facturada.'
+    ].join('\n'),
+    notas: 'Terminales: Madrid T2 · Lisboa T1 · Keflavík (terminal único). Equipaje facturado etiquetado hasta Keflavík.',
     tramos: [
       {
         aerolinea: 'TAP Air Portugal', numero: 'TP 1011', clase: 'Turista', operadoPor: '',
@@ -113,18 +139,27 @@
     id: 'seed-vuelta',
     tipo: 'Vuelta',
     reserva: '',
-    notas: 'Viaje total 10 h 05 min (1 escala en Londres). Equipaje por persona: 1 accesorio personal + 1 maleta de mano (25×45×56 cm) + 1 facturada (máx. 23 kg). Aeropuerto y horas de la conexión por confirmar.',
+    antelacion: '2 h 30 min',
+    equipaje: [
+      'Por persona (según tu reserva):',
+      '• 1 accesorio personal (tipo bolso, aprox. 40×30×15 cm) — debajo del asiento de delante.',
+      '• 1 pieza de equipaje de mano 25×45×56 cm — compartimento superior.',
+      '• 1 pieza de equipaje facturado — peso máximo 23 kg.',
+      '',
+      'Restricciones: líquidos de mano solo en envases ≤ 100 ml en una bolsa transparente de 1 L. Baterías externas y vapeadores únicamente en cabina, nunca facturados. Objetos cortantes solo en la maleta facturada. En el tramo con BA CityFlyer el espacio en cabina es limitado: podrían pedir facturar en puerta la maleta de mano.'
+    ].join('\n'),
+    notas: 'Viaje total 10 h 05 min (1 escala en Londres). Terminales: Keflavík (terminal único) · Londres-Heathrow T5 · Madrid T4 (por confirmar). El equipaje facturado va etiquetado hasta Madrid; en la escala solo hay que pasar de nuevo el control de seguridad. Aeropuerto y horas exactas de la conexión, por confirmar en el billete.',
     tramos: [
       {
         aerolinea: 'British Airways', numero: 'BA801', clase: 'Turista', operadoPor: '',
         origen: 'KEF', origenNombre: 'Reikiavik Keflavík', origenTerminal: '',
-        destino: 'LHR', destinoNombre: 'Londres Heathrow', destinoTerminal: '',
+        destino: 'LHR', destinoNombre: 'Londres Heathrow', destinoTerminal: '5',
         salida: '2026-10-16T10:30', llegada: '', duracion: ''
       },
       {
         aerolinea: 'British Airways', numero: 'BA3270', clase: 'Turista', operadoPor: 'BA CityFlyer',
-        origen: 'LHR', origenNombre: 'Londres Heathrow', origenTerminal: '',
-        destino: 'MAD', destinoNombre: 'Madrid Adolfo Suárez Barajas', destinoTerminal: '',
+        origen: 'LHR', origenNombre: 'Londres Heathrow', origenTerminal: '5',
+        destino: 'MAD', destinoNombre: 'Madrid Adolfo Suárez Barajas', destinoTerminal: '4',
         salida: '', llegada: '2026-10-16T22:35', duracion: ''
       }
     ]
@@ -240,12 +275,18 @@
 
   // Compatibilidad: vuelos antiguos de un solo tramo -> estructura con tramos[].
   function migrateVuelo(v) {
-    if (v && Array.isArray(v.tramos)) return v;
+    if (v && Array.isArray(v.tramos)) {
+      if (v.equipaje == null) v.equipaje = '';
+      if (v.antelacion == null) v.antelacion = '';
+      return v;
+    }
     v = v || {};
     return {
       id: v.id || uid(),
       tipo: v.tipo || 'Ida',
       reserva: v.reserva || '',
+      antelacion: v.antelacion || '',
+      equipaje: v.equipaje || '',
       notas: v.notas || '',
       tramos: [{
         aerolinea: v.aerolinea || '', numero: v.numero || '', clase: '', operadoPor: '',
@@ -644,6 +685,8 @@
     form.innerHTML = '';
     form.appendChild(selectField('tipo', 'Tipo', ['Ida', 'Vuelta'], data ? data.tipo : 'Ida', true));
     form.appendChild(textField('reserva', 'Localizador / reserva', data ? data.reserva : '', { mono: true }));
+    form.appendChild(textField('antelacion', 'Estar en el aeropuerto con', data ? data.antelacion : '', { ph: '2 h 30 min' }));
+    form.appendChild(textareaField('equipaje', 'Equipaje y restricciones', data ? data.equipaje : ''));
 
     const tramosWrap = el('div', 'tramos');
     form.appendChild(tramosWrap);
@@ -679,7 +722,15 @@
     if (!tramos.length) { toast('Añade al menos un tramo con datos.'); return; }
     if (!tramos[0].salida) { toast('El primer tramo necesita fecha y hora de salida.'); return; }
 
-    const obj = { id: id || uid(), tipo: val('tipo') || 'Ida', reserva: val('reserva'), notas: val('notas'), tramos };
+    const obj = {
+      id: id || uid(),
+      tipo: val('tipo') || 'Ida',
+      reserva: val('reserva'),
+      antelacion: val('antelacion'),
+      equipaje: val('equipaje'),
+      notas: val('notas'),
+      tramos
+    };
     if (id) {
       const i = state.vuelos.findIndex(x => x.id === id);
       state.vuelos[i] = obj;
@@ -960,8 +1011,14 @@
         html += `<div class="item__lay">↕ escala en ${esc(t.destino || '')}${lay ? ' · ' + fmtDur(lay) : ''}</div>`;
       }
     });
+    if (v.antelacion) {
+      const mins = parseDurLoose(v.antelacion);
+      const antesDe = (mins != null && s.time) ? ' — en el aeropuerto sobre las ' + minusMin(s.time, mins) : '';
+      html += `<div class="item__meta">⏱️ Estar en el aeropuerto con <b>${esc(v.antelacion)}</b> de antelación${antesDe}.</div>`;
+    }
     if (v.reserva) html += `<div class="item__meta">Reserva: ${esc(v.reserva)}</div>`;
     if (v.notas) html += `<div class="item__meta">${escLines(v.notas)}</div>`;
+    if (v.equipaje) html += `<details class="slot__notes" open><summary>🧳 Equipaje y restricciones</summary><p>${esc(v.equipaje)}</p></details>`;
     return html;
   }
 
@@ -1024,12 +1081,26 @@
       if (p.time) subBits.push('Sale ' + p.time + (a.origen ? ' ' + a.origen : ''));
       if (arr.time) subBits.push('llega ' + arr.time + (z.destino ? ' ' + z.destino : '') + (arr.date && arr.date !== p.date ? ' (' + fmtFecha(arr.date) + ')' : ''));
       if (escTxt.length) subBits.push('escala ' + escTxt.join(', '));
+
+      const antesMin = parseDurLoose(v.antelacion);
+      const enAeropuerto = (antesMin != null && p.time) ? minusMin(p.time, antesMin) : '';
+      if (enAeropuerto) subBits.push('en el aeropuerto ' + enAeropuerto);
+
+      const notasItin = [
+        enAeropuerto
+          ? `En el aeropuerto sobre las ${enAeropuerto} (${v.antelacion} antes de las ${p.time}).`
+          : (v.antelacion ? `Estar en el aeropuerto con ${v.antelacion} de antelación.` : ''),
+        a.origenTerminal ? `Salida por la Terminal ${a.origenTerminal} de ${a.origen}.` : '',
+        v.equipaje || ''
+      ].filter(Boolean).join('\n');
+
       const item = {
         t: 'vuelo',
         hora: p.time,
         sortT: p.time ? toMin(p.time) : 0,
         titulo: `${v.tipo || 'Vuelo'} · ${a.origen || ''} → ${z.destino || ''}`.trim(),
         sub: subBits.join(' · '),
+        notas: notasItin,
         loc: null,
         tag: 'Vuelo'
       };
@@ -1639,6 +1710,13 @@
           L.push(`       -- escala${lay ? ' ' + fmtDur(lay) : ''} en ${t.destino || ''} --`);
         }
       });
+      if (v.antelacion) {
+        const mins = parseDurLoose(v.antelacion);
+        const st = dtParts(a0.salida).time;
+        L.push(`     Estar en el aeropuerto con ${v.antelacion} de antelación${mins != null && st ? ` (sobre las ${minusMin(st, mins)})` : ''}.`);
+      }
+      if (v.notas) L.push(`     ${v.notas}`);
+      if (v.equipaje) String(v.equipaje).split('\n').forEach(ln => L.push(ln ? '     ' + ln : ''));
     });
 
     block('COCHE DE ALQUILER', state.coches.slice().sort(itemSorter('coches')), v => {
