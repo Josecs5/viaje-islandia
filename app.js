@@ -808,10 +808,6 @@
       ['comidas', 'Dónde comer', comidaSummary],
       ['lugares', 'Qué ver', lugarSummary]
     ].forEach(([col, label, sum]) => body.appendChild(groupEl(col, label, sum)));
-
-    const hint = el('p', 'datos-hint');
-    hint.textContent = 'El viaje está fijado. Solo puedes añadir sitios para comer y lugares que ver.';
-    body.appendChild(hint);
   }
 
   // Los datos del viaje (fechas, vuelos, coche, alojamientos, excursiones) son de
@@ -868,10 +864,6 @@
       add.textContent = '+ Añadir ' + SCHEMAS[kind].sing;
       add.addEventListener('click', () => openSheet(kind));
       bodyWrap.appendChild(add);
-    } else {
-      const lock = el('p', 'group__locked');
-      lock.textContent = '🔒 Parte del viaje — no editable';
-      bodyWrap.appendChild(lock);
     }
 
     head.addEventListener('click', () => {
@@ -949,29 +941,47 @@
     // [{cod, min}] para cada escala intermedia
     return tr.slice(0, -1).map((t, i) => ({ cod: t.destino || '', min: layoverMin(t.llegada, tr[i + 1].salida) }));
   }
+  const escLines = s => esc(s).split('\n').join('<br>');
+
   function vueloSummary(v) {
     const tr = v.tramos || [];
     const a = tr[0] || {}, z = tr[tr.length - 1] || {};
     const s = dtParts(a.salida), e = dtParts(z.llegada);
-    const nums = tr.map(t => t.numero).filter(Boolean).join(' · ');
-    const esc2 = vueloEscalas(tr)
-      .map(x => esc(x.cod) + (x.min ? ' ' + fmtDur(x.min) : ''))
-      .filter(Boolean);
-    return `<div class="item__title">${esc(v.tipo || 'Vuelo')} · <span class="mono">${esc(a.origen || '')}</span> → <span class="mono">${esc(z.destino || '')}</span></div>
-      <div class="item__meta">${esc(a.aerolinea || '')}${nums ? ' · ' + esc(nums) : ''}${tr.length > 1 ? ' · ' + tr.length + ' tramos' : ''}</div>
-      <div class="item__meta">${s.date ? fmtFecha(s.date) : '—'} ${s.time || ''} → ${e.time || ''}${e.date && e.date !== s.date ? ' (' + fmtFecha(e.date) + ')' : ''}${esc2.length ? ' · escala ' + esc2.join(', ') : ''}</div>`;
+    let html =
+      `<div class="item__title">${esc(v.tipo || 'Vuelo')} · <span class="mono">${esc(a.origen || '')}</span> → <span class="mono">${esc(z.destino || '')}</span></div>` +
+      `<div class="item__meta">${s.date ? fmtFecha(s.date, true) : '—'} · sale ${s.time || '—'} · llega ${e.time || '—'}${e.date && e.date !== s.date ? ' (' + fmtFecha(e.date) + ')' : ''}</div>`;
+    tr.forEach((t, i) => {
+      const ts = dtParts(t.salida), ta = dtParts(t.llegada);
+      html += `<div class="item__leg"><span class="mono">${esc(t.numero || '')}</span> ${esc(t.aerolinea || '')}${t.operadoPor ? ' · op. ' + esc(t.operadoPor) : ''}<br>` +
+        `${esc(t.origen || '')}${t.origenTerminal ? ' T' + esc(t.origenTerminal) : ''} ${ts.time || ''} → ${esc(t.destino || '')}${t.destinoTerminal ? ' T' + esc(t.destinoTerminal) : ''} ${ta.time || ''}` +
+        `${t.clase ? ' · ' + esc(t.clase) : ''}${t.duracion ? ' · ' + esc(t.duracion) : ''}</div>`;
+      if (i < tr.length - 1) {
+        const lay = layoverMin(t.llegada, tr[i + 1].salida);
+        html += `<div class="item__lay">↕ escala en ${esc(t.destino || '')}${lay ? ' · ' + fmtDur(lay) : ''}</div>`;
+      }
+    });
+    if (v.reserva) html += `<div class="item__meta">Reserva: ${esc(v.reserva)}</div>`;
+    if (v.notas) html += `<div class="item__meta">${escLines(v.notas)}</div>`;
+    return html;
   }
+
   function alojSummary(a) {
+    const noches = Math.max(0, eachDay(a.checkin, a.checkout).length - 1);
     return `<div class="item__title">${esc(a.nombre || 'Alojamiento')}</div>
-      <div class="item__meta">${locLine(a.loc)}</div>
-      <div class="item__meta">${a.checkin ? fmtFecha(a.checkin) : '—'} → ${a.checkout ? fmtFecha(a.checkout) : '—'}</div>`;
+      <div class="item__meta">${a.checkin ? fmtFecha(a.checkin, true) : '—'} → ${a.checkout ? fmtFecha(a.checkout, true) : '—'}${noches ? ' · ' + noches + ' noche' + (noches !== 1 ? 's' : '') : ''}</div>
+      <div class="item__meta">${locLine(a.loc)}${a.zona ? ' · ' + esc(a.zona) : ''}</div>
+      ${a.notas ? `<div class="item__meta">${escLines(a.notas)}</div>` : ''}
+      ${a.reserva ? `<div class="item__meta">Reserva: ${esc(a.reserva)}</div>` : ''}`;
   }
+
   function cocheSummary(v) {
     const r = dtParts(v.recogida), d = dtParts(v.devolucion);
     return `<div class="item__title">${esc(v.empresa || 'Coche')}${v.modelo ? ' · ' + esc(v.modelo) : ''}</div>
-      <div class="item__meta">Recogida: ${r.date ? fmtFecha(r.date) : '—'} ${r.time || ''}${v.recogidaLugar && v.recogidaLugar.texto ? ' · ' + esc(v.recogidaLugar.texto) : ''}</div>
-      <div class="item__meta">Devolución: ${d.date ? fmtFecha(d.date) : '—'} ${d.time || ''}${v.devolucionLugar && v.devolucionLugar.texto ? ' · ' + esc(v.devolucionLugar.texto) : ''}</div>
-      ${(v.reserva || v.precio) ? `<div class="item__meta">${[esc(v.reserva || ''), v.precio ? esc(v.precio) : ''].filter(Boolean).join(' · ')}</div>` : ''}`;
+      <div class="item__meta">Recogida: ${r.date ? fmtFecha(r.date, true) : '—'} ${r.time || ''}${v.recogidaLugar && v.recogidaLugar.texto ? '<br>' + esc(v.recogidaLugar.texto) : ''}</div>
+      <div class="item__meta">Devolución: ${d.date ? fmtFecha(d.date, true) : '—'} ${d.time || ''}${v.devolucionLugar && v.devolucionLugar.texto ? '<br>' + esc(v.devolucionLugar.texto) : ''}</div>
+      ${v.notas ? `<div class="item__meta">${escLines(v.notas)}</div>` : ''}
+      ${v.telefono ? `<div class="item__meta">Tel.: ${esc(v.telefono)}</div>` : ''}
+      ${(v.reserva || v.precio) ? `<div class="item__meta">${[v.reserva ? 'Reserva: ' + esc(v.reserva) : '', v.precio ? esc(v.precio) : ''].filter(Boolean).join(' · ')}</div>` : ''}`;
   }
   function excSummary(e) {
     return `<div class="item__title">${esc(e.nombre || 'Excursión')}</div>
@@ -1372,6 +1382,9 @@
   let map = null, dayLayer = null, mapData = null, selectedDay = 'all';
   let mapDirty = true, tileFallback = false;
 
+  // Límites aproximados de Islandia (con un pequeño margen).
+  const ISLANDIA_BOUNDS = [[62.9, -25.8], [67.6, -12.3]];
+
   function ensureMap() {
     if (map || typeof L === 'undefined') return;
     const elMap = document.getElementById('map');
@@ -1379,7 +1392,14 @@
     // quedaría roto. Se crea la primera vez que la pestaña es visible.
     if (!elMap || !elMap.clientHeight) return;
 
-    map = L.map('map', { zoomControl: true }).setView([64.9, -18.9], 6);
+    map = L.map('map', {
+      zoomControl: true,
+      minZoom: 5,
+      maxZoom: 17,
+      maxBounds: ISLANDIA_BOUNDS,
+      maxBoundsViscosity: 1,      // no deja arrastrar fuera de Islandia
+      worldCopyJump: false
+    }).fitBounds(ISLANDIA_BOUNDS);
 
     const carto = L.tileLayer('https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       subdomains: 'abcd',
@@ -1808,22 +1828,41 @@
   }
 
   /* ==========================================================
-     Instalación (Android / escritorio)
+     Cuenta atrás hasta la salida del avión
      ========================================================== */
-  let deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredPrompt = e;
-    $('#btn-install').hidden = false;
-  });
-  $('#btn-install').addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    $('#btn-install').hidden = true;
-  });
-  window.addEventListener('appinstalled', () => { $('#btn-install').hidden = true; });
+  function firstDeparture() {
+    let best = null;
+    state.vuelos.forEach(v => (v.tramos || []).forEach(t => {
+      if (t.salida && (!best || t.salida < best)) best = t.salida;
+    }));
+    return best; // 'YYYY-MM-DDTHH:MM' o null
+  }
+
+  function countdownStr(depStr) {
+    if (!depStr) return '';
+    const dep = new Date(depStr).getTime();
+    if (isNaN(dep)) return '';
+    const ms = dep - Date.now();
+    if (ms <= 0) return '¡Buen viaje!';
+    const d = Math.floor(ms / 86400000);
+    const h = Math.floor((ms % 86400000) / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    if (d >= 2) return d + ' días';
+    if (d === 1) return '1 día ' + h + ' h';
+    if (h >= 1) return h + ' h ' + m + ' min';
+    return m + ' min';
+  }
+
+  function updateCountdown() {
+    const box = $('#appbar-count');
+    if (!box) return;
+    const s = countdownStr(firstDeparture());
+    if (!s) { box.hidden = true; return; }
+    box.textContent = s === '¡Buen viaje!' ? '✈️ ¡Buen viaje!' : '✈️ ' + s;
+    const dp = dtParts(firstDeparture());
+    box.title = dp.date ? `Salida del vuelo: ${fmtFecha(dp.date, true)}, ${dp.time}` : 'Cuenta atrás para el viaje';
+    box.hidden = false;
+  }
 
   /* ==========================================================
      Arranque
@@ -1834,7 +1873,9 @@
     $('#appbar-sub').textContent = (m.fechaInicio && m.fechaFin)
       ? `${fmtFecha(m.fechaInicio)} – ${fmtFecha(m.fechaFin, true)}`
       : 'Sin fechas · añádelas en Datos';
+    updateCountdown();
   }
+  setInterval(updateCountdown, 60000);
 
   function renderAll() {
     paintAppbar();
