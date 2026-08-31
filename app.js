@@ -808,53 +808,25 @@
       ['lugares', 'Qué ver', lugarSummary]
     ].forEach(([col, label, sum]) => body.appendChild(groupEl(col, label, sum)));
 
-    const reset = el('button', 'btn btn--danger btn--block');
-    reset.type = 'button';
-    reset.textContent = 'Borrar todos los datos';
-    reset.style.marginTop = 'var(--space-16)';
-    reset.addEventListener('click', async () => {
-      if (await confirmAsk('Se borrará todo el viaje guardado en este dispositivo. ¿Continuar?')) {
-        state = blankState();
-        save();
-        renderAll();
-        toast('Datos borrados.');
-      }
-    });
-    body.appendChild(reset);
+    const hint = el('p', 'datos-hint');
+    hint.textContent = 'El viaje está fijado. Solo puedes añadir sitios para comer y lugares que ver.';
+    body.appendChild(hint);
   }
 
+  // Los datos del viaje (fechas, vuelos, coche, alojamientos, excursiones) son de
+  // solo lectura. Solo "Dónde comer" y "Qué ver" admiten añadir / editar / eliminar.
+  const EDITABLE_COLS = ['comidas', 'lugares'];
+  const isSeed = it => String(it && it.id || '').startsWith('seed-');
+
   function metaCard() {
-    const c = el('div', 'card meta-card');
-    c.innerHTML = `
-      <label class="field">
-        <span>Nombre del viaje</span>
-        <input type="text" id="meta-titulo" value="${esc(state.meta.titulo)}" maxlength="60">
-      </label>
-      <div class="field-2">
-        <label class="field"><span>Fecha de inicio</span><input type="date" id="meta-ini" value="${esc(state.meta.fechaInicio)}"></label>
-        <label class="field"><span>Fecha de fin</span><input type="date" id="meta-fin" value="${esc(state.meta.fechaFin)}"></label>
-      </div>`;
-    c.querySelector('#meta-titulo').addEventListener('input', e => {
-      state.meta.titulo = e.target.value;
-      save();
-      paintAppbar();
-    });
-    const ini = c.querySelector('#meta-ini');
-    const fin = c.querySelector('#meta-fin');
-    const onDate = () => {
-      state.meta.fechaInicio = ini.value;
-      state.meta.fechaFin = fin.value;
-      if (state.meta.fechaInicio && state.meta.fechaFin && state.meta.fechaFin < state.meta.fechaInicio) {
-        toast('La fecha de fin es anterior al inicio.');
-      }
-      save();
-      paintAppbar();
-      renderItinerario();
-      renderMapas();
-      renderResumen();
-    };
-    ini.addEventListener('change', onDate);
-    fin.addEventListener('change', onDate);
+    const c = el('div', 'card meta-card meta-card--ro');
+    const m = state.meta;
+    const rango = (m.fechaInicio && m.fechaFin)
+      ? `${fmtFecha(m.fechaInicio, true)} – ${fmtFecha(m.fechaFin, true)}`
+      : 'Sin fechas';
+    c.innerHTML =
+      `<div class="ro-line"><span class="ro-k">Viaje</span><span class="ro-v">${esc(m.titulo || 'Viaje a Islandia')}</span></div>` +
+      `<div class="ro-line"><span class="ro-k">Fechas</span><span class="ro-v">${esc(rango)}</span></div>`;
     return c;
   }
 
@@ -876,21 +848,30 @@
     const bodyWrap = el('div', 'group__body');
     bodyWrap.hidden = !isOpen;
 
+    const editable = EDITABLE_COLS.includes(col);
+
     const list = el('div', 'list');
     if (!items.length) {
       const e = el('div', 'empty');
-      e.textContent = 'Aún no has añadido nada aquí.';
+      e.textContent = editable ? 'Aún no has añadido nada aquí.' : 'Sin elementos.';
       list.appendChild(e);
     } else {
       items.slice().sort(itemSorter(col)).forEach(it => list.appendChild(itemCard(kind, it, summarize(it))));
     }
 
-    const add = el('button', 'btn btn--ghost btn--block');
-    add.type = 'button';
-    add.textContent = '+ Añadir ' + SCHEMAS[kind].sing;
-    add.addEventListener('click', () => openSheet(kind));
+    bodyWrap.appendChild(list);
 
-    bodyWrap.append(list, add);
+    if (editable) {
+      const add = el('button', 'btn btn--ghost btn--block');
+      add.type = 'button';
+      add.textContent = '+ Añadir ' + SCHEMAS[kind].sing;
+      add.addEventListener('click', () => openSheet(kind));
+      bodyWrap.appendChild(add);
+    } else {
+      const lock = el('p', 'group__locked');
+      lock.textContent = '🔒 Parte del viaje — no editable';
+      bodyWrap.appendChild(lock);
+    }
 
     head.addEventListener('click', () => {
       const willOpen = bodyWrap.hidden;
@@ -907,22 +888,28 @@
     const c = el('div', 'card item');
     const main = el('div', 'item__main');
     main.innerHTML = summaryHtml;
+    c.appendChild(main);
 
-    const acts = el('div', 'item__acts');
-    const edit = el('button', 'icon-btn');
-    edit.type = 'button';
-    edit.setAttribute('aria-label', 'Editar');
-    edit.textContent = '✎';
-    edit.addEventListener('click', () => openSheet(kind, it.id));
+    // Solo se pueden editar/eliminar los elementos añadidos por el usuario
+    // en "Dónde comer" y "Qué ver"; el resto es de solo lectura.
+    const canEdit = (kind === 'comida' || kind === 'lugar') && !isSeed(it);
+    if (canEdit) {
+      const acts = el('div', 'item__acts');
+      const edit = el('button', 'icon-btn');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Editar');
+      edit.textContent = '✎';
+      edit.addEventListener('click', () => openSheet(kind, it.id));
 
-    const del = el('button', 'icon-btn icon-btn--danger');
-    del.type = 'button';
-    del.setAttribute('aria-label', 'Eliminar');
-    del.textContent = '🗑';
-    del.addEventListener('click', () => removeItem(kind, it.id));
+      const del = el('button', 'icon-btn icon-btn--danger');
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Eliminar');
+      del.textContent = '🗑';
+      del.addEventListener('click', () => removeItem(kind, it.id));
 
-    acts.append(edit, del);
-    c.append(main, acts);
+      acts.append(edit, del);
+      c.appendChild(acts);
+    }
     return c;
   }
 
@@ -1194,9 +1181,10 @@
     const pts = day.items.filter(i => i.loc && i.loc.lat != null).map(i => i.loc);
     if (pts.length) {
       const row = el('div', 'day__actions');
-      const g = mapsLink('g', pts); g.textContent = 'Ruta · Google Maps';
-      const a = mapsLink('a', pts); a.textContent = 'Ruta · Apple Maps';
-      row.append(g, a);
+      const g = mapsLink('g', pts); g.textContent = 'Google Maps';
+      const a = mapsLink('a', pts); a.textContent = 'Apple Maps';
+      const w = mapsLink('w', pts); w.textContent = 'Waze';
+      row.append(g, a, w);
       wrap.appendChild(row);
     }
     return wrap;
@@ -1213,10 +1201,12 @@
       (it.sub ? `<div class="slot__sub">${esc(it.sub)}</div>` : '') +
       (it.notas ? `<details class="slot__notes"><summary>Info importante</summary><p>${esc(it.notas)}</p></details>` : '');
     if (it.loc && it.loc.lat != null) {
-      const go = mapsLink('g', [it.loc]);
-      go.className = 'slot__go';
-      go.textContent = 'Cómo llegar ›';
-      body.appendChild(go);
+      const nav = el('div', 'slot__nav');
+      const g = mapsLink('g', [it.loc]); g.className = 'slot__go'; g.textContent = 'Google Maps ›';
+      const a = mapsLink('a', [it.loc]); a.className = 'slot__go'; a.textContent = 'Apple Maps ›';
+      const w = mapsLink('w', [it.loc]); w.className = 'slot__go'; w.textContent = 'Waze ›';
+      nav.append(g, a, w);
+      body.appendChild(nav);
     }
     r.append(time, body);
     return r;
@@ -1246,13 +1236,21 @@
   }
 
   /* ==========================================================
-     Enlaces a Google / Apple Maps
+     Enlaces a Google Maps / Apple Maps / Waze
+     provider: 'g' = Google · 'a' = Apple · 'w' = Waze
      ========================================================== */
   function mapsLink(provider, pts) {
     const a = el('a', 'btn btn--ghost btn--sm');
     a.target = '_blank';
     a.rel = 'noopener';
     const P = (pts || []).filter(p => p && p.lat != null);
+
+    if (provider === 'w') {
+      // Waze no admite rutas con varias paradas: navega al destino final.
+      const d = P[P.length - 1] || P[0];
+      a.href = d ? `https://waze.com/ul?ll=${d.lat},${d.lng}&navigate=yes` : '#';
+      return a;
+    }
 
     if (provider === 'g') {
       if (P.length <= 1) {
@@ -1280,15 +1278,33 @@
      Pantalla: MAPAS
      ========================================================== */
   let map = null, dayLayer = null, mapData = null, selectedDay = 'all';
+  let mapDirty = true, tileFallback = false;
 
   function ensureMap() {
     if (map || typeof L === 'undefined') return;
+    const elMap = document.getElementById('map');
+    // No inicializar Leaflet en un contenedor oculto (tamaño 0): el mapa
+    // quedaría roto. Se crea la primera vez que la pestaña es visible.
+    if (!elMap || !elMap.clientHeight) return;
+
     map = L.map('map', { zoomControl: true }).setView([64.9, -18.9], 6);
-    L.tileLayer('https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+
+    const carto = L.tileLayer('https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       subdomains: 'abcd',
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    }).addTo(map);
+    });
+    let errs = 0;
+    carto.on('tileerror', () => {
+      if (tileFallback || ++errs < 5) return;
+      tileFallback = true;
+      map.removeLayer(carto);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+    });
+    carto.addTo(map);
     dayLayer = L.layerGroup().addTo(map);
   }
 
@@ -1316,8 +1332,23 @@
 
     if (selectedDay !== 'all' && !mapData.days.some(d => d.date === selectedDay)) selectedDay = 'all';
 
+    mapDirty = true;
+    refreshMap();
+  }
+
+  // Crea/redimensiona/redibuja el mapa. Seguro llamar en cualquier momento:
+  // si la pestaña está oculta no hace nada y se completa al mostrarla.
+  function refreshMap() {
+    const elMap = document.getElementById('map');
+    if (!elMap || !elMap.clientHeight || !mapData) return;
+    if (typeof L === 'undefined') {
+      elMap.innerHTML = '<p class="map-err">No se pudo cargar el mapa (Leaflet). Revisa la conexión y recarga la página.</p>';
+      return;
+    }
     ensureMap();
-    if (map) requestAnimationFrame(() => { map.invalidateSize(); drawSelection(); });
+    if (!map) return;
+    map.invalidateSize();
+    if (mapDirty) { drawSelection(); mapDirty = false; }
   }
 
   function chipBtn(key, label, disabled) {
@@ -1329,7 +1360,8 @@
     b.addEventListener('click', () => {
       selectedDay = key;
       $$('#map-days .chip').forEach(c => c.setAttribute('aria-pressed', String(c === b)));
-      drawSelection();
+      mapDirty = true;
+      refreshMap();
     });
     return b;
   }
@@ -1391,11 +1423,14 @@
     const locs = pts.map(p => p.loc);
     const g = mapsLink('g', locs);
     g.classList.remove('btn--sm');
-    g.textContent = selectedDay === 'all' ? 'Viaje · Google Maps' : 'Ruta del día · Google Maps';
+    g.textContent = selectedDay === 'all' ? 'Google Maps (viaje)' : 'Google Maps';
     const a = mapsLink('a', locs);
     a.classList.remove('btn--sm');
     a.textContent = 'Apple Maps';
-    actions.append(g, a);
+    const w = mapsLink('w', locs);
+    w.classList.remove('btn--sm');
+    w.textContent = 'Waze';
+    actions.append(g, a, w);
 
     pts.forEach(p => {
       const li = el('li', 'legend__item');
@@ -1587,8 +1622,11 @@
       if (tab) tab.setAttribute('aria-current', s === name ? 'page' : 'false');
     });
     if (name === 'mapas') {
-      ensureMap();
-      requestAnimationFrame(() => { if (map) map.invalidateSize(); renderMapas(); });
+      // La sección ya es visible: inicializa/redibuja tras el reflujo.
+      // Doble pasada (60 ms y 300 ms) para que Leaflet mida bien el contenedor.
+      renderMapas();
+      setTimeout(refreshMap, 60);
+      setTimeout(() => { if (map) map.invalidateSize(); }, 300);
     }
     window.scrollTo(0, 0);
     if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);

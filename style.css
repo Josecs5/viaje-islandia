@@ -277,6 +277,27 @@ main {
   margin-bottom: var(--space-10);
 }
 .meta-card { display: grid; gap: var(--space-12); margin-bottom: var(--space-16); }
+.meta-card--ro { gap: var(--space-8); }
+.ro-line { display: flex; gap: var(--space-12); align-items: baseline; }
+.ro-k {
+  flex-shrink: 0;
+  width: 68px;
+  font-size: var(--step-0);
+  color: var(--c-text-2);
+}
+.ro-v { font-family: var(--font-display); font-weight: 600; }
+
+.datos-hint {
+  margin-top: var(--space-12);
+  font-size: var(--step-0);
+  color: var(--c-text-2);
+  text-align: center;
+}
+.group__locked {
+  padding: var(--space-10) var(--space-8) var(--space-4);
+  font-size: var(--step--1);
+  color: var(--c-text-2);
+}
 
 .group {
   background: var(--c-bg-1);
@@ -551,9 +572,14 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.slot__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8) var(--space-16);
+  margin-top: var(--space-8);
+}
 .slot__go {
   display: inline-block;
-  margin-top: var(--space-6);
   font-size: var(--step-0);
   font-weight: 500;
   color: var(--c-accent);
@@ -614,6 +640,7 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   margin-bottom: var(--space-12);
 }
 .leaflet-container { background: var(--c-bg-1); font-family: var(--font-body); }
+.map-err { padding: var(--space-24); color: var(--c-text-2); font-size: var(--step-0); text-align: center; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--c-surface-2);
   color: var(--c-text);
