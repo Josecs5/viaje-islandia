@@ -9,6 +9,9 @@
      ========================================================== */
   const $  = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  // Adjunta un listener solo si el elemento existe (evita romper toda la app
+  // si el HTML en caché no coincide con este script).
+  const on = (sel, ev, fn) => { const n = $(sel); if (n) n.addEventListener(ev, fn); };
   const el = (tag, cls) => { const n = document.createElement(tag); if (cls) n.className = cls; return n; };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const pad2 = n => String(n).padStart(2, '0');
@@ -789,7 +792,7 @@
     showSheet();
   }
 
-  $('#sheet-form').addEventListener('submit', e => {
+  on('#sheet-form', 'submit', e => {
     e.preventDefault();
     if (!editing) return;
     const { kind, id } = editing;
@@ -1838,7 +1841,7 @@
      Ruta Google Maps
      ========================================================== */
   const RUTA_URL = 'https://maps.app.goo.gl/co4RMxLFR9xbP5eX7';
-  $('#ruta-copy').addEventListener('click', async () => {
+  on('#ruta-copy', 'click', async () => {
     try {
       await navigator.clipboard.writeText(RUTA_URL);
       toast('Enlace copiado.');
@@ -1916,7 +1919,7 @@
     });
   }
   $$('#confirm [data-cancel]').forEach(b => b.addEventListener('click', () => confirmResolve && confirmResolve(false)));
-  $('#confirm [data-ok]').addEventListener('click', () => confirmResolve && confirmResolve(true));
+  on('#confirm [data-ok]', 'click', () => confirmResolve && confirmResolve(true));
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -2030,11 +2033,18 @@
 
   function initGazList() {
     const dl = $('#gaz-list');
+    if (!dl) return;
     GAZ.forEach(g => { const o = el('option'); o.value = g.n; dl.appendChild(o); });
   }
 
-  initGazList();
-  renderAll();
-  showScreen(location.hash.slice(1) || 'datos');
+  try {
+    initGazList();
+    renderAll();
+    showScreen(location.hash.slice(1) || 'datos');
+  } catch (err) {
+    console.error('Error al iniciar:', err);
+    const b = document.getElementById('datos-body');
+    if (b) b.innerHTML = '<div class="notice">Ha ocurrido un error al cargar. Cierra la app del todo y vuelve a abrirla; si persiste, borra los datos del sitio en el navegador.</div>';
+  }
 
 })();

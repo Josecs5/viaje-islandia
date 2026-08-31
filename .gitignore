@@ -10,3 +10,6 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+node_modules/
+package*.json
