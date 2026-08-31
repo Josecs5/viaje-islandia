@@ -1,0 +1,12 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Herramientas de diseño (metadatos locales)
+.hallmark/
+
+# Editores
+.vscode/
+.idea/
+*.swp

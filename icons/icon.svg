@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Viaje a Islandia">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#121824"/>
+    </linearGradient>
+    <linearGradient id="aur" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3fe0a5"/>
+      <stop offset="1" stop-color="#37c8d6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <path d="M-20 190 C 110 120, 200 250, 320 180 S 520 150, 540 200 L 540 250 C 420 210, 320 300, 200 240 S 60 250, -20 240 Z"
+        fill="url(#aur)" opacity="0.85"/>
+  <path d="M0 440 L 150 300 L 300 440 Z" fill="#1e2634"/>
+  <path d="M212 440 L 360 292 L 512 440 Z" fill="#1e2634"/>
+  <path d="M150 440 L 262 328 L 374 440 Z" fill="#141a26"/>
+  <path d="M238 352 L 262 328 L 286 352 L 262 366 Z" fill="#e9f0f5"/>
+</svg>
