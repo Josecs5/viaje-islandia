@@ -345,8 +345,8 @@
         { k: 'recogida', l: 'Recogida (fecha y hora)', t: 'datetime-local', req: true },
         { k: 'devolucionLugar', l: 'Lugar de devolución', t: 'loc' },
         { k: 'devolucion', l: 'Devolución (fecha y hora)', t: 'datetime-local' },
-        { k: 'precio', l: 'Precio total', t: 'text', ph: '70 520 ISK' },
-        { k: 'franquicia', l: 'Franquicia / depósito', t: 'text', ph: '150 000 ISK' },
+        { k: 'precio', l: 'Precio total', t: 'text', ph: 'p. ej. 75 000 ISK' },
+        { k: 'franquicia', l: 'Franquicia / depósito', t: 'text', ph: 'p. ej. 250 000 ISK' },
         { k: 'telefono', l: 'Teléfono', t: 'text' },
         { k: 'notas', l: 'Notas', t: 'textarea' }
       ]
