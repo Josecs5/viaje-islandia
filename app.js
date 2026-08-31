@@ -1702,9 +1702,22 @@
   });
 
   /* ==========================================================
+     Ruta Google Maps
+     ========================================================== */
+  const RUTA_URL = 'https://maps.app.goo.gl/co4RMxLFR9xbP5eX7';
+  $('#ruta-copy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(RUTA_URL);
+      toast('Enlace copiado.');
+    } catch (e) {
+      toast('No se pudo copiar automáticamente.');
+    }
+  });
+
+  /* ==========================================================
      Navegación por pestañas
      ========================================================== */
-  const SCREENS = ['datos', 'itinerario', 'mapas', 'resumen'];
+  const SCREENS = ['datos', 'itinerario', 'mapas', 'resumen', 'ruta'];
 
   function showScreen(name) {
     if (!SCREENS.includes(name)) name = 'datos';
