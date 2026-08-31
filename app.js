@@ -67,6 +67,7 @@
     return 2 * R * Math.asin(Math.sqrt(s));
   }
   const driveEst = km => Math.round(km / 65 * 60) + 5; // minutos (aprox. carretera islandesa)
+  const MIN_LEG_KM = 1; // por debajo de esto no se muestra trayecto (mismo sitio / a pie)
 
   function fmtDur(min) {
     min = Math.round(min);
@@ -1122,7 +1123,10 @@
       let km = 0, prev = null;
       items.forEach(it => {
         if (it.loc && it.loc.lat != null) {
-          if (prev) km += haversine(prev, it.loc);
+          if (prev) {
+            const d = haversine(prev, it.loc);
+            if (d >= MIN_LEG_KM) km += d;
+          }
           prev = it.loc;
         }
       });
@@ -1258,7 +1262,8 @@
     let prevLoc = null;
     day.items.forEach(it => {
       if (it.loc && it.loc.lat != null && prevLoc) {
-        tl.appendChild(legRow(haversine(prevLoc, it.loc)));
+        const km = haversine(prevLoc, it.loc);
+        if (km >= MIN_LEG_KM) tl.appendChild(legRow(km));
       }
       if (it.loc && it.loc.lat != null) prevLoc = it.loc;
       tl.appendChild(slotRow(it));
@@ -1576,7 +1581,7 @@
         d.items.forEach(i => {
           if (i.loc && i.loc.lat != null && prev) {
             const km = haversine(prev, i.loc);
-            L.push(`          ↳ ≈ ${fmtDur(driveEst(km))} · ${km.toFixed(0)} km`);
+            if (km >= MIN_LEG_KM) L.push(`          ↳ ≈ ${fmtDur(driveEst(km))} · ${km.toFixed(0)} km`);
           }
           if (i.loc && i.loc.lat != null) prev = i.loc;
           const h = (i.hora || '').padEnd(5, ' ');
