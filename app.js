@@ -1133,8 +1133,63 @@
   }
 
   /* ==========================================================
+     Fotos de las zonas (Wikimedia Commons)
+     ========================================================== */
+  const normTxt = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const fotoURL = (file, w) =>
+    'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(file) + '?width=' + w;
+
+  // Orden = prioridad: primero los hitos/excursiones, luego pueblos y zonas.
+  const FOTOS = [
+    { k: ['cuevas de hielo', 'cueva de hielo', 'vatnajokull'], f: 'Ice Cave Explorer - Iceland.jpg', c: 'Cuevas de hielo del Vatnajökull' },
+    { k: ['laguna azul', 'blue lagoon'], f: 'Blue Lagoon with Þorbjörn, Iceland, 20230430 1626 3692.jpg', c: 'Laguna Azul' },
+    { k: ['jokulsarlon', 'sudursveit', 'laguna glaciar'], f: 'Jökulsárlón glacier lagoon, Iceland, 20240718 1620 2403.jpg', c: 'Laguna glaciar de Jökulsárlón' },
+    { k: ['gullfoss'], f: 'Gullfoss, an iconic waterfall of Iceland.jpg', c: 'Cascada de Gullfoss' },
+    { k: ['reynisfjara', 'reynisdrangar', 'vik i myrdal', 'myrdal'], f: 'Reynisfjara and Reynisdrangar, Iceland.jpg', c: 'Playa de Reynisfjara (Vík)' },
+    { k: ['skogafoss'], f: 'Skógafoss July 2014.JPG', c: 'Cascada de Skógafoss' },
+    { k: ['seljalandsfoss'], f: 'Seljalandsfoss - panoramio (7).jpg', c: 'Cascada de Seljalandsfoss' },
+    { k: ['godafoss'], f: 'Goðafoss July 2014.JPG', c: 'Cascada de Goðafoss' },
+    { k: ['myvatn'], f: 'Myvatn Iceland 01.jpg', c: 'Lago Mývatn' },
+    { k: ['seydisfjordur', 'egilsstadir', 'eyvindara'], f: 'Seyðisfjörður Sept 2019 1.jpg', c: 'Seyðisfjörður (junto a Egilsstaðir)' },
+    { k: ['husavik', 'ballenas', 'avistamiento'], f: 'Husavik Iceland 2005 1.JPG', c: 'Húsavík' },
+    { k: ['akureyri', 'brekkugata'], f: 'Overlooking Eyjafjörður from Hamrar (close).jpeg', c: 'Akureyri y el fiordo Eyjafjörður' },
+    { k: ['reikiavik', 'reykjavik', 'hallgrim', 'laugavegur', 'soleyjargata'], f: 'Hallgrímskirkja.jpeg', c: 'Reikiavik' },
+    { k: ['keflavik', 'reykjanes', 'grindavik', 'bernhard', 'vallargata'], f: 'Reykjanesviti, Reykjanes, Iceland, 20230430 1330 3606.jpg', c: 'Península de Reykjanes (Keflavík)' }
+  ];
+
+  function fotosDelDia(day) {
+    let blob = day.items.map(i => `${i.titulo} ${i.tag} ${i.sub} ${i.loc && i.loc.texto || ''}`).join(' ');
+    state.alojamientos.forEach(a => {
+      if (a.zona && eachDay(a.checkin, a.checkout).indexOf(day.date) > -1) blob += ' ' + a.zona;
+    });
+    blob = normTxt(blob);
+    const out = [];
+    for (const e of FOTOS) {
+      if (out.length >= 2) break;
+      if (out.some(o => o.f === e.f)) continue;
+      if (e.k.some(k => blob.indexOf(normTxt(k)) > -1)) out.push(e);
+    }
+    return out;
+  }
+
+  /* ==========================================================
      Pantalla: ITINERARIO
      ========================================================== */
+  let selectedItinDay = 'all';
+
+  function itinChip(key, label) {
+    const b = el('button', 'chip');
+    b.type = 'button';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', String(selectedItinDay === key));
+    b.addEventListener('click', () => {
+      if (selectedItinDay === key) return;
+      selectedItinDay = key;
+      renderItinerario();
+    });
+    return b;
+  }
+
   function renderItinerario() {
     const body = $('#itin-body');
     const sub = $('#itin-sub');
@@ -1149,9 +1204,17 @@
     const it = buildItinerary();
     sub.textContent = `${fmtFecha(state.meta.fechaInicio, true)} – ${fmtFecha(state.meta.fechaFin, true)} · ${it.count} día${it.count !== 1 ? 's' : ''}`;
 
-    it.days.forEach(day => body.appendChild(dayBlock(day)));
+    if (selectedItinDay !== 'all' && !it.days.some(d => d.date === selectedItinDay)) selectedItinDay = 'all';
 
-    if (it.unassigned.length) body.appendChild(unassignedBlock(it.unassigned));
+    const chips = el('div', 'chips chips--itin');
+    chips.appendChild(itinChip('all', 'Todos'));
+    it.days.forEach(d => chips.appendChild(itinChip(d.date, 'Día ' + d.idx)));
+    body.appendChild(chips);
+
+    const dias = selectedItinDay === 'all' ? it.days : it.days.filter(d => d.date === selectedItinDay);
+    dias.forEach(day => body.appendChild(dayBlock(day)));
+
+    if (selectedItinDay === 'all' && it.unassigned.length) body.appendChild(unassignedBlock(it.unassigned));
   }
 
   function dayBlock(day) {
@@ -1161,6 +1224,30 @@
       `<h3 class="day__date">${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3>` +
       `<span class="day__idx">Día ${day.idx}</span>`;
     wrap.appendChild(head);
+
+    const fotos = fotosDelDia(day);
+    if (fotos.length) {
+      const strip = el('div', 'day__fotos' + (fotos.length === 2 ? ' is-2' : ''));
+      fotos.forEach(ph => {
+        const fig = el('figure', 'day__foto');
+        const img = el('img');
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
+        img.alt = ph.c;
+        img.src = fotoURL(ph.f, 800);
+        img.addEventListener('error', () => {
+          fig.remove();
+          if (!strip.children.length) strip.remove();
+          else strip.classList.remove('is-2');
+        });
+        const cap = el('figcaption');
+        cap.textContent = ph.c;
+        fig.append(img, cap);
+        strip.appendChild(fig);
+      });
+      wrap.appendChild(strip);
+    }
 
     if (!day.items.length) {
       wrap.appendChild(notice('Día libre — sin actividades planificadas.'));
