@@ -28,6 +28,7 @@
     return new Date(y, m - 1, d, 12, 0, 0, 0);
   }
   const ymd = dt => `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+  const hoyYMD = () => ymd(new Date());
 
   function fmtFecha(s, long) {
     const dt = parseDate(s);
@@ -998,27 +999,34 @@
     const tr = v.tramos || [];
     const a = tr[0] || {}, z = tr[tr.length - 1] || {};
     const s = dtParts(a.salida), e = dtParts(z.llegada);
+
     let html =
       `<div class="item__title">${esc(v.tipo || 'Vuelo')} · <span class="mono">${esc(a.origen || '')}</span> → <span class="mono">${esc(z.destino || '')}</span></div>` +
-      `<div class="item__meta">${s.date ? fmtFecha(s.date, true) : '—'} · sale ${s.time || '—'} · llega ${e.time || '—'}${e.date && e.date !== s.date ? ' (' + fmtFecha(e.date) + ')' : ''}</div>`;
+      `<div class="fly-summary">${s.date ? fmtFecha(s.date, true) : '—'} · sale <b>${s.time || '—'}</b> · llega <b>${e.time || '—'}</b>${e.date && e.date !== s.date ? ' (' + fmtFecha(e.date) + ')' : ''}${tr.length > 1 ? ' · ' + tr.length + ' tramos' : ''}</div>`;
+
+    html += '<div class="fly-legs">';
     tr.forEach((t, i) => {
       const ts = dtParts(t.salida), ta = dtParts(t.llegada);
-      html += `<div class="item__leg"><span class="mono">${esc(t.numero || '')}</span> ${esc(t.aerolinea || '')}${t.operadoPor ? ' · op. ' + esc(t.operadoPor) : ''}<br>` +
-        `${esc(t.origen || '')}${t.origenTerminal ? ' T' + esc(t.origenTerminal) : ''} ${ts.time || ''} → ${esc(t.destino || '')}${t.destinoTerminal ? ' T' + esc(t.destinoTerminal) : ''} ${ta.time || ''}` +
-        `${t.clase ? ' · ' + esc(t.clase) : ''}${t.duracion ? ' · ' + esc(t.duracion) : ''}</div>`;
+      html += `<div class="fly-leg">` +
+        `<div class="fly-leg__head"><span class="mono">${esc(t.numero || '')}</span> · ${esc(t.aerolinea || '')}${t.operadoPor ? ' · op. ' + esc(t.operadoPor) : ''}${t.clase ? ' · ' + esc(t.clase) : ''}</div>` +
+        `<div class="fly-leg__route"><span>${esc(t.origen || '')}${t.origenTerminal ? ' <em>T' + esc(t.origenTerminal) + '</em>' : ''} ${ts.time || ''}</span><span class="fly-leg__arrow">→</span><span>${esc(t.destino || '')}${t.destinoTerminal ? ' <em>T' + esc(t.destinoTerminal) + '</em>' : ''} ${ta.time || ''}</span></div>` +
+        (t.duracion ? `<div class="fly-leg__dur">${esc(t.duracion)}</div>` : '') +
+        `</div>`;
       if (i < tr.length - 1) {
         const lay = layoverMin(t.llegada, tr[i + 1].salida);
-        html += `<div class="item__lay">↕ escala en ${esc(t.destino || '')}${lay ? ' · ' + fmtDur(lay) : ''}</div>`;
+        html += `<div class="fly-lay">↕ escala en ${esc(t.destino || '')}${lay ? ' · ' + fmtDur(lay) : ''}</div>`;
       }
     });
+    html += '</div>';
+
     if (v.antelacion) {
       const mins = parseDurLoose(v.antelacion);
-      const antesDe = (mins != null && s.time) ? ' — en el aeropuerto sobre las ' + minusMin(s.time, mins) : '';
-      html += `<div class="item__meta">⏱️ Estar en el aeropuerto con <b>${esc(v.antelacion)}</b> de antelación${antesDe}.</div>`;
+      const antesDe = (mins != null && s.time) ? `<br>Llega al aeropuerto sobre las <b>${minusMin(s.time, mins)}</b>.` : '';
+      html += `<div class="fly-alert">⏱️ Estar en el aeropuerto con <b>${esc(v.antelacion)}</b> de antelación.${antesDe}</div>`;
     }
-    if (v.reserva) html += `<div class="item__meta">Reserva: ${esc(v.reserva)}</div>`;
     if (v.notas) html += `<div class="item__meta">${escLines(v.notas)}</div>`;
-    if (v.equipaje) html += `<details class="slot__notes" open><summary>🧳 Equipaje y restricciones</summary><p>${esc(v.equipaje)}</p></details>`;
+    if (v.reserva) html += `<div class="item__meta">Reserva: ${esc(v.reserva)}</div>`;
+    if (v.equipaje) html += `<details class="fly-bags" open><summary>🧳 Equipaje y restricciones</summary><p>${esc(v.equipaje)}</p></details>`;
     return html;
   }
 
@@ -1242,12 +1250,16 @@
     { k: ['keflavik', 'reykjanes', 'grindavik', 'bernhard', 'vallargata'], f: 'Reykjanesviti, Reykjanes, Iceland, 20230430 1330 3606.jpg', c: 'Península de Reykjanes (Keflavík)' }
   ];
 
-  function fotosDelDia(day) {
+  function diaBlob(day) {
     let blob = day.items.map(i => `${i.titulo} ${i.tag} ${i.sub} ${i.loc && i.loc.texto || ''}`).join(' ');
     state.alojamientos.forEach(a => {
       if (a.zona && eachDay(a.checkin, a.checkout).indexOf(day.date) > -1) blob += ' ' + a.zona;
     });
-    blob = normTxt(blob);
+    return normTxt(blob);
+  }
+
+  function fotosDelDia(day) {
+    const blob = diaBlob(day);
     const out = [];
     for (const e of FOTOS) {
       if (out.length >= 2) break;
@@ -1255,6 +1267,76 @@
       if (e.k.some(k => blob.indexOf(normTxt(k)) > -1)) out.push(e);
     }
     return out;
+  }
+
+  /* ==========================================================
+     Recomendaciones de comer / comprar por zona
+     ========================================================== */
+  const RECS = [
+    {
+      z: 'Reikiavik',
+      k: ['reikiavik', 'reykjavik', 'hallgrim', 'laugavegur', 'soleyjargata'],
+      comer: ['Bæjarins Beztu Pylsur (los perritos más famosos)', 'Sægreifinn (sopa de langosta junto al puerto)', 'Brauð & Co o Sandholt (panaderías)', 'Messinn (pescado)'],
+      comprar: ['Calle Laugavegur (tiendas y souvenirs)', 'Handknitting Association of Iceland (jerséis lopapeysa)', '66°North (ropa técnica)', 'Bónus / Krónan (supermercados baratos)']
+    },
+    {
+      z: 'Vík í Mýrdal',
+      k: ['vik i myrdal', 'reynisfjara', 'myrdal'],
+      comer: ['Suður-Vík o Halldórskaffi (cocina casera)', 'Skool Beans (café en un autobús escolar)', 'Black Beach Restaurant (en Reynisfjara)'],
+      comprar: ['Icewear Vík / Víkurskáli (gran tienda de lana y souvenirs)', 'Supermercado Krónan de Vík']
+    },
+    {
+      z: 'Höfn y Jökulsárlón',
+      k: ['jokulsarlon', 'sudursveit', 'hofn', 'hoefn'],
+      comer: ['Cafetería del aparcamiento de Jökulsárlón (sopa y bocadillos)', 'Pakkhús u Otto Matur & Drykkur (langosta en Höfn, ~1 h)', 'Café de Þórbergssetur (Hali)'],
+      comprar: ['N1 de Höfn (gasolinera y tienda)', 'Nettó de Höfn', 'Tienda de Þórbergssetur']
+    },
+    {
+      z: 'Egilsstaðir y Seyðisfjörður',
+      k: ['egilsstadir', 'eyvindara', 'seydisfjordur'],
+      comer: ['Salt Café & Bistro o Nielsen Restaurant (Egilsstaðir)', 'Skálinn (diner clásico)', 'Skaftfell Bistro (Seyðisfjörður)'],
+      comprar: ['Bónus / Krónan de Egilsstaðir', 'Vínbúðin (tienda estatal de alcohol)']
+    },
+    {
+      z: 'Húsavík',
+      k: ['husavik', 'ballenas'],
+      comer: ['Gamli Baukur (pescado junto al puerto)', 'Salka o Naustið (marisco)', 'Heimabakarí (panadería-café)'],
+      comprar: ['Tiendas del puerto (souvenirs de ballenas)', 'Supermercado Krónan de Húsavík']
+    },
+    {
+      z: 'Akureyri',
+      k: ['akureyri', 'brekkugata'],
+      comer: ['Rub23 (sushi y fusión)', 'Strikið (con vistas al fiordo)', 'Brynja (heladería mítica)', 'Akureyri Fish & Chips'],
+      comprar: ['Calle Hafnarstræti (centro peatonal)', 'Nettó / Bónus', 'Vínbúðin']
+    },
+    {
+      z: 'Keflavík y Reykjanes',
+      k: ['keflavik', 'reykjanes', 'grindavik', 'bernhard', 'vallargata'],
+      comer: ['Library Bistro o Kaffi Duus (Keflavík)', 'Bryggjan (café junto al mar)'],
+      comprar: ['Nettó de Keflavík (supermercado)', 'Free shop del aeropuerto de Keflavík (a la salida)']
+    }
+  ];
+
+  function recsDelDia(day) {
+    const blob = diaBlob(day);
+    const out = [];
+    for (const r of RECS) {
+      if (out.length >= 2) break;
+      if (r.k.some(k => blob.indexOf(normTxt(k)) > -1)) out.push(r);
+    }
+    return out;
+  }
+
+  function recsBlock(day) {
+    const recs = recsDelDia(day);
+    if (!recs.length) return null;
+    const box = el('div', 'day__recs');
+    box.innerHTML = '<h4>Recomendaciones</h4>' + recs.map(r =>
+      `<div class="rec-zona">${esc(r.z)}</div>` +
+      `<p class="rec-line"><span>🍴</span> ${r.comer.map(esc).join(' · ')}</p>` +
+      `<p class="rec-line"><span>🛍️</span> ${r.comprar.map(esc).join(' · ')}</p>`
+    ).join('');
+    return box;
   }
 
   /* ==========================================================
@@ -1304,10 +1386,12 @@
 
   function dayBlock(day) {
     const wrap = el('section', 'day');
+    const esHoy = day.date === hoyYMD();
+    if (esHoy) wrap.classList.add('day--hoy');
     const head = el('div', 'day__head');
     head.innerHTML =
       `<h3 class="day__date">${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3>` +
-      `<span class="day__idx">Día ${day.idx}</span>`;
+      `<span class="day__idx">${esHoy ? '<b class="day__now">EN CURSO</b> · ' : ''}Día ${day.idx}</span>`;
     wrap.appendChild(head);
 
     const fotos = fotosDelDia(day);
@@ -1336,6 +1420,8 @@
 
     if (!day.items.length) {
       wrap.appendChild(notice('Día libre — sin actividades planificadas.'));
+      const rl = recsBlock(day);
+      if (rl) wrap.appendChild(rl);
       return wrap;
     }
 
@@ -1360,6 +1446,10 @@
       row.append(g, a, w);
       wrap.appendChild(row);
     }
+
+    const rl = recsBlock(day);
+    if (rl) wrap.appendChild(rl);
+
     return wrap;
   }
 
@@ -1921,7 +2011,7 @@
     const dep = new Date(depStr).getTime();
     if (isNaN(dep)) return '';
     const ms = dep - Date.now();
-    if (ms <= 0) return '¡Buen viaje!';
+    if (ms <= 0) return '';
     const d = Math.floor(ms / 86400000);
     const h = Math.floor((ms % 86400000) / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
@@ -1931,12 +2021,42 @@
     return m + ' min';
   }
 
+  // 'antes' | 'curso' | 'fin'
+  function tripStatus() {
+    const { fechaInicio, fechaFin } = state.meta;
+    if (!fechaInicio) return 'antes';
+    const hoy = hoyYMD();
+    if (fechaFin && hoy > fechaFin) return 'fin';
+    if (hoy >= fechaInicio) return 'curso';
+    return 'antes';
+  }
+
+  function diaActual() {
+    const { fechaInicio, fechaFin } = state.meta;
+    if (!fechaInicio) return 0;
+    const total = fechaFin ? eachDay(fechaInicio, fechaFin).length : 99;
+    return Math.min(total, eachDay(fechaInicio, hoyYMD()).length || 1);
+  }
+
   function updateCountdown() {
     const box = $('#appbar-count');
     if (!box) return;
+    const st = tripStatus();
+
+    if (st === 'fin') { box.hidden = true; box.classList.remove('is-live'); return; }
+
+    if (st === 'curso') {
+      box.textContent = '🟢 EN CURSO · Día ' + diaActual();
+      box.title = 'El viaje está en marcha';
+      box.classList.add('is-live');
+      box.hidden = false;
+      return;
+    }
+
+    box.classList.remove('is-live');
     const s = countdownStr(firstDeparture());
     if (!s) { box.hidden = true; return; }
-    box.textContent = s === '¡Buen viaje!' ? '✈️ ¡Buen viaje!' : '✈️ ' + s;
+    box.textContent = '✈️ ' + s;
     const dp = dtParts(firstDeparture());
     box.title = dp.date ? `Salida del vuelo: ${fmtFecha(dp.date, true)}, ${dp.time}` : 'Cuenta atrás para el viaje';
     box.hidden = false;

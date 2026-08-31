@@ -155,6 +155,16 @@ a { color: var(--c-accent); text-underline-offset: 2px; }
   border: 1px solid color-mix(in oklab, var(--c-accent) 45%, transparent);
 }
 .appbar__count[hidden] { display: none; }
+.appbar__count.is-live {
+  color: var(--c-accent-ink);
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  animation: livePulse 2.4s var(--ease-in-out) infinite;
+}
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--c-accent) 55%, transparent); }
+  50% { box-shadow: 0 0 0 5px transparent; }
+}
 
 /* ============================================================
    LAYOUT
@@ -368,20 +378,90 @@ main {
   margin-top: 2px;
   overflow-wrap: anywhere;
 }
-.item__leg {
+/* --- Ficha de vuelo (bloques separados) --- */
+.fly-summary {
   font-size: var(--step-1);
   color: var(--c-text-1);
-  line-height: 1.45;
-  margin-top: var(--space-8);
-  padding-left: var(--space-10);
-  border-left: 2px solid var(--c-border-soft);
+  margin-top: var(--space-6);
+  padding-bottom: var(--space-10);
+  border-bottom: 1px solid var(--c-border-soft);
 }
-.item__leg .mono { color: var(--c-accent); font-weight: 600; }
-.item__lay {
+.fly-summary b { color: var(--c-text); }
+.fly-legs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: var(--space-12) 0;
+}
+.fly-leg {
+  background: var(--c-bg-1);
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--radius-s);
+  padding: var(--space-10) var(--space-12);
+}
+.fly-leg__head {
   font-size: var(--step-0);
   color: var(--c-text-2);
-  margin: var(--space-4) 0 0 var(--space-10);
+  margin-bottom: var(--space-6);
 }
+.fly-leg__head .mono { color: var(--c-accent); font-weight: 600; }
+.fly-leg__route {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px var(--space-8);
+  font-size: var(--step-1);
+  font-weight: 500;
+}
+.fly-leg__route em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--c-info);
+}
+.fly-leg__arrow { color: var(--c-text-2); }
+.fly-leg__dur { margin-top: 3px; font-size: var(--step--1); color: var(--c-text-2); }
+.fly-lay {
+  align-self: center;
+  font-size: var(--step-0);
+  color: var(--c-text-2);
+  padding: 3px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--c-surface-2);
+}
+.fly-alert {
+  font-size: var(--step-1);
+  line-height: 1.45;
+  color: var(--c-text);
+  background: var(--c-accent-soft);
+  border: 1px solid color-mix(in oklab, var(--c-accent) 40%, transparent);
+  border-radius: var(--radius-s);
+  padding: var(--space-10) var(--space-12);
+  margin: var(--space-8) 0;
+}
+.fly-alert b { color: var(--c-accent); }
+.fly-bags { margin-top: var(--space-8); font-size: var(--step-1); }
+.fly-bags summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--c-text);
+  list-style: none;
+}
+.fly-bags summary::-webkit-details-marker { display: none; }
+.fly-bags summary::before { content: "▸ "; color: var(--c-text-2); }
+.fly-bags[open] summary::before { content: "▾ "; }
+.fly-bags p {
+  margin: var(--space-8) 0 0;
+  padding: var(--space-12);
+  background: var(--c-bg-1);
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--radius-s);
+  color: var(--c-text-1);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .item__acts { display: flex; gap: var(--space-6); flex-shrink: 0; }
 .pin { filter: grayscale(0.2); }
 
@@ -563,6 +643,53 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 }
 .day__actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-12); }
 .day__actions .btn { flex: 1 1 auto; }
+
+.day__now {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step--1);
+  letter-spacing: 0.04em;
+  color: var(--c-accent-ink);
+  background: var(--c-accent);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.day--hoy > .day__head { border-bottom-color: var(--c-accent); }
+.day--hoy > .day__head .day__date { color: var(--c-accent); }
+
+/* Recomendaciones por día */
+.day__recs {
+  margin-top: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  background: var(--c-bg-1);
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--radius-m);
+}
+.day__recs h4 {
+  margin: 0 0 var(--space-8);
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-2);
+}
+.rec-zona {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-1);
+  margin-top: var(--space-8);
+}
+.rec-zona:first-of-type { margin-top: 0; }
+.rec-line {
+  display: flex;
+  gap: var(--space-8);
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--c-text-1);
+  margin-top: var(--space-4);
+}
+.rec-line > span { flex-shrink: 0; }
 
 .timeline { display: flex; flex-direction: column; }
 .slot {
