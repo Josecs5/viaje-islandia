@@ -1793,6 +1793,76 @@
     }
   ];
 
+  /* Teléfonos importantes — pulsa para llamar. Ante cualquier duda: 112. */
+  const EMERGENCIAS = [
+    {
+      ico: '🚨', tint: '25', cat: 'Emergencias',
+      items: [
+        { l: 'Emergencia única (112)', tel: '112', d: 'Policía, ambulancia, bomberos y rescate en montaña. 24 h, atienden en inglés. Ante la duda, marca este número — funciona incluso sin saldo y con cualquier red disponible.' },
+        { l: 'App «112 Iceland»', d: 'Botón verde para pedir ayuda; envía tu posición GPS al equipo de rescate. Instálala antes de salir de excursión.' }
+      ]
+    },
+    {
+      ico: '🩺', tint: '168', cat: 'Salud',
+      items: [
+        { l: 'Línea de salud — consejo médico no urgente', tel: '1700', d: '24 h. Orientación sobre síntomas y a dónde acudir.' },
+        { l: 'Guardia médica (Læknavaktin)', tel: '1770', d: 'Área de Reikiavik: tardes, noches y fines de semana.' },
+        { l: 'Hospital Nacional — Landspítali (Reikiavik)', tel: '543 1000', d: 'Urgencias (Bráðamóttaka) en Fossvogur: 543 2000.' },
+        { l: 'Hospital de Akureyri', tel: '463 0100', d: 'Referencia para los días por el norte (Mývatn, días 5-6).' },
+        { l: 'Centro de información toxicológica', tel: '543 2222', d: 'Ingestas o exposiciones a sustancias tóxicas.' }
+      ]
+    },
+    {
+      ico: '🚗', tint: '256', cat: 'Carretera y conducción',
+      items: [
+        { l: 'Estado de las carreteras (Vegagerðin)', tel: '1777', d: 'Cortes, hielo y viento. También en road.is.' },
+        { l: 'Asistencia en carretera FÍB', tel: '511 2112', d: 'Grúa y averías. Mira también el teléfono 24 h de tu compañía de alquiler.' },
+        { l: 'Safetravel', tel: '570 5900', d: 'Información de seguridad para viajeros. Deja tu plan de ruta en safetravel.is.' }
+      ]
+    },
+    {
+      ico: '👮', tint: '232', cat: 'Policía y consulado',
+      items: [
+        { l: 'Policía — asuntos no urgentes', tel: '444 1000', d: 'Denuncias, objetos perdidos, robos sin peligro inmediato.' },
+        { l: 'Emergencia Consular de España (24 h)', tel: '+34 913 947 900', d: 'Para españoles en el extranjero: pérdida de pasaporte, detención, accidente grave.' },
+        { l: 'Embajada de España en Oslo', tel: '+47 22 92 66 90', d: 'España no tiene embajada en Islandia; la cobertura consular es desde Noruega. En Reikiavik hay Consulado Honorario.' }
+      ]
+    }
+  ];
+
+  function renderEmergencias(body) {
+    const lead = el('section', 'reco-cat emerg-lead');
+    lead.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">📞</span>` +
+      `<h3>Teléfonos importantes en Islandia</h3>` +
+      `</div>` +
+      `<p class="emerg-intro">Pulsa un número para llamar. El 112 cubre policía, sanitarios, bomberos y rescate.</p>`;
+    body.appendChild(lead);
+
+    EMERGENCIAS.forEach(g => {
+      const sec = el('section', 'reco-cat emerg-cat');
+      if (g.tint) sec.style.setProperty('--rc', g.tint);
+      sec.innerHTML =
+        `<div class="reco-cat__head">` +
+        `<span class="reco-cat__badge">${esc(g.ico || '•')}</span>` +
+        `<h3>${esc(g.cat)}</h3>` +
+        `</div>` +
+        `<div class="reco-cat__list">` +
+        g.items.map(it => {
+          const num = it.tel
+            ? `<a class="emerg-num" href="tel:${esc(it.tel.replace(/\s+/g, ''))}">${esc(it.tel)}</a>`
+            : '';
+          return `<div class="reco-card emerg-card">` +
+            `<div class="emerg-row"><span class="emerg-label">${esc(it.l)}</span>${num}</div>` +
+            (it.d ? `<p class="emerg-note">${esc(it.d)}</p>` : '') +
+            `</div>`;
+        }).join('') +
+        `</div>`;
+      body.appendChild(sec);
+    });
+  }
+
   const RECO_CAT_ICO = { Ver: '👁️', Hacer: '🎯', Comer: '🍴', Comprar: '🛍️', Consejo: '💬', Otro: '📌' };
 
   function recoSummary(it) {
@@ -1854,6 +1924,8 @@
     mine.appendChild(add);
 
     body.appendChild(mine);
+
+    renderEmergencias(body);
   }
 
   /* ==========================================================
