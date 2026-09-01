@@ -1375,6 +1375,17 @@
      Pantalla: ITINERARIO
      ========================================================== */
   let selectedItinDay = 'all';
+  // La primera vez que se pinta cada sección, si hoy cae dentro del viaje,
+  // se abre directamente ese día en vez de «Todos». Después el usuario manda.
+  let itinDayInit = false, mapDayInit = false;
+
+  // YMD de hoy si el viaje está en curso hoy; null en caso contrario.
+  function diaHoyYMD() {
+    const { fechaInicio, fechaFin } = state.meta;
+    if (!fechaInicio || !fechaFin) return null;
+    const hoy = hoyYMD();
+    return (hoy >= fechaInicio && hoy <= fechaFin) ? hoy : null;
+  }
 
   function itinChip(key, label) {
     const b = el('button', 'chip');
@@ -1402,6 +1413,12 @@
 
     const it = buildItinerary();
     sub.textContent = `${fmtFecha(state.meta.fechaInicio, true)} – ${fmtFecha(state.meta.fechaFin, true)} · ${it.count} día${it.count !== 1 ? 's' : ''}`;
+
+    if (!itinDayInit) {
+      itinDayInit = true;
+      const hoy = diaHoyYMD();
+      if (hoy && it.days.some(d => d.date === hoy)) selectedItinDay = hoy;
+    }
 
     if (selectedItinDay !== 'all' && !it.days.some(d => d.date === selectedItinDay)) selectedItinDay = 'all';
 
@@ -1628,6 +1645,12 @@
     }
     mapEl.style.display = '';
     mapData = buildItinerary();
+
+    if (!mapDayInit) {
+      mapDayInit = true;
+      const hoy = diaHoyYMD();
+      if (hoy && mapData.days.some(d => d.date === hoy)) selectedDay = hoy;
+    }
 
     chips.appendChild(chipBtn('all', 'Todo el viaje', false));
     mapData.days.forEach(d => {
