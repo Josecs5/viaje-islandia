@@ -6,7 +6,9 @@ comer y lugares que ver. Genera un **itinerario diario** automático: estima los
 carretera (factor de rodeo por región, sin conexión) y marca la **viabilidad de
 cada día** — horas de luz y horas al volante — con la hora recomendada de
 salida. Muestra el **recorrido de cada día en un mapa** (Leaflet +
-OpenStreetMap) y permite **exportar el resumen** como texto.
+OpenStreetMap) y permite **exportar el resumen** como texto. Incluye un
+**registro de gastos** en ISK y € con el tipo de cambio del día (BCE vía
+frankfurter.dev, cacheado, con ajuste manual) y un resumen por categoría.
 
 Todo se guarda en `localStorage` del navegador: los datos no salen del dispositivo.
 

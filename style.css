@@ -378,6 +378,50 @@ main {
   margin-top: 2px;
   overflow-wrap: anywhere;
 }
+
+/* --- Gastos (Dinero D1): resumen y filas --- */
+.gasto-resumen {
+  padding-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
+  border-bottom: 1px solid var(--c-border-soft);
+}
+.gasto-resumen__tot {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  margin: 0 0 var(--space-8);
+}
+.gasto-cat {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-12);
+  font-size: var(--step--1);
+  color: var(--c-text-2);
+  margin: 2px 0;
+}
+.fx-line {
+  margin: var(--space-12) 0 0;
+  font-size: var(--step--1);
+  color: var(--c-text-2);
+}
+.fx-line__rate {
+  width: 5.5em;
+  font: inherit;
+  color: var(--c-text-1);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-s);
+  padding: 2px 6px;
+}
+.gasto-amt { display: flex; gap: var(--space-8); align-items: baseline; flex-wrap: wrap; }
+.chip--cat {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--c-border-soft);
+  font-size: var(--step--1);
+  color: var(--c-text-2);
+}
+
 /* --- Ficha de vuelo (bloques separados) --- */
 .fly-summary {
   font-size: var(--step-1);

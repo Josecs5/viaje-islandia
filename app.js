@@ -997,6 +997,8 @@
     const bodyWrap = el('div', 'group__body');
     bodyWrap.hidden = !isOpen;
 
+    if (col === 'gastos') bodyWrap.appendChild(gastoResumen());
+
     const editable = EDITABLE_COLS.includes(col);
 
     const list = el('div', 'list');
@@ -1185,12 +1187,58 @@
       <div class="item__meta">${locLine(l.loc)}</div>
       <div class="item__meta">${l.visita ? fmtDur(+l.visita) + ' de visita' : ''} ${l.fecha ? '· ' + fmtFecha(l.fecha) : ''}</div>`;
   }
+  function gastoResumen() {
+    const box = el('div', 'gasto-resumen');
+
+    // Totales y desglose por categoría (todo en € para poder sumar monedas mixtas)
+    let totEUR = 0, totISK = 0;
+    const porCat = {};
+    state.gastos.forEach(g => {
+      const imp = +g.importe || 0;
+      totEUR += toEUR(imp, g.moneda);
+      totISK += toISK(imp, g.moneda);
+      const k = g.categoria || 'Otros';
+      porCat[k] = (porCat[k] || 0) + toEUR(imp, g.moneda);
+    });
+
+    const tot = el('p', 'gasto-resumen__tot');
+    tot.innerHTML = `Total ≈ <b>${fmtEUR(totEUR)}</b> · ${fmtISK(totISK)}`;
+    box.appendChild(tot);
+
+    Object.keys(porCat)
+      .filter(k => porCat[k] > 0.005)
+      .sort((a, b) => porCat[b] - porCat[a])
+      .forEach(k => {
+        const row = el('p', 'gasto-cat');
+        row.innerHTML = `<span>${esc(k)}</span><span>${fmtEUR(porCat[k])}</span>`;
+        box.appendChild(row);
+      });
+
+    // Línea de tipo de cambio (editable a mano)
+    const fx = state.fx || blankFx();
+    const etiqueta = fx.source === 'api' ? 'BCE ' + fmtFecha(fx.date)
+      : fx.source === 'manual' ? 'manual' : 'aprox.';
+    const line = el('p', 'fx-line');
+    line.innerHTML = `1 € = <input type="number" step="0.1" min="0" class="fx-line__rate" value="${(+fx.rate || 150).toFixed(1)}"> ISK <span class="muted">· ${esc(etiqueta)}</span>`;
+    line.querySelector('.fx-line__rate').addEventListener('change', ev => {
+      const v = +ev.target.value;
+      if (v > 0) {
+        state.fx = { rate: v, date: hoyYMD(), source: 'manual' };
+        save();
+        renderDatos();
+      }
+    });
+    box.appendChild(line);
+
+    return box;
+  }
+
   function gastoSummary(g) {
     const imp = +g.importe || 0;
     const propia = g.moneda === 'ISK' ? fmtISK(imp) : fmtEUR(imp);
     const otra = g.moneda === 'ISK' ? fmtEUR(toEUR(imp, 'ISK')) : fmtISK(toISK(imp, 'EUR'));
     return `<div class="item__title">${esc(g.concepto || 'Gasto')}</div>
-      <div class="item__meta">${g.fecha ? fmtFecha(g.fecha) : '—'} · <span class="chip chip--cat">${esc(g.categoria || 'Otros')}</span></div>
+      <div class="item__meta">${g.fecha ? fmtFecha(g.fecha) : '—'} · <span class="chip--cat">${esc(g.categoria || 'Otros')}</span></div>
       <div class="item__meta gasto-amt"><b>${propia}</b> <span class="muted">≈ ${otra}</span></div>
       ${g.notas ? `<div class="item__meta">${escLines(g.notas)}</div>` : ''}`;
   }
