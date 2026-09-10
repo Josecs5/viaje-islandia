@@ -5,6 +5,45 @@
 
 const SHELL_CACHE = 'shell-v13';
 const TILE_CACHE  = 'tiles-v1';
+const TILE_MAX = 300;
+
+// PNG transparente 1×1 para responder tiles cuando no hay red ni caché.
+const TRANSPARENT_PNG = Uint8Array.from(
+  atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
+  c => c.charCodeAt(0)
+);
+
+function isTile(url) {
+  return /(^|\.)tile\.openstreetmap\.org$/.test(url.hostname);
+}
+
+async function trimTileCache() {
+  const cache = await caches.open(TILE_CACHE);
+  const keys = await cache.keys();
+  if (keys.length <= TILE_MAX) return;
+  const excess = keys.slice(0, keys.length - TILE_MAX);
+  await Promise.all(excess.map(req => cache.delete(req)));
+}
+
+async function tileFetch(request) {
+  const cache = await caches.open(TILE_CACHE);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  try {
+    const res = await fetch(request);
+    // Leaflet pide los tiles sin CORS: la respuesta es opaca (status 0, ok false)
+    // pero se puede cachear. Los errores reales (basic/cors con ok false) no.
+    if (res && (res.ok || res.type === 'opaque')) {
+      try {
+        await cache.put(request, res.clone());
+        trimTileCache();
+      } catch (e) { /* quota u otro: se responde igualmente */ }
+    }
+    return res;
+  } catch (e) {
+    return new Response(TRANSPARENT_PNG, { headers: { 'Content-Type': 'image/png' } });
+  }
+}
 
 const SHELL_ASSETS = [
   './',
@@ -70,6 +109,12 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Tiles de OpenStreetMap: cache-first en tiles-v1, con tope y fallback.
+  if (isTile(url)) {
+    event.respondWith(tileFetch(request));
+    return;
+  }
+
   // Shell mismo origen: cache-first con fallback a red.
   if (url.origin === self.location.origin) {
     event.respondWith(
@@ -78,5 +123,5 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cross-origin (Nominatim, Wikimedia, tiles): sin interceptar por ahora.
+  // Cross-origin no-tile (Nominatim, Wikimedia): sin interceptar.
 });
