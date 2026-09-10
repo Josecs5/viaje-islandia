@@ -2346,15 +2346,17 @@
       setTimeout(() => { if (map) map.invalidateSize(); }, 300);
     }
     window.scrollTo(0, 0);
+    if (name === 'clima') refreshAurora();
     // La primera vez que se abre "Clima" con el viaje en curso, centra la
     // tarjeta de hoy (aquí, no en renderClima: allí la sección aún está oculta).
-    if (name === 'clima') refreshAurora();
+    // Se re-busca la tarjeta al disparar el timer: refreshAurora puede re-pintar
+    // Clima en medio y dejar huérfana una referencia capturada antes.
     if (name === 'clima' && !climaScrolled) {
-      const hoyCard = $('#clima-body .sky-card.day--hoy');
-      if (hoyCard) {
-        climaScrolled = true;
-        setTimeout(() => hoyCard.scrollIntoView({ block: 'center' }), 60);
-      }
+      climaScrolled = true;
+      setTimeout(() => {
+        const hoyCard = $('#clima-body .sky-card.day--hoy');
+        if (hoyCard) hoyCard.scrollIntoView({ block: 'center' });
+      }, 120);
     }
     if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   }
@@ -2780,14 +2782,17 @@
       c.appendChild(p);
     }
 
-    // Auroras (A2)
+    // Auroras (A2). Datos rancios o sin veredicto → atenuado; si no, realce por nivel.
     const a = auroraFor(s);
     const pa = skyLine('🌌', `auroras: ${esc(a.txt)}`);
-    if (a.level === 'alta') { pa.classList.add('sky-line--alert'); c.classList.add('sky-card--aurora'); }
-    else if (a.level === 'media') pa.classList.add('sky-line--warm');
-    if (!a.level || a.stale) {
+    if (a.stale || !a.level) {
       const sp = pa.querySelector('span:last-child');
       if (sp) sp.classList.add('is-dim');
+    } else if (a.level === 'alta') {
+      pa.classList.add('sky-line--alert');
+      c.classList.add('sky-card--aurora');
+    } else if (a.level === 'media') {
+      pa.classList.add('sky-line--warm');
     }
     c.appendChild(pa);
 
@@ -2837,15 +2842,25 @@
         auroraFetching = false;
         if (!pair) return;
         const [kpRaw, omRaw] = pair;
+        // Recorta las series a la ventana del viaje (± margen): evita guardar 16
+        // días de datos horarios por ubicación y re-parsearlos en cada render.
+        const t0 = Date.parse(state.meta.fechaInicio + 'T00:00:00Z') - 12 * 3600e3;
+        const t1 = Date.parse(state.meta.fechaFin + 'T00:00:00Z') + 36 * 3600e3;
+        const inTrip = iso => { const ms = Date.parse(iso); return ms >= t0 && ms <= t1; };
+
         const kp = (Array.isArray(kpRaw) ? kpRaw : [])
           .filter(x => x && x.time_tag && typeof x.kp === 'number')
-          .map(x => ({ t: x.time_tag + 'Z', kp: x.kp, pred: x.observed !== 'observed' }));
+          .map(x => ({ t: x.time_tag + 'Z', kp: x.kp, pred: x.observed !== 'observed' }))
+          .filter(x => inTrip(x.t));
         const results = Array.isArray(omRaw) ? omRaw : [omRaw];
-        const clouds = {};
+        // Parte de lo cacheado: si Open-Meteo no devuelve una ubicación, no se pierde su serie previa.
+        const clouds = Object.assign({}, (state.aurora && state.aurora.clouds) || {});
         results.forEach((res, i) => {
-          if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time)) return;
+          if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time) || !Array.isArray(res.hourly.cloud_cover)) return;
           const H = res.hourly;
-          clouds[locs[i].key] = H.time.map((t, j) => ({ t: t + 'Z', pct: H.cloud_cover[j] }));
+          clouds[locs[i].key] = H.time
+            .map((t, j) => ({ t: t + 'Z', pct: H.cloud_cover[j] }))
+            .filter(x => typeof x.pct === 'number' && inTrip(x.t));
         });
         state.aurora = { kp, clouds, fetched: new Date().toISOString() };
         save();
@@ -2886,17 +2901,22 @@
         const d = haversine({ lat: la, lng: lo }, s.loc);
         if (d < bestD) { bestD = d; best = k; }
       });
-      const arr = (A.clouds[best] || []).filter(x => {
-        const ms = Date.parse(x.t);
-        return ms >= ini && ms <= fin && typeof x.pct === 'number';
-      });
-      if (arr.length) cloudPct = Math.round(arr.reduce((s2, x) => s2 + x.pct, 0) / arr.length);
+      // Sin dato de nubes fiable si la clave más cercana está a > 40 km (p. ej.
+      // un alojamiento añadido después del último fetch): mejor callar que mentir.
+      if (bestD <= 40) {
+        const arr = (A.clouds[best] || []).filter(x => {
+          const ms = Date.parse(x.t);
+          return ms >= ini && ms <= fin && typeof x.pct === 'number';
+        });
+        if (arr.length) cloudPct = Math.round(arr.reduce((s2, x) => s2 + x.pct, 0) / arr.length);
+      }
     }
 
+    // Sin Kp no hay veredicto de auroras (las nubes solas no lo indican): level null.
     let level = null;
-    if (maxKp != null || cloudPct != null) {
-      if (maxKp != null && maxKp >= 3 && cloudPct != null && cloudPct <= 35 && s.darkWindow) level = 'alta';
-      else if ((maxKp != null && maxKp >= 3 && (cloudPct == null || cloudPct <= 65)) || (maxKp != null && maxKp >= 5)) level = 'media';
+    if (maxKp != null) {
+      if (maxKp >= 3 && cloudPct != null && cloudPct <= 35 && s.darkWindow) level = 'alta';
+      else if ((maxKp >= 3 && (cloudPct == null || cloudPct <= 65)) || maxKp >= 5) level = 'media';
       else level = 'baja';
     }
 

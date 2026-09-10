@@ -1256,9 +1256,9 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .sky-delta { color: var(--c-text-2); }
 .sky-delta--up { color: var(--c-accent); }
 .sky-line .is-dim { color: var(--c-text-2); }
-/* Auroras (A2) */
+/* Auroras (A2): 3 niveles de énfasis — atenuado (is-dim) < media (negrita) < alta (acento). */
 .sky-line--alert span:last-child { color: var(--c-accent); font-weight: 600; }
-.sky-line--warm span:last-child { color: var(--c-text-1); }
+.sky-line--warm span:last-child { color: var(--c-text); font-weight: 600; }
 .sky-card--aurora { border-color: color-mix(in oklab, var(--c-accent) 55%, var(--c-border-soft)); }
 .sky-card.day--hoy { border-color: var(--c-accent); }
 .sky-card.day--hoy .sky-card__head { color: var(--c-accent); }

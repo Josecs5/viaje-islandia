@@ -88,6 +88,14 @@ Promise.all([
   `renderClima()` sale a consola.
 - `2 h` de frescura evita reconsultar en cada `renderAll`/apertura de Clima.
 - Sin `toast` ni `console.error` en el fallo (offline se degrada solo).
+- Al normalizar, **se recortan `kp` y `clouds` a la ventana del viaje**
+  (`fechaInicio − 12 h … fechaFin + 36 h`): no guardar 16 días de datos horarios
+  por ubicación ni re-parsearlos en cada render.
+- El guard de la respuesta de Open-Meteo comprueba `Array.isArray(hourly.time)`
+  **y** `Array.isArray(hourly.cloud_cover)`; una ubicación sin nubes no impide
+  guardar el resto ni avanzar `fetched` (si no, se re-consultaría en bucle).
+- `clouds` se construye sobre lo ya cacheado (`Object.assign({}, prev, nuevo)`):
+  si Open-Meteo no devuelve una ubicación, no se pierde su serie anterior.
 
 ## 7. Cálculo por noche — `auroraFor(s)`
 
@@ -102,22 +110,28 @@ Promise.all([
    esa noche = `null` (fuera de previsión).
 3. **`cloudPct`**: media de `pct` de `clouds[keyMásCercana]` cuyas horas caen en la
    ventana. `keyMásCercana` = la clave de `clouds` con menor distancia a `s.loc`
-   (haversine sobre las lat/lng de la clave). Si no hay datos → `null`.
-4. **`level`**:
-   - `null` si `maxKp == null && cloudPct == null` (sin datos).
-   - `'alta'`  si `maxKp != null && maxKp >= 3 && cloudPct != null && cloudPct <= 35 && s.darkWindow`.
-   - `'media'` si `(maxKp != null && maxKp >= 3 && (cloudPct == null || cloudPct <= 65)) || (maxKp != null && maxKp >= 5)`.
-   - `'baja'`  en cualquier otro caso con al menos un dato.
+   (haversine sobre las lat/lng de la clave). Si esa distancia es **> 40 km** (p. ej.
+   un alojamiento añadido tras el último fetch) → `null` (no mentir con nubes de
+   otra ubicación). Si no hay datos → `null`.
+4. **`level`** — **solo hay veredicto si hay Kp** (las nubes solas no indican
+   auroras):
+   - `null` si `maxKp == null` (sin previsión de Kp esta noche, aunque haya nubes).
+   - `'alta'`  si `maxKp >= 3 && cloudPct != null && cloudPct <= 35 && s.darkWindow`.
+   - `'media'` si `(maxKp >= 3 && (cloudPct == null || cloudPct <= 65)) || maxKp >= 5`.
+   - `'baja'`  en otro caso con `maxKp != null`.
    (Islandia está a latitud magnética muy alta: con cielo despejado se ven auroras
    ya con Kp 2–3; el limitante real son las nubes.)
-5. **`txt`**:
-   - sin datos y día > 3 días desde hoy → `'previsión disponible ~3 días antes'`.
-   - sin datos y sin conexión / sin fetch → `'sin datos — mira vedur.is (Aurora)'`.
+5. **`txt`** (el código comprueba `!A.fetched` **antes** que `lejano`: sin conexión
+   es el dato más accionable):
+   - sin Kp y sin nubes, sin fetch → `'sin datos — mira vedur.is (Aurora)'`.
+   - sin Kp y sin nubes, con fetch y noche > 3 días desde hoy → `'previsión disponible ~3 días antes'`.
+   - sin Kp y sin nubes, con fetch y noche cercana → `'sin datos esta noche'`.
    - con Kp pero sin nubes → `Kp {maxKp}` + palabra.
-   - con nubes pero sin Kp → `nubes {cloudPct}% · Kp sin previsión`.
-   - completo → `Kp {maxKp1dec} · nubes {cloudPct}%` + palabra (`floja`/`posible`/`buena`/`fuerte`).
-6. **Antigüedad**: si `state.aurora.fetched` tiene > 18 h → añadir ` (hace {h} h)` y
-   marcar la línea atenuada (`is-dim`).
+   - con nubes pero sin Kp → `nubes {cloudPct}% · Kp sin previsión` (line atenuada: sin veredicto).
+   - completo → `Kp {maxKp1dec} · nubes {cloudPct}%` + palabra (`floja`/`posible`/`buena`).
+6. **Antigüedad**: si `state.aurora.fetched` tiene > 18 h → `stale=true`: añadir
+   ` (hace {h} h)` al texto y **atenuar la línea con prioridad sobre el nivel**
+   (una previsión «buena» rancia no debe salir en acento).
 
 `maxKp` se muestra con 1 decimal si no es entero (`5` / `4.3`).
 
@@ -128,22 +142,24 @@ Tras la línea de la luna (o de `moon.inDarkWindow`), añadir:
 ```js
 const a = auroraFor(s);
 const p = skyLine('🌌', `auroras: ${esc(a.txt)}`);
-if (a.level === 'alta') p.classList.add('sky-line--alert');
+if (a.stale || !a.level) p.querySelector('span:last-child').classList.add('is-dim');
+else if (a.level === 'alta') { p.classList.add('sky-line--alert'); c.classList.add('sky-card--aurora'); }
 else if (a.level === 'media') p.classList.add('sky-line--warm');
-else if (!a.level || a.stale) p.querySelector('span:last-child').classList.add('is-dim');
 c.appendChild(p);
 ```
 
-- `skyLine(icon, html)` ya existe (interpola `html` sin escapar → pasar `esc(a.txt)`).
-- Si `a.level === 'alta'`, además `c.classList.add('sky-card--aurora')` para un
-  realce del borde de la tarjeta (como `.day--hoy`).
+`stale` va **primero** (rancio siempre atenuado, sin importar el nivel). Las
+clases `--alert`/`--warm` y `is-dim` son mutuamente excluyentes, así que no hay
+choque de especificidad.
 
 ## 9. Estilos (`style.css`)
 
+3 niveles de énfasis aditivos sobre el color base de `.sky-line` (`--c-text`):
+
 - `.sky-line--alert span:last-child { color: var(--c-accent); font-weight: 600; }`
-- `.sky-line--warm span:last-child { color: var(--c-text-1); }`
+- `.sky-line--warm span:last-child { color: var(--c-text); font-weight: 600; }`  *(negrita, sin bajar el color)*
 - `.sky-card--aurora { border-color: color-mix(in oklab, var(--c-accent) 55%, var(--c-border-soft)); }`
-- `.sky-line .is-dim { color: var(--c-text-2); }` (si no existe ya una regla equivalente).
+- `.sky-line .is-dim { color: var(--c-text-2); }` — **ya existe** en `style.css`.
 
 Reutiliza `.sky-line`, `.sky-ic`, `.card`, `.sky-card`, tokens existentes.
 
