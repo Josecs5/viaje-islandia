@@ -2141,6 +2141,41 @@
     }
   ];
 
+  /* Supermercados baratos y ahorro en un país caro (Dinero D3). Datos
+     orientativos: los horarios cambian por tienda, se remite a la web oficial. */
+  const MERCADOS = {
+    intro: 'Bónus (el cerdito rosa) y Krónan son las dos cadenas baratas; el resto —Nettó, Samkaup, Kjörbúðin y sobre todo las tiendas de gasolinera— son más caras. Haz la compra grande en ciudad y lleva víveres para los tramos sin nada.',
+    bonus: 'Orientativo: Lun–Jue 11:00–18:30 · Vie 10:00–19:30 · Sáb 10:00–18:00 · Dom 12:00–18:00. Las tiendas de Reikiavik y Selfoss abren más; muchas de pueblo cierran a las 18:00. Confírmalo en bonus.is.',
+    kronan: 'Orientativo: casi todas 10:00–20:00 (alguna de Reikiavik 09:00–21:00). Suele abrir más tarde que Bónus y algún domingo más. Confírmalo en kronan.is.',
+    enRuta: [
+      'Reikiavik y alrededores: varias de las dos cadenas — haz aquí la compra grande (días 1 y 8-9).',
+      'Sur (días 2-3): Bónus y Krónan en Selfoss; Krónan en Vík; en Kirkjubæjarklaustur solo una tienda pequeña.',
+      'Sureste (día 4): Bónus y Nettó en Höfn.',
+      'Este (días 4-5): Bónus y Krónan en Egilsstaðir — última compra grande antes del norte.',
+      'Norte (días 5-6): Bónus, Krónan y Nettó en Akureyri; en Mývatn solo la tienda pequeña y cara de Reykjahlíð (Samkaup).',
+      'Oeste (día 7): Bónus y Nettó en Borgarnes, de vuelta a Reikiavik.'
+    ],
+    cierre: 'Regla general: el súper cierra pronto, y más pronto aún en pueblo y en domingo. Compra por la mañana o a mediodía; no cuentes con reponer de noche. Fuera de horario solo quedan las tiendas de gasolinera (N1, Olís), bastante más caras.'
+  };
+
+  const AHORRO = [
+    {
+      ico: '🛒', tint: '75', cat: 'Trucos para un país caro',
+      items: [
+        'Alcohol: compra en el Duty Free de Keflavík nada más aterrizar (hay límite de importación: ~1 L de licor + 0,75 L de vino + 3 L de cerveza, o combinaciones equivalentes). Fuera de ahí, solo en Vínbúðin (estatal, caro, cierra sobre las 18:00 y no abre domingos). En el bar se paga por copa.',
+        'Cocina: reserva alojamientos con cocina y desayuna del súper; un desayuno de hotel ronda 2.500–3.500 ISK por persona.',
+        'Comida caliente barata: pylsa (perrito, ~500 ISK) en cualquier gasolinera o en Bæjarins Beztu; sopa de cordero con pan y, a menudo, relleno gratis; mostrador caliente de los Krónan/Bónus grandes; panaderías (kleinur, snúður).',
+        'Gasolina: instala la app de N1, Olís, ÓB u Orkan para el descuento por litro; la de Costco (Reikiavik) suele ser la más barata. Paga siempre con tarjeta con PIN: muchas son automáticas y sin personal.',
+        'Tax-free: en compras de más de 6.000 ISK en una misma tienda, pide allí el formulario; sello y reembolso en el aeropuerto, antes de facturar.',
+        'Piscinas municipales (~1.000–1.300 ISK) con jacuzzis geotermales en casi todos los pueblos: la alternativa local y barata a los spa de pago.',
+        'Propinas: no se dejan, el servicio va incluido. Redondear es opcional y poco habitual.',
+        'Datos móviles: una eSIM o una SIM local (Nova, Síminn) suele salir mejor que el roaming; hay wifi en casi todos los alojamientos y gasolineras.',
+        'Aparcamiento en Reikiavik: zonas de pago P1–P4 entre semana (app «Parka» o «EasyPark»); gratis de noche y, según la zona, los domingos. Fuera del centro, gratis.',
+        'Free walking tour por Reikiavik (p. ej. CityWalk): sin precio fijo, propina voluntaria al final.'
+      ]
+    }
+  ];
+
   function renderEmergencias(body) {
     const lead = el('section', 'reco-cat emerg-lead');
     lead.innerHTML =
@@ -2169,6 +2204,41 @@
             (it.d ? `<p class="emerg-note">${esc(it.d)}</p>` : '') +
             `</div>`;
         }).join('') +
+        `</div>`;
+      body.appendChild(sec);
+    });
+  }
+
+  function renderMercados(body) {
+    const sup = el('section', 'reco-cat');
+    sup.style.setProperty('--rc', '145');
+    const cards = [
+      `<b>Bónus.</b> ${esc(MERCADOS.bonus)}`,
+      `<b>Krónan.</b> ${esc(MERCADOS.kronan)}`,
+      ...MERCADOS.enRuta.map(t => esc(t)),
+      `<b>Cierra pronto.</b> ${esc(MERCADOS.cierre)}`
+    ];
+    sup.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">🛒</span>` +
+      `<h3>Supermercados baratos: Bónus y Krónan</h3>` +
+      `</div>` +
+      `<p class="emerg-intro">${esc(MERCADOS.intro)}</p>` +
+      `<div class="reco-cat__list">` +
+      cards.map(c => `<div class="reco-card">${c}</div>`).join('') +
+      `</div>`;
+    body.appendChild(sup);
+
+    AHORRO.forEach(g => {
+      const sec = el('section', 'reco-cat');
+      if (g.tint) sec.style.setProperty('--rc', g.tint);
+      sec.innerHTML =
+        `<div class="reco-cat__head">` +
+        `<span class="reco-cat__badge">${esc(g.ico || '•')}</span>` +
+        `<h3>${esc(g.cat)}</h3>` +
+        `</div>` +
+        `<div class="reco-cat__list">` +
+        g.items.map(t => `<div class="reco-card">${esc(t)}</div>`).join('') +
         `</div>`;
       body.appendChild(sec);
     });
@@ -2236,6 +2306,7 @@
 
     body.appendChild(mine);
 
+    renderMercados(body);
     renderEmergencias(body);
   }
 

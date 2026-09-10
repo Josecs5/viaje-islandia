@@ -10,7 +10,8 @@ salida. Estima también el **coste de combustible** de cada día y del viaje
 **recorrido de cada día en un mapa** (Leaflet + OpenStreetMap) y permite
 **exportar el resumen** como texto. Incluye un **registro de gastos** en ISK y €
 con el tipo de cambio del día (BCE vía frankfurter.dev, cacheado, con ajuste
-manual) y un resumen por categoría.
+manual) y un resumen por categoría, y una guía rápida de **supermercados baratos
+(Bónus/Krónan)** y trucos para un país caro.
 
 Todo se guarda en `localStorage` del navegador: los datos no salen del dispositivo.
 
