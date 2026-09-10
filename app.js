@@ -88,6 +88,8 @@
   // Factores calibrados contra distancias reales de la Ruta 1 (la carretera de
   // circunvalación bordea la costa y cruza el puerto de Holtavörðuheiði, así que
   // rodea bastante más que la línea recta, sobre todo en el norte y el noroeste).
+  // Fuera del anillo el modelo se queda corto: Círculo Dorado, Snæfellsnes,
+  // penínsulas y pistas F (Þórsmörk, Landmannalaugar) no están calibrados.
   const ZONAS = [
     { name: 'suroeste',   lat: [63.80, 64.30], lng: [-22.70, -21.30], factor: 1.20 },
     { name: 'costa sur',  lat: [63.30, 64.30], lng: [-21.30, -16.00], factor: 1.15 },
@@ -1489,13 +1491,17 @@
     if (plan.veredicto) {
       const label = verdictLabel(plan);
       const bits = [];
-      if (plan.salirMin != null && plan.salirMin >= SALIDA_FLOOR_MIN - 120) {
+      // "Sal sobre las …" salvo que salga > 2 h antes del inicio (ahí el badge ya dice "no llegas").
+      if (plan.salirMin != null && plan.salirMin >= plan.inicioMin - 120) {
         bits.push('Sal sobre las <span class="mono">' + hhmmFromMin(plan.salirMin) + '</span>');
       }
-      if (plan.endMin != null) bits.push('fin ~<span class="mono">' + hhmmFromMin(plan.endMin) + '</span>');
+      if (plan.endMin != null && plan.endMin !== plan.inicioMin) {
+        bits.push('fin ~<span class="mono">' + hhmmFromMin(plan.endMin) + '</span>');
+      }
       // Las horas al volante solo si la etiqueta no lo dice ya.
       if (plan.drivingMin > 0 && plan.volante === 'ok') bits.push(fmtDur(plan.drivingMin) + ' al volante');
-      const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}"${!label ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
+      const aria = label || (plan.veredicto === 'verde' ? 'Día holgado' : 'Día ' + plan.veredicto);
+      const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}" aria-label="${esc(aria)}"${plan.veredicto === 'verde' ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
       const p = el('p', 'day-plan');
       p.innerHTML = verdict + (bits.length ? ' ' + bits.join(' · ') : '');
       wrap.appendChild(p);
@@ -2322,25 +2328,36 @@
      Conducción · B1 — Tiempos reales y viabilidad del día
      ========================================================== */
 
-  // Todo el cálculo va en minutos desde la medianoche en hora de Islandia
-  // (UTC+0, sin horario de verano). Los eventos (it.hora) están escritos en hora
-  // local de Islandia; los tiempos de SunCalc se leen con getUTC* (Islandia == UTC).
+  // Todo el cálculo va en minutos **continuos** desde la medianoche de day.date en
+  // hora de Islandia (UTC+0, sin horario de verano). Los eventos (it.hora) están
+  // escritos en hora local de Islandia; los tiempos de SunCalc son instantes
+  // absolutos y se convierten a minutos desde esa medianoche (puede pasar de 1440
+  // en las puestas de sol de junio, o ser negativo — a propósito, no se envuelve).
   // Así el veredicto es correcto independientemente de la zona del dispositivo.
+  const COSTE_POR_TIPO = { excursion: EXCURSION_MIN, lugar: LUGAR_MIN, comida: COMIDA_MIN };
+
   function anchorMin(it) {
-    if (!['excursion', 'vuelo', 'coche'].includes(it.t)) return null;
+    // Los vuelos no anclan: no se "conduce" hasta un avión, y su hora puede estar
+    // en la zona del aeropuerto de origen (ver dayPlan para el día de llegada).
+    if (!['excursion', 'coche'].includes(it.t)) return null;
     const m = String(it.hora || '').match(/^(\d{1,2}):(\d{2})$/);
     return m ? (+m[1]) * 60 + (+m[2]) : null;
   }
-  const utcMin = d => (isDate(d) ? d.getUTCHours() * 60 + d.getUTCMinutes() : null);
 
   function itemCost(it) {
-    return Number.isFinite(+it.costMin) ? +it.costMin : 0;
+    const c = +it.costMin;
+    if (Number.isFinite(c)) return c;
+    return COSTE_POR_TIPO[it.t] || 0;
   }
 
+  // Determinista dado el estado (lee state.meta, state.alojamientos vía sky(), y SunCalc).
   function dayPlan(day) {
     const sk = (typeof SunCalc !== 'undefined' && state.meta.fechaInicio) ? sky(day.date) : null;
+    // minutos continuos desde la medianoche de day.date en hora de Islandia
+    const midnight = Date.UTC(+day.date.slice(0, 4), +day.date.slice(5, 7) - 1, +day.date.slice(8, 10));
+    const minOn = d => (isDate(d) ? Math.round((d.getTime() - midnight) / 60000) : null);
 
-    const dawnMin = sk ? utcMin(sk.civilDawn) : null;
+    const dawnMin = sk ? minOn(sk.civilDawn) : null;
     const inicio = (dawnMin != null && dawnMin > SALIDA_FLOOR_MIN) ? dawnMin : SALIDA_FLOOR_MIN;
 
     let reloj = inicio;
@@ -2369,12 +2386,13 @@
     const salirMin = firstAnchor != null ? firstAnchor - tHastaAncla : null;
 
     let luz = null;
-    const sunsetMin = sk ? utcMin(sk.sunset) : null;
-    const duskMin = sk ? utcMin(sk.civilDusk) : null;
+    const sunsetMin = sk ? minOn(sk.sunset) : null;
+    const duskMin = sk ? minOn(sk.civilDusk) : null;
     if (sunsetMin != null) {
       if (missedAnchor) luz = 'pasa';
       else if (endMin <= sunsetMin - MARGEN_ATARDECER_MIN) luz = 'ok';
       else if (duskMin != null && endMin <= duskMin) luz = 'justo';
+      else if (duskMin == null) luz = 'ok';   // verano sin noche civil: no hay "de noche"
       else luz = 'pasa';
     }
 
@@ -2384,17 +2402,22 @@
     const rank = { ok: 0, justo: 1, largo: 1, pasa: 2, excesivo: 2 };
     let veredicto = ['verde', 'ambar', 'rojo'][Math.max(rank[luz || 'ok'], rank[volante])];
 
-    // Día de vuelo sin visitas (volar + trasladarse + dormir): no se juzga.
-    const esVuelo = day.items.some(x => x.t === 'vuelo');
-    const haySalida = day.items.some(x => x.t === 'lugar' || x.t === 'excursion');
-    if (esVuelo && !haySalida) veredicto = null;
-    if (!sk && volante === 'ok') veredicto = null;
+    if (missedAnchor) veredicto = 'rojo';                       // siempre rojo, aunque no haya sky
+    else if (!sk && volante === 'ok') veredicto = null;         // nada que decir sin luz ni volante
+    if (day.items.some(x => x.t === 'vuelo')) veredicto = null; // día de vuelo: no se juzga
+    if (!legs.length && firstAnchor == null && endMin === inicio) veredicto = null; // día sin nada
 
-    return { drivingMin, legs, salirMin, endMin, missedAnchor, luz, volante, veredicto };
+    // legs: [{km,min}] por tramo — no lo consume nadie aún; queda para B2/B3.
+    return { drivingMin, legs, salirMin, endMin, inicioMin: inicio, missedAnchor, luz, volante, veredicto };
   }
 
-  // Minutos desde medianoche → 'HH:MM' (envuelve a las 24 h por si el día pasa de medianoche).
-  const hhmmFromMin = m => (m == null ? '' : `${pad2(Math.floor(m / 60) % 24)}:${pad2(Math.round(m) % 60)}`);
+  // Minutos continuos desde medianoche → 'HH:MM' (con ' (+1 d)' si pasa de medianoche).
+  function hhmmFromMin(m) {
+    if (m == null) return '';
+    const t = Math.round(m);
+    const hhmm = `${pad2(Math.floor((t % 1440 + 1440) % 1440 / 60))}:${pad2(((t % 60) + 60) % 60)}`;
+    return t >= 1440 ? hhmm + ' (+1 d)' : hhmm;
+  }
 
   function verdictLabel(p) {
     if (p.veredicto === 'rojo') {
