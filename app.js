@@ -1501,7 +1501,7 @@
       // Las horas al volante solo si la etiqueta no lo dice ya.
       if (plan.drivingMin > 0 && plan.volante === 'ok') bits.push(fmtDur(plan.drivingMin) + ' al volante');
       const aria = label || (plan.veredicto === 'verde' ? 'Día holgado' : 'Día ' + plan.veredicto);
-      const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}" aria-label="${esc(aria)}"${plan.veredicto === 'verde' ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
+      const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}" role="img" aria-label="${esc(aria)}"${plan.veredicto === 'verde' ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
       const p = el('p', 'day-plan');
       p.innerHTML = verdict + (bits.length ? ' ' + bits.join(' · ') : '');
       wrap.appendChild(p);
@@ -2284,9 +2284,11 @@
 
   function sky(dateStr) {
     const loc = locForDate(dateStr);
-    const noon = parseDate(dateStr);
-    const prev = parseDate(dateStr); prev.setDate(prev.getDate() - 1);
-    const next = parseDate(dateStr); next.setDate(next.getDate() + 1);
+    // Mediodía UTC del día: Islandia es UTC+0, así SunCalc resuelve siempre los
+    // eventos solares del día correcto sea cual sea la zona horaria del dispositivo.
+    const [Y, Mo, Da] = dateStr.split('-').map(Number);
+    const utcNoon = off => new Date(Date.UTC(Y, Mo - 1, Da + off, 12, 0, 0));
+    const noon = utcNoon(0), prev = utcNoon(-1), next = utcNoon(1);
 
     const t = SunCalc.getTimes(noon, loc.lat, loc.lng);
     const tNext = SunCalc.getTimes(next, loc.lat, loc.lng);
@@ -2347,7 +2349,8 @@
   function itemCost(it) {
     const c = +it.costMin;
     if (Number.isFinite(c)) return c;
-    return COSTE_POR_TIPO[it.t] || 0;
+    const d = COSTE_POR_TIPO[it.t];
+    return typeof d === 'number' ? d : 0;
   }
 
   // Determinista dado el estado (lee state.meta, state.alojamientos vía sky(), y SunCalc).
