@@ -1682,6 +1682,52 @@
     return box;
   }
 
+  // Viento previsto (Open-Meteo) para las horas de conducción del día, en la zona
+  // de la pernocta. null si no hay dato o si la ráfaga máx. no llega a 45 km/h.
+  function windFor(day) {
+    const W = (state.meteo && state.meteo.wind) || {};
+    const keys = Object.keys(W);
+    if (!keys.length) return null;
+    const loc = locForDate(day.date);
+    let best = null, bestD = Infinity;
+    keys.forEach(k => {
+      const [la, lo] = k.split(',').map(Number);
+      const d = haversine({ lat: la, lng: lo }, loc);
+      if (d < bestD) { bestD = d; best = k; }
+    });
+    if (bestD > 40) return null;
+
+    const ini = Date.parse(day.date + 'T08:00:00Z');
+    const fin = Date.parse(day.date + 'T21:00:00Z');
+    let maxGust = null, maxSpd = null;
+    (W[best] || []).forEach(x => {
+      const ms = Date.parse(x.t);
+      if (ms < ini || ms > fin) return;
+      if (typeof x.gust === 'number' && (maxGust == null || x.gust > maxGust)) maxGust = x.gust;
+      if (typeof x.spd === 'number' && (maxSpd == null || x.spd > maxSpd)) maxSpd = x.spd;
+    });
+    if (maxGust == null || maxGust < 45) return null;
+
+    const g = Math.round(maxGust), v = maxSpd == null ? null : Math.round(maxSpd);
+    let level, txt;
+    if (maxGust < 65) {
+      level = 'info';
+      txt = `viento ${v != null ? v + ' km/h, ' : ''}rachas ${g}`;
+    } else if (maxGust < 90) {
+      level = 'aviso';
+      txt = `rachas ${g} km/h — abre las puertas del coche agarrándolas con fuerza`;
+    } else {
+      level = 'fuerte';
+      txt = `rachas ${g} km/h — puertas con las dos manos; ojo en puentes, altos y tramos de grava; mal día para tienda de campaña o F-roads`;
+    }
+    const stale = !!(state.meteo && state.meteo.fetched) && (Date.now() - Date.parse(state.meteo.fetched)) > 18 * 3600e3;
+    if (stale) {
+      const h = Math.round((Date.now() - Date.parse(state.meteo.fetched)) / 3600e3);
+      txt += ` (hace ${h} h)`;
+    }
+    return { txt, level, stale };
+  }
+
   function dayBlock(day) {
     const wrap = el('section', 'day');
     const esHoy = day.date === hoyYMD();
@@ -1720,6 +1766,16 @@
       const litTxt = fe.litros.toLocaleString('es-ES', { maximumFractionDigits: fe.litros < 10 ? 1 : 0 });
       pf.innerHTML = `⛽ ~<span>${litTxt} L</span> · ${fmtISK(fe.isk)} <span class="muted">· ≈ ${fmtEUR(fe.eur)}</span>`;
       wrap.appendChild(pf);
+    }
+
+    const w = windFor(day);
+    if (w) {
+      const pw = el('p', 'day-wind');
+      if (w.level === 'aviso') pw.classList.add('day-wind--aviso');
+      else if (w.level === 'fuerte') pw.classList.add('day-wind--fuerte');
+      if (w.stale || w.level === 'info') pw.classList.add('is-dim');
+      pw.innerHTML = `💨 ${esc(w.txt)}`;
+      wrap.appendChild(pw);
     }
 
     const fotos = fotosDelDia(day);

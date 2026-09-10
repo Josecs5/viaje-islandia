@@ -716,6 +716,15 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   color: var(--c-text-2);
   margin: var(--space-4) 0 0;
 }
+/* Aviso de viento del día (A3) */
+.day-wind {
+  font-size: var(--step--1);
+  color: var(--c-text-2);
+  margin: var(--space-4) 0 0;
+}
+.day-wind.is-dim { color: var(--c-text-2); }
+.day-wind--aviso { color: var(--c-warning); }
+.day-wind--fuerte { color: var(--c-danger); font-weight: 600; }
 .itin-fuel {
   background: var(--c-surface);
   border: 1px solid var(--c-border-soft);

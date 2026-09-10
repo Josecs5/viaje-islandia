@@ -6,7 +6,9 @@ comer y lugares que ver. Genera un **itinerario diario** automático: estima los
 carretera (factor de rodeo por región, sin conexión) y marca la **viabilidad de
 cada día** — horas de luz y horas al volante — con la hora recomendada de
 salida. Estima también el **coste de combustible** de cada día y del viaje
-(consumo y precio del litro ajustables) y permite anotarlo como gasto. Muestra el
+(consumo y precio del litro ajustables) y permite anotarlo como gasto, y avisa
+del **viento** por día (ráfagas de Open-Meteo) con la acción concreta —puertas
+del coche, puentes, tiendas, F-roads. Muestra el
 **recorrido de cada día en un mapa** (Leaflet + OpenStreetMap) y permite
 **exportar el resumen** como texto. Incluye un **registro de gastos** en ISK y €
 con el tipo de cambio del día (BCE vía frankfurter.dev, cacheado, con ajuste
