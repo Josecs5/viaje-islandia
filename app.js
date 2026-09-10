@@ -1978,7 +1978,7 @@
   /* ==========================================================
      Navegación por pestañas
      ========================================================== */
-  const SCREENS = ['datos', 'itinerario', 'mapas', 'reco', 'ruta'];
+  const SCREENS = ['datos', 'itinerario', 'mapas', 'reco', 'clima'];
 
   function showScreen(name) {
     if (!SCREENS.includes(name)) name = 'datos';
