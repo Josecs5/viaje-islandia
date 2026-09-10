@@ -145,11 +145,12 @@
   const STORE_KEY = 'islandia_trip_v1';
 
   const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
+  const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel' });
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx()
+    gastos: [], fx: blankFx(), combustible: blankFuel()
   });
 
   /* ==========================================================
@@ -179,6 +180,22 @@
         renderDatos();
       });
   }
+
+  /* ==========================================================
+     Dinero · D2 — Estimación de combustible por ruta
+     ========================================================== */
+  const FUEL = () => state.combustible || blankFuel();
+  const litros100  = () => { const c = +FUEL().consumo; return c > 0 ? c : 7; };
+  const precioLitro = () => { const p = +FUEL().precioL; return p > 0 ? p : 309; };
+
+  // km recorridos -> { litros, isk, eur }. Estimación: consumo medio × precio/L.
+  function fuelEst(km) {
+    const litros = (+km || 0) * litros100() / 100;
+    const isk = litros * precioLitro();
+    return { litros, isk, eur: toEUR(isk, 'ISK') };
+  }
+  // suma de km de los tramos de un día ya planificado por dayPlan()
+  const dayKm = plan => plan.legs.reduce((s, l) => s + (+l.km || 0), 0);
 
   // Vuelo de ida real (TAP, vía Lisboa) precargado en el primer arranque.
   const IDA_SEED = {
@@ -390,7 +407,8 @@
         lugares: p.lugares || [],
         recomendaciones: p.recomendaciones || [],
         gastos: p.gastos || [],
-        fx: Object.assign(blankFx(), p.fx || {})
+        fx: Object.assign(blankFx(), p.fx || {}),
+        combustible: Object.assign(blankFuel(), p.combustible || {})
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -844,7 +862,7 @@
     toast(id ? 'Vuelo actualizado.' : 'Vuelo añadido.');
   }
 
-  function openSheet(kind, id) {
+  function openSheet(kind, id, preset) {
     if (kind === 'vuelo') return openFlightSheet(id);
     const sch = SCHEMAS[kind];
     const col = state[COL_OF[kind]];
@@ -855,7 +873,7 @@
     const form = $('#sheet-form');
     form.innerHTML = '';
     sch.fields.forEach(f => {
-      form.appendChild(fieldRow(f, data ? data[f.k] : null));
+      form.appendChild(fieldRow(f, data ? data[f.k] : (preset ? preset[f.k] : null)));
     });
 
     // Autocompletar coords + tiempo de visita desde la lista de lugares conocidos
