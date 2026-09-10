@@ -6,7 +6,8 @@
 'use strict';
 
 const SHELL_CACHE = 'shell-v13';
-const TILE_CACHE  = 'tiles-v1';
+// v2: los tiles pasaron de petición no-cors (opaca) a cors; empezar limpio.
+const TILE_CACHE  = 'tiles-v2';
 const TILE_MAX = 300;
 // Solo se tocan las cachés de este proyecto: en GitHub Pages el origen es
 // compartido con otros proyectos del usuario y caches.keys() no está acotado
@@ -39,8 +40,8 @@ async function tileFetch(request) {
     if (res && res.ok) {
       try {
         await cache.put(request, res.clone());
-        trimTileCache().catch(() => {});
       } catch (e) { /* quota u otro: se responde igualmente */ }
+      trimTileCache().catch(() => {});   // también tras un fallo de put (libera hueco)
     }
     return res;
   } catch (e) {

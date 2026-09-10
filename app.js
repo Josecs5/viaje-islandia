@@ -1595,9 +1595,9 @@
   // Límites aproximados de Islandia (con un pequeño margen).
   const ISLANDIA_BOUNDS = [[62.9, -25.8], [67.6, -12.3]];
 
-  // Tile transparente 1×1: Leaflet lo pone en los tiles que fallan (sin señal),
-  // así el mapa sale en gris sin iconos de imagen rota. Se aplica DESPUÉS de
-  // 'tileerror', por lo que el paso de CARTO a OSM sigue funcionando.
+  // Tile transparente 1×1: Leaflet lo pone como src del tile que falla (sin
+  // señal), así el mapa sale en gris sin iconos de imagen rota. Leaflet dispara
+  // 'tileerror' igualmente, así que el contador de fallback a OSM sigue contando.
   const TILE_ERROR_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
   function ensureMap() {
@@ -1625,7 +1625,9 @@
     });
     let errs = 0;
     carto.on('tileerror', () => {
-      if (tileFallback || ++errs < 5) return;
+      // Sin conexión no tiene sentido cambiar a OSM (tampoco carga), y quitar la
+      // capa CARTO borraría de la pantalla los tiles suyos ya cacheados.
+      if (!navigator.onLine || tileFallback || ++errs < 5) return;
       tileFallback = true;
       map.removeLayer(carto);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
