@@ -2780,6 +2780,17 @@
       c.appendChild(p);
     }
 
+    // Auroras (A2)
+    const a = auroraFor(s);
+    const pa = skyLine('🌌', `auroras: ${esc(a.txt)}`);
+    if (a.level === 'alta') { pa.classList.add('sky-line--alert'); c.classList.add('sky-card--aurora'); }
+    else if (a.level === 'media') pa.classList.add('sky-line--warm');
+    if (!a.level || a.stale) {
+      const sp = pa.querySelector('span:last-child');
+      if (sp) sp.classList.add('is-dim');
+    }
+    c.appendChild(pa);
+
     return c;
   }
 

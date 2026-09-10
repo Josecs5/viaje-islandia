@@ -11,7 +11,10 @@ salida. Estima también el **coste de combustible** de cada día y del viaje
 **exportar el resumen** como texto. Incluye un **registro de gastos** en ISK y €
 con el tipo de cambio del día (BCE vía frankfurter.dev, cacheado, con ajuste
 manual) y un resumen por categoría, y una guía rápida de **supermercados baratos
-(Bónus/Krónan)** y trucos para un país caro.
+(Bónus/Krónan)** y trucos para un país caro. La pestaña **Clima** da, por día,
+salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
+SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad
+de Open-Meteo) con aviso cuando coinciden cielo despejado y actividad alta.
 
 Todo se guarda en `localStorage` del navegador: los datos no salen del dispositivo.
 
