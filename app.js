@@ -1595,6 +1595,11 @@
   // Límites aproximados de Islandia (con un pequeño margen).
   const ISLANDIA_BOUNDS = [[62.9, -25.8], [67.6, -12.3]];
 
+  // Tile transparente 1×1: Leaflet lo pone en los tiles que fallan (sin señal),
+  // así el mapa sale en gris sin iconos de imagen rota. Se aplica DESPUÉS de
+  // 'tileerror', por lo que el paso de CARTO a OSM sigue funcionando.
+  const TILE_ERROR_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
   function ensureMap() {
     if (map || typeof L === 'undefined') return;
     const elMap = document.getElementById('map');
@@ -1614,6 +1619,8 @@
     const carto = L.tileLayer('https://{s}.basemap.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       subdomains: 'abcd',
       maxZoom: 19,
+      crossOrigin: 'anonymous',   // respuesta con status real -> el SW cachea tiles sin opacas
+      errorTileUrl: TILE_ERROR_URL,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
     });
     let errs = 0;
@@ -1623,6 +1630,8 @@
       map.removeLayer(carto);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
+        crossOrigin: 'anonymous',
+        errorTileUrl: TILE_ERROR_URL,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);
     });
@@ -2171,10 +2180,18 @@
 
   var LOOP_KEY = 'sw-reload-at';
   var reloaded = false;
+  var retryTimer = null;
   // Solo recargamos en el controllerchange que provoca una actualización que
   // hemos iniciado nosotros. El controllerchange de la primera instalación
   // (por el clients.claim() del SW) no debe recargar nada.
   var updating = false;
+
+  function readMark() {
+    try { return +sessionStorage.getItem(LOOP_KEY) || 0; } catch (e) { return 0; }
+  }
+  function writeMark() {
+    try { sessionStorage.setItem(LOOP_KEY, String(Date.now())); } catch (e) {}
+  }
 
   // Solo es seguro recargar si no hay ningún panel modal abierto.
   function safeToReload() {
@@ -2184,27 +2201,42 @@
   }
 
   // Pide al worker en espera que tome el control; si hay un modal abierto,
-  // reintenta en 2 s.
+  // reintenta en 2 s (una sola cadena de reintento).
   function applyUpdate(reg) {
     if (!reg.waiting) return;
     if (!safeToReload()) {
-      setTimeout(function () { applyUpdate(reg); }, 2000);
+      if (retryTimer) return;
+      retryTimer = setTimeout(function () {
+        retryTimer = null;
+        applyUpdate(reg);
+      }, 2000);
       return;
     }
     updating = true;
     reg.waiting.postMessage({ type: 'SKIP_WAITING' });
   }
 
+  // Sigue a un worker entrante: si llega a 'installed' con un controller activo
+  // es una actualización (no la primera instalación) y se aplica.
+  function track(reg, sw) {
+    if (!sw) return;
+    sw.addEventListener('statechange', function () {
+      if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+        applyUpdate(reg);
+      }
+    });
+  }
+
   // El worker nuevo ha tomado el control: recargar una vez, salvo bucle.
   navigator.serviceWorker.addEventListener('controllerchange', function () {
     if (!updating || reloaded) return;
-    reloaded = true;
-    var last = +sessionStorage.getItem(LOOP_KEY) || 0;
-    if (Date.now() - last < 10000) {
+    if (Date.now() - readMark() < 10000) {
       console.warn('[sw] recarga omitida: posible bucle de actualización.');
+      writeMark();   // reinicia la ventana para no encadenar recargas
       return;
     }
-    try { sessionStorage.setItem(LOOP_KEY, String(Date.now())); } catch (e) {}
+    reloaded = true;
+    writeMark();
     location.reload();
   });
 
@@ -2212,18 +2244,13 @@
     navigator.serviceWorker.register('sw.js').then(function (reg) {
       reg.update().catch(function () {});
 
-      // Ya hay una versión nueva esperando de una carga anterior.
+      // Versión nueva ya esperando de una carga anterior.
       if (reg.waiting && navigator.serviceWorker.controller) applyUpdate(reg);
-
-      // Aparece una versión nueva mientras la app está abierta.
+      // Worker que ya estaba instalándose en el momento de registrar.
+      track(reg, reg.installing);
+      // Versión nueva que aparece mientras la app está abierta.
       reg.addEventListener('updatefound', function () {
-        var nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', function () {
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            applyUpdate(reg);
-          }
-        });
+        track(reg, reg.installing);
       });
 
       // Al volver a primer plano tras un rato, buscar versión nueva.

@@ -36,10 +36,16 @@ Para instalarla como app en el iPhone: ábrela en Safari → Compartir →
 Solo HTML, CSS y JavaScript. Sin frameworks. Service worker para uso sin
 conexión; Leaflet y las fuentes van incluidos en el repo.
 
+El shell (HTML/CSS/JS, Leaflet, fuentes) se guarda en la primera visita con
+conexión, así que la app arranca sin cobertura. Los tiles del mapa se guardan
+solo de los días que abras en **Mapas** con conexión: antes de viajar, abre la
+app con wifi y pasa por el mapa de cada día.
+
 La app se actualiza sola: al detectar una versión nueva se recarga cuando no
-hay ningún formulario abierto. Si algo se queda raro, cierra la app del todo y
-vuelve a abrirla, o borra los datos del sitio en el navegador (se borran caché
-y datos).
+hay ningún formulario abierto. Si la tienes abierta en varias pestañas, se
+recarga la activa; las demás se actualizan al navegar. Si algo se queda raro,
+cierra la app del todo y vuelve a abrirla, o borra los datos del sitio en el
+navegador (se borran caché y datos).
 
 ## Aviso
 

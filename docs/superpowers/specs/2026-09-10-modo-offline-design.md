@@ -4,6 +4,19 @@ Fecha: 2026-09-10
 Estado: aprobado el diseño; pendiente de plan de implementación
 Ámbito: arquitectónico (añade un subsistema nuevo y revierte "sin service worker" del README)
 
+> **Enmienda 2026-09-10 (tras revisión de implementación):**
+> - §5 y las constraints globales decían "solo host `*.tile.openstreetmap.org`".
+>   El mapa base real de la app es CARTO (`{s}.basemap.cartocdn.com/dark_all/…`);
+>   OSM es solo el fallback tras varios `tileerror`. `isTile()` reconoce **ambos**
+>   hosts. La caché de 300 tiles cache-on-use no cambia el perfil de peticiones
+>   (mismo argumento que §7 hacía para OSM); atribución de CARTO intacta.
+> - El "no-objetivo" de §2 "no se cachean respuestas opacas de terceros" se
+>   mantiene: los tiles se piden con `crossOrigin: 'anonymous'` (CARTO y OSM
+>   envían `ACAO: *`), así que el SW ve respuestas `cors` con status real y
+>   cachea solo `res.ok`. Se descarta el cacheo de respuestas opacas.
+> - `activate` borra solo cachés propias (`/^(shell|tiles)-v\d+$/`), no todas las
+>   del origen — en GitHub Pages el origen es compartido entre proyectos.
+
 ## 1. Problema
 
 La app se usará conduciendo por Islandia en octubre, donde la cobertura es
