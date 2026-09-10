@@ -1591,6 +1591,8 @@
 
     if (selectedItinDay !== 'all' && !it.days.some(d => d.date === selectedItinDay)) selectedItinDay = 'all';
 
+    body.appendChild(itinFuelBlock(it));
+
     const chips = el('div', 'chips chips--itin');
     chips.appendChild(itinChip('all', 'Todos'));
     it.days.forEach(d => chips.appendChild(itinChip(d.date, 'Día ' + d.idx)));
@@ -1600,6 +1602,68 @@
     dias.forEach(day => body.appendChild(dayBlock(day)));
 
     if (selectedItinDay === 'all' && it.unassigned.length) body.appendChild(unassignedBlock(it.unassigned));
+  }
+
+  // Bloque de cabecera del itinerario: coste estimado de combustible del viaje,
+  // ajustes (consumo / precio·L / tipo) y botón para anotarlo como gasto.
+  function itinFuelBlock(it) {
+    const totalISK = it.days.reduce((s, d) => s + fuelEst(dayKm(dayPlan(d))).isk, 0);
+    const box = el('section', 'itin-fuel');
+    if (!(totalISK > 0)) { box.hidden = true; return box; }
+
+    const totalEUR = toEUR(totalISK, 'ISK');
+    const tot = el('p', 'itin-fuel__tot');
+    tot.innerHTML = `<span>Combustible del viaje ≈ <b>${fmtISK(totalISK)}</b> · ${fmtEUR(totalEUR)}</span>`;
+    const add = el('button', 'btn btn--ghost btn--sm');
+    add.type = 'button';
+    add.textContent = 'Añadir como gasto';
+    add.addEventListener('click', () => openSheet('gasto', null, {
+      fecha: hoyYMD(),
+      concepto: 'Combustible (estimado)',
+      categoria: 'Combustible',
+      moneda: 'ISK',
+      importe: String(Math.round(totalISK))
+    }));
+    tot.appendChild(add);
+    box.appendChild(tot);
+
+    const f = FUEL();
+    const cfg = el('details', 'itin-fuel__cfg');
+    const sum = el('summary');
+    sum.textContent = `⛽ ${litros100()} L/100 km · ${precioLitro()} ISK/L · ${f.tipo || 'Diésel'}`;
+    cfg.appendChild(sum);
+
+    const mkNum = (k, label, unit, step) => {
+      const wrap = el('label', 'field');
+      wrap.innerHTML = `<span>${label}</span>`;
+      const inp = el('input');
+      inp.type = 'number'; inp.step = step; inp.min = '0';
+      inp.inputMode = step === '1' ? 'numeric' : 'decimal';
+      inp.value = String(k === 'consumo' ? litros100() : precioLitro());
+      const shown = inp.value;
+      inp.addEventListener('change', () => {
+        const v = +inp.value;
+        if (v > 0) { state.combustible = Object.assign(blankFuel(), state.combustible, { [k]: v }); save(); renderItinerario(); }
+        else { inp.value = shown; }
+      });
+      wrap.appendChild(inp);
+      if (unit) { const u = el('span', 'muted'); u.textContent = unit; wrap.appendChild(u); }
+      return wrap;
+    };
+    cfg.appendChild(mkNum('consumo', 'Consumo', 'L/100 km', '0.1'));
+    cfg.appendChild(mkNum('precioL', 'Precio', 'ISK/L', '1'));
+
+    const tw = el('label', 'field');
+    tw.innerHTML = `<span>Tipo</span>`;
+    const sel = el('select');
+    ['Gasolina', 'Diésel'].forEach(op => { const o = el('option'); o.value = op; o.textContent = op; sel.appendChild(o); });
+    sel.value = f.tipo === 'Gasolina' ? 'Gasolina' : 'Diésel';
+    sel.addEventListener('change', () => { state.combustible = Object.assign(blankFuel(), state.combustible, { tipo: sel.value }); save(); renderItinerario(); });
+    tw.appendChild(sel);
+    cfg.appendChild(tw);
+
+    box.appendChild(cfg);
+    return box;
   }
 
   function dayBlock(day) {
@@ -1631,6 +1695,15 @@
       const p = el('p', 'day-plan');
       p.innerHTML = verdict + (bits.length ? ' ' + bits.join(' · ') : '');
       wrap.appendChild(p);
+    }
+
+    const km = dayKm(plan);
+    if (km >= 1) {
+      const fe = fuelEst(km);
+      const pf = el('p', 'day-fuel');
+      const litTxt = fe.litros.toLocaleString('es-ES', { maximumFractionDigits: fe.litros < 10 ? 1 : 0 });
+      pf.innerHTML = `⛽ ~<span>${litTxt} L</span> · ${fmtISK(fe.isk)} <span class="muted">· ≈ ${fmtEUR(fe.eur)}</span>`;
+      wrap.appendChild(pf);
     }
 
     const fotos = fotosDelDia(day);
