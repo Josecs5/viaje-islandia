@@ -26,15 +26,21 @@ Para instalarla como app en el iPhone: ábrela en Safari → Compartir →
 |---|---|
 | `index.html` | Estructura y meta tags PWA/iOS |
 | `style.css` | Tema oscuro, tokens OKLCH, responsive (autónomo) |
-| `app.js` | Lógica: CRUD, motor de itinerario, mapas, exportación |
+| `app.js` | Lógica: CRUD, motor de itinerario, mapas, sección "Clima", exportación |
 | `sw.js` | Service worker: precache del shell y caché de tiles |
-| `vendor/` | Leaflet 1.9.4 y fuentes web servidos desde el repo |
+| `vendor/` | Leaflet 1.9.4, SunCalc 1.9.0 y fuentes web servidos desde el repo |
 | `manifest.json` | Manifiesto PWA |
 | `icons/` | Iconos 192 / 512 / maskable + apple-touch-icon + SVG |
 | `tokens.css` | Sistema de diseño portable (no lo usa la app; solo referencia) |
 
 Solo HTML, CSS y JavaScript. Sin frameworks. Service worker para uso sin
-conexión; Leaflet y las fuentes van incluidos en el repo.
+conexión; Leaflet, SunCalc y las fuentes van incluidos en el repo.
+
+La pestaña **"Clima"** calcula con SunCalc, sin conexión, la luz y la luna de
+cada día: salida y puesta de sol, duración y diferencia de luz, hora dorada,
+ventana de oscuridad y fase de luna. La antigua pestaña **"Ruta"** dejó de
+existir; el enlace al recorrido completo en Google Maps está ahora al final de
+**"Mapas"**.
 
 El shell (HTML/CSS/JS, Leaflet, fuentes) se guarda en la primera visita con
 conexión, así que la app arranca sin cobertura. Los tiles del mapa se guardan

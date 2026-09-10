@@ -1377,7 +1377,7 @@
   let selectedItinDay = 'all';
   // La primera vez que se pinta cada sección, si hoy cae dentro del viaje,
   // se abre directamente ese día en vez de «Todos». Después el usuario manda.
-  let itinDayInit = false, mapDayInit = false;
+  let itinDayInit = false, mapDayInit = false, climaScrolled = false;
 
   // YMD de hoy si el viaje está en curso hoy; null en caso contrario.
   function diaHoyYMD() {
@@ -2154,6 +2154,7 @@
     renderItinerario();
     renderMapas();
     renderReco();
+    renderClima();
   }
 
   /* ==========================================================
@@ -2245,6 +2246,91 @@
         inDarkWindow: moonInDarkWindow(darkWindow, loc)
       }
     };
+  }
+
+  function skyLine(icon, html) {
+    const p = el('p', 'sky-line');
+    p.innerHTML = `<span class="sky-ic">${icon}</span><span>${html}</span>`;
+    return p;
+  }
+
+  function climaCard(s) {
+    const c = el('section', 'card sky-card');
+    if (s.date === hoyYMD()) c.classList.add('day--hoy');
+
+    const head = el('div', 'sky-card__head');
+    head.textContent = `${cap(fmtDiaSemana(s.date))}, ${fmtFecha(s.date)} · ${s.locLabel}`;
+    c.appendChild(head);
+
+    // Sol
+    let sol = `${hhmm(s.sunrise)} – ${hhmm(s.sunset)}`;
+    if (s.dayLengthMin != null) sol += `  ·  ${fmtDur(s.dayLengthMin)}`;
+    if (s.deltaVsPrevMin != null) {
+      const d = s.deltaVsPrevMin;
+      const cls = d > 0 ? 'sky-delta sky-delta--up' : 'sky-delta';
+      sol += `  ·  <span class="${cls}">${d > 0 ? '+' : '−'}${Math.abs(d)} min</span>`;
+    }
+    c.appendChild(skyLine('☀️', sol));
+
+    // Hora dorada
+    if (isDate(s.goldenAM.start) && isDate(s.goldenAM.end) && isDate(s.goldenPM.start) && isDate(s.goldenPM.end)) {
+      c.appendChild(skyLine('📸',
+        `dorada  ${hhmm(s.goldenAM.start)}–${hhmm(s.goldenAM.end)}   ·   ${hhmm(s.goldenPM.start)}–${hhmm(s.goldenPM.end)}`));
+    }
+
+    // Ventana de oscuridad
+    if (s.darkWindow) {
+      c.appendChild(skyLine('🌑', `oscuridad  ${hhmm(s.darkWindow.start)} – ${hhmm(s.darkWindow.end)}`));
+    }
+
+    // Luna
+    let luna = `${esc(s.moon.phaseName)} ${s.moon.illumPct}%`;
+    if (s.moon.alwaysUp) {
+      luna += '  ·  sobre el horizonte toda la noche';
+    } else if (s.moon.alwaysDown) {
+      luna += '  ·  no sale';
+    } else {
+      if (s.moon.rise) luna += `  ·  sale ${hhmm(s.moon.rise)}`;
+      if (s.moon.set) luna += `  ·  se pone ${hhmm(s.moon.set)}`;
+    }
+    c.appendChild(skyLine('🌙', luna));
+
+    if (s.moon.inDarkWindow) {
+      const p = el('p', 'sky-line sky-line--sub');
+      const cls = s.moon.inDarkWindow === 'no' ? 'is-dim' : '';
+      p.innerHTML = `<span class="sky-ic"></span><span class="${cls}">en la ventana oscura: ${esc(s.moon.inDarkWindow)}</span>`;
+      c.appendChild(p);
+    }
+
+    return c;
+  }
+
+  function renderClima() {
+    const body = $('#clima-body');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!state.meta.fechaInicio || !state.meta.fechaFin) {
+      body.appendChild(notice('Añade las fechas de inicio y fin en «Datos del viaje» para ver la luz y la luna de cada día.'));
+      return;
+    }
+    if (typeof SunCalc === 'undefined') {
+      body.appendChild(notice('No se pudo cargar el cálculo de sol y luna. Recarga la app.'));
+      return;
+    }
+
+    const days = eachDay(state.meta.fechaInicio, state.meta.fechaFin);
+    let todayCard = null;
+    days.forEach(d => {
+      const card = climaCard(sky(d));
+      if (d === hoyYMD()) todayCard = card;
+      body.appendChild(card);
+    });
+
+    if (todayCard && !climaScrolled) {
+      climaScrolled = true;
+      setTimeout(() => todayCard.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
+    }
   }
 
   function initGazList() {
