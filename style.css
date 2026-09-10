@@ -740,21 +740,17 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   color: var(--c-text-2);
 }
 .itin-fuel__cfg summary { cursor: pointer; }
+/* Los inputs heredan el estilo global de formulario (16px anti-zoom iOS,
+   altura táctil, chevron del select). Aquí solo se ajusta la disposición
+   en fila y el ancho de los numéricos. */
 .itin-fuel__cfg .field {
   display: flex;
   gap: var(--space-8);
-  align-items: baseline;
-  margin-top: var(--space-8);
+  align-items: center;
+  margin: var(--space-8) 0 0;
 }
-.itin-fuel__cfg .field input,
-.itin-fuel__cfg .field select {
-  font: inherit;
-  color: var(--c-text-1);
-  background: var(--c-surface-2);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-s);
-  padding: 2px 6px;
-}
+.itin-fuel__cfg .field > span { margin: 0; flex-shrink: 0; }
+.itin-fuel__cfg .field__unit { color: var(--c-text-2); flex-shrink: 0; }
 .itin-fuel__cfg .field input { width: 5.5em; }
 .itin-fuel__cfg .field select { width: auto; }
 .day-verdict {

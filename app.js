@@ -194,8 +194,6 @@
     const isk = litros * precioLitro();
     return { litros, isk, eur: toEUR(isk, 'ISK') };
   }
-  // suma de km de los tramos de un día ya planificado por dayPlan()
-  const dayKm = plan => plan.legs.reduce((s, l) => s + (+l.km || 0), 0);
 
   // Vuelo de ida real (TAP, vía Lisboa) precargado en el primer arranque.
   const IDA_SEED = {
@@ -1547,6 +1545,7 @@
   // La primera vez que se pinta cada sección, si hoy cae dentro del viaje,
   // se abre directamente ese día en vez de «Todos». Después el usuario manda.
   let itinDayInit = false, mapDayInit = false, climaScrolled = false;
+  let itinFuelOpen = false;   // D2: si el panel de ajustes de combustible está desplegado (se recrea en cada render)
 
   // YMD de hoy si el viaje está en curso hoy; null en caso contrario.
   function diaHoyYMD() {
@@ -1607,7 +1606,9 @@
   // Bloque de cabecera del itinerario: coste estimado de combustible del viaje,
   // ajustes (consumo / precio·L / tipo) y botón para anotarlo como gasto.
   function itinFuelBlock(it) {
-    const totalISK = it.days.reduce((s, d) => s + fuelEst(dayKm(dayPlan(d))).isk, 0);
+    // buildItinerary() ya calcula d.km por día con el mismo driveByRoad/MIN_LEG_KM
+    // que dayPlan().legs, así que no hace falta recomputar dayPlan aquí.
+    const totalISK = it.days.reduce((s, d) => s + fuelEst(d.km).isk, 0);
     const box = el('section', 'itin-fuel');
     if (!(totalISK > 0)) { box.hidden = true; return box; }
 
@@ -1629,36 +1630,49 @@
 
     const f = FUEL();
     const cfg = el('details', 'itin-fuel__cfg');
+    cfg.open = itinFuelOpen;
+    cfg.addEventListener('toggle', () => { itinFuelOpen = cfg.open; });
     const sum = el('summary');
     sum.textContent = `⛽ ${litros100()} L/100 km · ${precioLitro()} ISK/L · ${f.tipo || 'Diésel'}`;
     cfg.appendChild(sum);
 
-    const mkNum = (k, label, unit, step) => {
+    // Tras un cambio se vuelve a pintar todo el itinerario (el bloque se recrea);
+    // se restaura el foco en el mismo campo para que los spinners sigan usables.
+    const commit = fuelKey => {
+      save();
+      renderItinerario();
+      const again = fuelKey && document.querySelector('.itin-fuel__cfg [data-fuel="' + fuelKey + '"]');
+      if (again) again.focus();
+    };
+
+    const mkNum = (k, label, unit, step, max) => {
       const wrap = el('label', 'field');
       wrap.innerHTML = `<span>${label}</span>`;
       const inp = el('input');
-      inp.type = 'number'; inp.step = step; inp.min = '0';
+      inp.type = 'number'; inp.step = step; inp.min = '0'; inp.max = String(max);
       inp.inputMode = step === '1' ? 'numeric' : 'decimal';
+      inp.dataset.fuel = k;
       inp.value = String(k === 'consumo' ? litros100() : precioLitro());
       const shown = inp.value;
       inp.addEventListener('change', () => {
         const v = +inp.value;
-        if (v > 0) { state.combustible = Object.assign(blankFuel(), state.combustible, { [k]: v }); save(); renderItinerario(); }
+        if (v > 0 && v <= max) { state.combustible = Object.assign(blankFuel(), state.combustible, { [k]: v }); commit(k); }
         else { inp.value = shown; }
       });
       wrap.appendChild(inp);
-      if (unit) { const u = el('span', 'muted'); u.textContent = unit; wrap.appendChild(u); }
+      if (unit) { const u = el('span', 'field__unit'); u.textContent = unit; wrap.appendChild(u); }
       return wrap;
     };
-    cfg.appendChild(mkNum('consumo', 'Consumo', 'L/100 km', '0.1'));
-    cfg.appendChild(mkNum('precioL', 'Precio', 'ISK/L', '1'));
+    cfg.appendChild(mkNum('consumo', 'Consumo', 'L/100 km', '0.1', 50));
+    cfg.appendChild(mkNum('precioL', 'Precio', 'ISK/L', '1', 5000));
 
     const tw = el('label', 'field');
     tw.innerHTML = `<span>Tipo</span>`;
     const sel = el('select');
+    sel.dataset.fuel = 'tipo';
     ['Gasolina', 'Diésel'].forEach(op => { const o = el('option'); o.value = op; o.textContent = op; sel.appendChild(o); });
     sel.value = f.tipo === 'Gasolina' ? 'Gasolina' : 'Diésel';
-    sel.addEventListener('change', () => { state.combustible = Object.assign(blankFuel(), state.combustible, { tipo: sel.value }); save(); renderItinerario(); });
+    sel.addEventListener('change', () => { state.combustible = Object.assign(blankFuel(), state.combustible, { tipo: sel.value }); commit('tipo'); });
     tw.appendChild(sel);
     cfg.appendChild(tw);
 
@@ -1697,7 +1711,7 @@
       wrap.appendChild(p);
     }
 
-    const km = dayKm(plan);
+    const km = day.km || 0;
     if (km >= 1) {
       const fe = fuelEst(km);
       const pf = el('p', 'day-fuel');

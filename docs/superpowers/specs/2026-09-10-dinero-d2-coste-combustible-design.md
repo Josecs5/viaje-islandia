@@ -63,26 +63,28 @@ function fuelEst(km) {
   return { litros, isk, eur: toEUR(isk, 'ISK') };
 }
 
-// suma de km de los tramos de un día ya planificado
-const dayKm = plan => plan.legs.reduce((s, l) => s + (+l.km || 0), 0);
+// km por día: buildItinerary() ya lo devuelve en d.km (mismo driveByRoad /
+// MIN_LEG_KM que dayPlan().legs), así que se usa d.km directamente y no se
+// recomputa dayPlan en el total.
 ```
 
 Formato:
-- litros: `n.toLocaleString('es-ES', { maximumFractionDigits: 1 })` + ` L`
+- litros (línea diaria): `n.toLocaleString('es-ES', { maximumFractionDigits: n < 10 ? 1 : 0 })` + ` L`
+  (1 decimal por debajo de 10 L para que los traslados cortos no salgan como «~0 L»; entero a partir de ahí).
 - ISK: `fmtISK` (de D1) · € : `fmtEUR` (de D1)
 
 ## 7. UI
 
 ### 7.1 Línea por día (`dayBlock`, tras la línea `.day-plan` de B1)
 
-Solo si `dayKm(plan) >= 1`:
+Solo si `day.km >= 1`:
 
 ```
 ⛽ ~28 L · 8.700 ISK · ≈ 58 €
 ```
 
-`<p class="day-fuel">⛽ ~<span>{litros} L</span> · {fmtISK(isk)} · <span class="muted">≈ {fmtEUR(eur)}</span></p>`
-(el `~` porque es estimación; litros redondeados a entero en la línea diaria).
+`<p class="day-fuel">⛽ ~<span>{litros} L</span> · {fmtISK(isk)} <span class="muted">· ≈ {fmtEUR(eur)}</span></p>`
+(el `~` porque es estimación; litros con 1 decimal por debajo de 10 L, entero a partir de ahí).
 
 ### 7.2 Bloque de cabecera (`renderItinerario`, al principio de `#itin-body`, antes de `.chips--itin`)
 
@@ -101,13 +103,16 @@ Combustible del viaje ≈  38.500 ISK · 257 €           [ Añadir como gasto 
     - `number` consumo (`step="0.1" min="0"`, `inputmode="decimal"`)
     - `number` precioL (`step="1" min="0"`, `inputmode="numeric"`)
     - `select` tipo (`Gasolina` / `Diésel`)
-  - cada campo: al `change`, si el valor es válido (`> 0` para los números) →
-    `state.combustible = { ...FUEL(), [k]: v }; save(); renderItinerario();`
-    Si el número es inválido (vacío / `<= 0`), restaurar el valor mostrado y no guardar.
+  - cada campo (`consumo` máx. 50, `precioL` máx. 5000): al `change`, si el valor
+    es válido (`> 0` y `<= max` para los números) →
+    `state.combustible = Object.assign(blankFuel(), state.combustible, { [k]: v }); save(); renderItinerario();`
+    y se restaura el foco en el mismo campo. Si el número es inválido (vacío /
+    `<= 0` / por encima del máx.), restaurar el valor mostrado y no guardar.
+  - el `<details>` recuerda si está desplegado (`itinFuelOpen`), porque cada
+    `renderItinerario()` recrea el bloque entero.
 - El total se calcula en `renderItinerario` iterando `it.days`:
-  `it.days.reduce((s, d) => s + fuelEst(dayKm(dayPlan(d))).isk, 0)`.
-  `dayPlan` se llama otra vez aquí (además de en `dayBlock`); es O(9 días),
-  aceptable, y evita cachear estado entre funciones.
+  `it.days.reduce((s, d) => s + fuelEst(d.km).isk, 0)` — `d.km` ya lo da
+  `buildItinerary()`.
 
 ### 7.3 `openSheet` — parámetro `preset`
 
@@ -142,7 +147,7 @@ Clases nuevas, todas con tokens ya existentes, sin pisar selectores previos:
 - `blankState` / `load` / helpers cerca de los de D1 (tras `blankFx`/`refreshFx`).
 - `dayBlock`: añadir `.day-fuel` tras el bloque `if (plan.veredicto) { … }`
   (fuera de ese `if`: el combustible se muestra aunque el día no tenga veredicto,
-  p. ej. día de vuelo con traslado — mientras `dayKm >= 1`).
+  p. ej. día de vuelo con traslado — mientras `day.km >= 1`).
 - `renderItinerario`: construir `.itin-fuel` y anteponerlo a `body` antes de `.chips--itin`.
 - `openSheet`: 3er parámetro `preset`.
 - `style.css`: bloque nuevo.
@@ -160,12 +165,13 @@ Clases nuevas, todas con tokens ya existentes, sin pisar selectores previos:
 - **Sin fechas de viaje**: `renderItinerario` ya sale antes con su `notice`; no
   se llega a `.itin-fuel`.
 - **Tasa €**: si `state.fx.rate` no es `> 0`, `toEUR` usa 150 (comportamiento D1).
-- **`legs` vacío** para un día: `dayKm` = 0 → sin línea.
+- **Día sin tramos**: `d.km` = 0 → sin línea.
 - **`preset` con `openSheet`**: si el usuario cambia los valores en el sheet
   antes de guardar, manda lo que escribe (el `preset` solo rellena el valor
   inicial).
-- **`dayPlan` llamado dos veces** por día en la vista "Todos": sin efectos
-  secundarios (función determinista dado el estado), solo coste CPU menor.
+- **Coste del total**: usa `d.km` de `buildItinerary()`, así que no recomputa
+  `dayPlan` (ni `SunCalc`) por día. `dayBlock` sigue llamando a `dayPlan(day)`
+  una vez para su veredicto (B1) y lee `day.km` para el combustible.
 
 ## 11. Pruebas manuales
 
