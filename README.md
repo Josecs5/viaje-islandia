@@ -12,8 +12,11 @@ concreta: puertas del coche, puentes, tiendas de campaña, F-roads. Muestra el
 **recorrido de cada día en un mapa** (Leaflet + OpenStreetMap) y permite
 **exportar el resumen** como texto. Incluye un **registro de gastos** en ISK y €
 con el tipo de cambio del día (BCE vía frankfurter.dev, cacheado, con ajuste
-manual) y un resumen por categoría, y una guía rápida de **supermercados baratos
-(Bónus/Krónan)** y trucos para un país caro. La pestaña **Clima** da, por día,
+manual) y un resumen por categoría, una guía rápida de **supermercados baratos
+(Bónus/Krónan)** y trucos para un país caro, y una guía de **carreteras** (códigos
+de estado, F-roads cerradas en octubre, puentes de un carril, tramos que se
+cierran con temporal) con enlaces a umferdin.is y safetravel.is. La pestaña
+**Clima** da, por día,
 salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
 SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad
 de Open-Meteo) con aviso cuando coinciden cielo despejado y actividad alta.
