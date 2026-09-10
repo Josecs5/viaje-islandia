@@ -2,9 +2,11 @@
 
 PWA con modo offline para planificar un viaje por carretera por Islandia:
 vuelos con escalas, coche de alquiler, alojamientos, excursiones, sitios para
-comer y lugares que ver. Genera un **itinerario diario** automático con horas y
-tiempos de trayecto estimados, muestra el **recorrido de cada día en un mapa**
-(Leaflet + OpenStreetMap) y permite **exportar el resumen** como texto.
+comer y lugares que ver. Genera un **itinerario diario** automático: estima los tiempos de trayecto por
+carretera (factor de rodeo por región, sin conexión) y marca la **viabilidad de
+cada día** — horas de luz y horas al volante — con la hora recomendada de
+salida. Muestra el **recorrido de cada día en un mapa** (Leaflet +
+OpenStreetMap) y permite **exportar el resumen** como texto.
 
 Todo se guarda en `localStorage` del navegador: los datos no salen del dispositivo.
 
@@ -58,4 +60,5 @@ navegador (se borran caché y datos).
 
 App personal sin ánimo de lucro. No está afiliada a ninguna aerolínea,
 empresa de alquiler, alojamiento ni operador turístico. Los tiempos de
-trayecto son estimaciones en línea recta, no rutas reales.
+trayecto son estimaciones por carretera con un factor de rodeo aproximado, no
+rutas calculadas.

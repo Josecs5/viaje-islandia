@@ -1478,11 +1478,28 @@
     const wrap = el('section', 'day');
     const esHoy = day.date === hoyYMD();
     if (esHoy) wrap.classList.add('day--hoy');
+    const plan = dayPlan(day);
+
     const head = el('div', 'day__head');
     head.innerHTML =
       `<h3 class="day__date">${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3>` +
       `<span class="day__idx">${esHoy ? '<b class="day__now">EN CURSO</b> · ' : ''}Día ${day.idx}</span>`;
     wrap.appendChild(head);
+
+    if (plan.veredicto) {
+      const label = verdictLabel(plan);
+      const bits = [];
+      if (plan.salirMin != null && plan.salirMin >= SALIDA_FLOOR_MIN - 120) {
+        bits.push('Sal sobre las <span class="mono">' + hhmmFromMin(plan.salirMin) + '</span>');
+      }
+      if (plan.endMin != null) bits.push('fin ~<span class="mono">' + hhmmFromMin(plan.endMin) + '</span>');
+      // Las horas al volante solo si la etiqueta no lo dice ya.
+      if (plan.drivingMin > 0 && plan.volante === 'ok') bits.push(fmtDur(plan.drivingMin) + ' al volante');
+      const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}"${!label ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
+      const p = el('p', 'day-plan');
+      p.innerHTML = verdict + (bits.length ? ' ' + bits.join(' · ') : '');
+      wrap.appendChild(p);
+    }
 
     const fotos = fotosDelDia(day);
     if (fotos.length) {
@@ -2374,6 +2391,24 @@
     if (!sk && volante === 'ok') veredicto = null;
 
     return { drivingMin, legs, salirMin, endMin, missedAnchor, luz, volante, veredicto };
+  }
+
+  // Minutos desde medianoche → 'HH:MM' (envuelve a las 24 h por si el día pasa de medianoche).
+  const hhmmFromMin = m => (m == null ? '' : `${pad2(Math.floor(m / 60) % 24)}:${pad2(Math.round(m) % 60)}`);
+
+  function verdictLabel(p) {
+    if (p.veredicto === 'rojo') {
+      if (p.missedAnchor) return 'No llegas a: ' + p.missedAnchor;
+      if (p.volante === 'excesivo') return fmtDur(p.drivingMin) + ' al volante';
+      if (p.luz === 'pasa') return 'Terminas de noche';
+      return '';
+    }
+    if (p.veredicto === 'ambar') {
+      if (p.luz === 'justo') return 'Justo de luz';
+      if (p.volante === 'largo') return fmtDur(p.drivingMin) + ' al volante';
+      return '';
+    }
+    return ''; // verde: solo el punto
   }
 
   function skyLine(icon, html) {

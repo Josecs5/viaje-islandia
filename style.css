@@ -657,6 +657,32 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .day--hoy > .day__head { border-bottom-color: var(--c-accent); }
 .day--hoy > .day__head .day__date { color: var(--c-accent); }
 
+/* Viabilidad del día (B1) */
+.day-plan {
+  margin: calc(var(--space-12) * -0.5) 0 var(--space-12);
+  color: var(--c-text-2);
+  font-size: var(--step--1);
+  line-height: 1.5;
+}
+.day-plan .mono { font-family: var(--font-mono); color: var(--c-text-1); }
+.day-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+.day-verdict::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+.day-verdict--verde { color: var(--c-accent); }
+.day-verdict--ambar { color: var(--c-warning); }
+.day-verdict--rojo  { color: var(--c-danger); }
+
 /* Recomendaciones por día */
 .day__recs {
   margin-top: var(--space-16);
