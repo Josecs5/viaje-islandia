@@ -2162,3 +2162,18 @@
   }
 
 })();
+
+/* ==========================================================
+   Service worker: registro
+   (la actualización automática se añade en la Task 5)
+   ========================================================== */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      reg.update();
+    }).catch(function (e) {
+      console.warn('[sw] registro fallido:', e);
+    });
+  });
+})();
