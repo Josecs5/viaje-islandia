@@ -75,6 +75,16 @@
   const AVG_KMH = 75;   // límite de 90 en abierto, menos pueblos, curvas y meteo
   const PARK_MIN = 4;   // aparcar y arrancar
 
+  // Umbrales de dayPlan (viabilidad del día)
+  const SALIDA_FLOOR_MIN = 7 * 60 + 30;   // no se empieza a conducir antes de las 07:30
+  const MARGEN_ATARDECER_MIN = 30;        // colchón antes del atardecer para "ok"
+  const MARGEN_ANCLA_MIN = 10;            // holgura para llegar a una hora de encuentro
+  const VOLANTE_LARGO_H = 4;
+  const VOLANTE_MAX_H = 6;
+  const COMIDA_MIN = 50;
+  const EXCURSION_MIN = 120;              // duración por defecto si la excursión no la trae
+  const LUGAR_MIN = 45;                   // tiempo de visita por defecto
+
   // Factores calibrados contra distancias reales de la Ruta 1 (la carretera de
   // circunvalación bordea la costa y cruza el puerto de Holtavörðuheiði, así que
   // rodea bastante más que la línea recta, sobre todo en el norte y el noroeste).
@@ -1172,7 +1182,8 @@
         sub: subBits.join(' · '),
         notas: notasItin,
         loc: null,
-        tag: 'Vuelo'
+        tag: 'Vuelo',
+        costMin: 0
       };
       if (p.date && inRange(p.date)) push(p.date, item);
       else unassigned.push(Object.assign({ nota: p.date ? 'fecha fuera del rango' : 'sin fecha' }, item));
@@ -1189,7 +1200,7 @@
           t: 'coche', hora: rp.time, sortT: rp.time ? toMin(rp.time) : 720,
           titulo: `Recogida del coche${v.empresa ? ' · ' + v.empresa : ''}`,
           sub: [v.modelo, v.recogidaLugar && v.recogidaLugar.texto, v.reserva].filter(Boolean).join(' · '),
-          notas: v.notas || '', loc: rLoc, tag: 'Coche'
+          notas: v.notas || '', loc: rLoc, tag: 'Coche', costMin: 0
         });
       }
       if (dp.date && inRange(dp.date)) {
@@ -1197,7 +1208,7 @@
           t: 'coche', hora: dp.time, sortT: dp.time ? toMin(dp.time) : 600,
           titulo: `Devolución del coche${v.empresa ? ' · ' + v.empresa : ''}`,
           sub: [v.devolucionLugar && v.devolucionLugar.texto || (v.recogidaLugar && v.recogidaLugar.texto), v.reserva].filter(Boolean).join(' · '),
-          loc: dLoc, tag: 'Coche'
+          loc: dLoc, tag: 'Coche', costMin: 0
         });
       }
     });
@@ -1206,13 +1217,13 @@
     state.alojamientos.forEach(a => {
       const loc = a.loc && a.loc.lat != null ? a.loc : (a.loc || null);
       if (a.checkin && inRange(a.checkin)) {
-        push(a.checkin, { t: 'checkin', hora: '', sortT: 1400, titulo: `Check-in · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', notas: a.notas || '', loc, tag: 'Alojamiento' });
+        push(a.checkin, { t: 'checkin', hora: '', sortT: 1400, titulo: `Check-in · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', notas: a.notas || '', loc, tag: 'Alojamiento', costMin: 0 });
       }
       if (a.checkout && inRange(a.checkout)) {
-        push(a.checkout, { t: 'checkout', hora: '', sortT: 10, titulo: `Check-out · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento' });
+        push(a.checkout, { t: 'checkout', hora: '', sortT: 10, titulo: `Check-out · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento', costMin: 0 });
       }
       eachDay(a.checkin, a.checkout).slice(0, -1).forEach(d => {
-        if (inRange(d)) push(d, { t: 'noche', hora: '', sortT: 1460, titulo: `Noche en ${a.nombre || 'alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento', quiet: true });
+        if (inRange(d)) push(d, { t: 'noche', hora: '', sortT: 1460, titulo: `Noche en ${a.nombre || 'alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento', quiet: true, costMin: 0 });
       });
     });
 
@@ -1229,7 +1240,8 @@
         ].filter(Boolean).join(' · '),
         notas: e.notas || '',
         loc: e.encuentro && e.encuentro.lat != null ? e.encuentro : null,
-        tag: 'Excursión'
+        tag: 'Excursión',
+        costMin: e.duracion ? +e.duracion : EXCURSION_MIN
       };
       if (e.fecha && inRange(e.fecha)) push(e.fecha, item);
       else unassigned.push(Object.assign({ nota: e.fecha ? 'fecha fuera del rango' : 'sin fecha' }, item));
@@ -1245,7 +1257,8 @@
         titulo: c.nombre || 'Comida',
         sub: [c.tipo, c.horario].filter(Boolean).join(' · '),
         loc: c.loc && c.loc.lat != null ? c.loc : null,
-        tag: 'Comida'
+        tag: 'Comida',
+        costMin: COMIDA_MIN
       };
       if (c.fecha && inRange(c.fecha)) push(c.fecha, item);
       else unassigned.push(Object.assign({ nota: 'sin fecha' }, item));
@@ -1263,7 +1276,8 @@
           l.visita ? fmtDur(+l.visita) + ' de visita' : ''
         ].filter(Boolean).join(' · '),
         loc: l.loc && l.loc.lat != null ? l.loc : null,
-        tag: 'Lugar'
+        tag: 'Lugar',
+        costMin: l.visita ? +l.visita : LUGAR_MIN
       };
       if (l.fecha && inRange(l.fecha)) push(l.fecha, item);
       else unassigned.push(Object.assign({ nota: 'sin fecha' }, item));
@@ -2272,6 +2286,8 @@
       deltaVsPrevMin: (todayLen != null && prevLen != null) ? todayLen - prevLen : null,
       goldenAM: { start: isDate(t.sunrise) ? t.sunrise : null, end: isDate(t.goldenHourEnd) ? t.goldenHourEnd : null },
       goldenPM: { start: isDate(t.goldenHour) ? t.goldenHour : null, end: isDate(t.sunset) ? t.sunset : null },
+      civilDawn: isDate(t.dawn) ? t.dawn : null,
+      civilDusk: isDate(t.dusk) ? t.dusk : null,
       darkWindow,
       moon: {
         phaseName: moonPhaseName(mi.phase),
@@ -2283,6 +2299,81 @@
         inDarkWindow: moonInDarkWindow(darkWindow, loc)
       }
     };
+  }
+
+  /* ==========================================================
+     Conducción · B1 — Tiempos reales y viabilidad del día
+     ========================================================== */
+
+  // Todo el cálculo va en minutos desde la medianoche en hora de Islandia
+  // (UTC+0, sin horario de verano). Los eventos (it.hora) están escritos en hora
+  // local de Islandia; los tiempos de SunCalc se leen con getUTC* (Islandia == UTC).
+  // Así el veredicto es correcto independientemente de la zona del dispositivo.
+  function anchorMin(it) {
+    if (!['excursion', 'vuelo', 'coche'].includes(it.t)) return null;
+    const m = String(it.hora || '').match(/^(\d{1,2}):(\d{2})$/);
+    return m ? (+m[1]) * 60 + (+m[2]) : null;
+  }
+  const utcMin = d => (isDate(d) ? d.getUTCHours() * 60 + d.getUTCMinutes() : null);
+
+  function itemCost(it) {
+    return Number.isFinite(+it.costMin) ? +it.costMin : 0;
+  }
+
+  function dayPlan(day) {
+    const sk = (typeof SunCalc !== 'undefined' && state.meta.fechaInicio) ? sky(day.date) : null;
+
+    const dawnMin = sk ? utcMin(sk.civilDawn) : null;
+    const inicio = (dawnMin != null && dawnMin > SALIDA_FLOOR_MIN) ? dawnMin : SALIDA_FLOOR_MIN;
+
+    let reloj = inicio;
+    let prev = null, drivingMin = 0;
+    const legs = [];
+    let firstAnchor = null, tHastaAncla = 0, missedAnchor = null;
+
+    for (const it of day.items) {
+      if (it.loc && it.loc.lat != null && prev && haversine(prev, it.loc) >= MIN_LEG_KM) {
+        const leg = driveByRoad(prev, it.loc);
+        drivingMin += leg.min;
+        reloj += leg.min;
+        legs.push(leg);
+      }
+      const a = anchorMin(it);
+      if (a != null) {
+        if (firstAnchor == null) { firstAnchor = a; tHastaAncla = reloj - inicio; }
+        if (reloj > a + MARGEN_ANCLA_MIN) missedAnchor = missedAnchor || (it.titulo || 'un evento');
+        reloj = Math.max(reloj, a);
+      }
+      reloj += itemCost(it);
+      if (it.loc && it.loc.lat != null) prev = it.loc;
+    }
+
+    const endMin = reloj;
+    const salirMin = firstAnchor != null ? firstAnchor - tHastaAncla : null;
+
+    let luz = null;
+    const sunsetMin = sk ? utcMin(sk.sunset) : null;
+    const duskMin = sk ? utcMin(sk.civilDusk) : null;
+    if (sunsetMin != null) {
+      if (missedAnchor) luz = 'pasa';
+      else if (endMin <= sunsetMin - MARGEN_ATARDECER_MIN) luz = 'ok';
+      else if (duskMin != null && endMin <= duskMin) luz = 'justo';
+      else luz = 'pasa';
+    }
+
+    const h = drivingMin / 60;
+    const volante = h <= VOLANTE_LARGO_H ? 'ok' : h <= VOLANTE_MAX_H ? 'largo' : 'excesivo';
+
+    const rank = { ok: 0, justo: 1, largo: 1, pasa: 2, excesivo: 2 };
+    let veredicto = ['verde', 'ambar', 'rojo'][Math.max(rank[luz || 'ok'], rank[volante])];
+
+    // Día de vuelo sin visitas (volar + trasladarse + dormir): no se juzga.
+    const esVuelo = day.items.some(x => x.t === 'vuelo');
+    const haySalida = day.items.some(x => x.t === 'lugar' || x.t === 'excursion');
+    if (esVuelo && !haySalida) veredicto = null;
+    if (!sk && volante === 'ok') veredicto = null;
+
+    return { drivingMin, legs, salirMin, endMin, missedAnchor, luz, volante, veredicto };
   }
 
   function skyLine(icon, html) {
