@@ -45,7 +45,7 @@ Un grupo **"Gastos"** al final de la pantalla **Datos**, con CRUD completo
   notas. Cada gasto se muestra en su moneda y convertido a la otra.
 - Un **resumen** en la cabecera del grupo: total en € y en ISK, desglose por
   categoría, y la **línea de tipo de cambio** editable.
-- **Tipo de cambio ISK↔€**: se pide a frankfurter.app (tipos del BCE, gratis,
+- **Tipo de cambio ISK↔€**: se pide a frankfurter.dev (tipos del BCE, gratis,
   sin clave) al arrancar con conexión, se cachea en `state.fx` con fecha, y se
   puede sobrescribir a mano. Sin conexión: última tasa guardada, o un valor
   aproximado de fábrica.
@@ -65,7 +65,7 @@ Un grupo **"Gastos"** al final de la pantalla **Datos**, con CRUD completo
 
 | Tema | Decisión | Alternativas descartadas |
 |---|---|---|
-| Tipo de cambio | **API (frankfurter.app) cacheada + override manual** | Solo manual; aproximado de fábrica + override |
+| Tipo de cambio | **API (frankfurter.dev) cacheada + override manual** | Solo manual; aproximado de fábrica + override |
 | Dónde vive | **Grupo "Gastos" dentro de "Datos"** (con CRUD) | 6ª pestaña "Dinero"; sub-vista en "Ideas" |
 | Moneda propia | **EUR fija** | Configurable |
 | Dirección de la tasa | **`rate` = ISK por 1 €** (frankfurter devuelve `rates.ISK` con `from=EUR`) | € por ISK |
@@ -124,7 +124,7 @@ inicio.
 function refreshFx() {
   if (!navigator.onLine) return;
   if (state.fx.date === hoyYMD()) return;   // ya está fresco (o lo fijó el usuario hoy)
-  fetch('https://api.frankfurter.app/latest?from=EUR&to=ISK')
+  fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=ISK')
     .then(r => r.ok ? r.json() : Promise.reject())
     .then(j => {
       const isk = j && j.rates && j.rates.ISK;
@@ -257,8 +257,11 @@ Orden en el grupo: por `fecha` **descendente** (más reciente arriba).
 - **Sin gastos** → la lista muestra "Aún no has añadido nada aquí." (comportamiento
   de `groupEl` para colecciones editables vacías); el resumen muestra
   `Total ≈ 0,00 € · 0 ISK` y ninguna línea de categoría.
-- **`frankfurter.app` cross-origin**: el service worker no intercepta cross-origin
+- **`frankfurter.dev` cross-origin**: el service worker no intercepta cross-origin
   que no sea tile (pasa a red). frankfurter envía `Access-Control-Allow-Origin: *`.
+  (Se usa `api.frankfurter.dev/v1`, el host canónico actual del proyecto; el
+  antiguo `api.frankfurter.app` resultó irresoluble desde el entorno de pruebas.
+  Misma respuesta: `{ amount, base, date, rates: { ISK } }`.)
 - **Cambiar la tasa manual y luego recargar con conexión el mismo día**:
   `state.fx.date === hoyYMD()` → `refreshFx` no la pisa. Al día siguiente sí.
 - **Almacenamiento lleno** al guardar → `save()` ya hace `toast('No se pudo

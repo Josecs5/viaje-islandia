@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Un grupo "Gastos" con CRUD completo dentro de la pantalla "Datos": registrar gastos en ISK o €, verlos convertidos con un tipo de cambio del día (frankfurter.app, cacheado, con override manual), y un resumen con totales en las dos monedas y desglose por categoría.
+**Goal:** Un grupo "Gastos" con CRUD completo dentro de la pantalla "Datos": registrar gastos en ISK o €, verlos convertidos con un tipo de cambio del día (frankfurter.dev, cacheado, con override manual), y un resumen con totales en las dos monedas y desglose por categoría.
 
 **Architecture:** Todo en `app.js` (más CSS/README/release). Se añade `state.gastos` (array) y `state.fx` (`{rate, date, source}`) al modelo, un `refreshFx()` que pide el tipo ISK↔€ a frankfurter.app al arrancar con conexión, y helpers de conversión/formato. El grupo "Gastos" reutiliza la maquinaria genérica de "Datos" (`SCHEMAS`, `openSheet`, `groupEl`, el handler de `#sheet-form`, `removeItem`): basta con dar de alta el `kind` `gasto` y marcarlo editable. `gastoResumen()` antepone al cuerpo del grupo el bloque de totales + línea de tipo de cambio editable. Release nuevo del service worker (`shell-v16`).
 
-**Tech Stack:** HTML + CSS + JavaScript vanilla, sin build, sin framework, sin framework de test. `fetch` a `https://api.frankfurter.app` (tipos del BCE, gratis, sin clave, CORS `*`). `Intl.NumberFormat`. Service worker existente. Verificación manual con DevTools servida por `python -m http.server`.
+**Tech Stack:** HTML + CSS + JavaScript vanilla, sin build, sin framework, sin framework de test. `fetch` a `https://api.frankfurter.dev/v1` (tipos del BCE, gratis, sin clave, CORS `*`; host canónico actual del proyecto frankfurter — `api.frankfurter.app` quedó irresoluble). `Intl.NumberFormat`. Service worker existente. Verificación manual con DevTools servida por `python -m http.server`.
 
 **Spec:** `docs/superpowers/specs/2026-09-10-dinero-d1-registro-de-gastos-design.md`
 
@@ -18,7 +18,7 @@
 - `state.gastos` = array de `{ id, fecha:'YYYY-MM-DD', concepto:string, categoria:string, moneda:'ISK'|'EUR', importe:string, notas:string }` (el handler genérico guarda todos los valores como strings; se hace `+g.importe` al leer).
 - `CATS = ['Comida/super', 'Restaurante', 'Combustible', 'Compras', 'Actividad', 'Transporte', 'Alojamiento', 'Otros']`.
 - `state.fx = { rate:number /* ISK por 1 € */, date:'YYYY-MM-DD'|null, source:'api'|'manual'|'default' }`. `blankFx() = { rate: 150, date: null, source: 'default' }`.
-- `refreshFx()` — una vez al arrancar, tras `renderAll()` en el `try` de inicio. Salta si `!navigator.onLine` o `state.fx.date === hoyYMD()`. `fetch('https://api.frankfurter.app/latest?from=EUR&to=ISK')` → si `j.rates.ISK` es número `> 0`: `state.fx = { rate: j.rates.ISK, date: j.date || hoyYMD(), source: 'api' }`, `save()`, `renderDatos()`. `catch` **silencioso** (sin `toast`, sin `console.error`).
+- `refreshFx()` — una vez al arrancar, tras `renderAll()` en el `try` de inicio. Salta si `!navigator.onLine` o `state.fx.date === hoyYMD()`. `fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=ISK')` → si `j.rates.ISK` es número `> 0`: `state.fx = { rate: j.rates.ISK, date: j.date || hoyYMD(), source: 'api' }`, `save()`, `renderDatos()`. `catch` **silencioso** (sin `toast`, sin `console.error`).
 - Override manual: la tasa de la línea FX es un `<input type="number" step="0.1" min="0">`; en `change`, si `+input.value > 0` → `state.fx = { rate: +input.value, date: hoyYMD(), source: 'manual' }`, `save()`, `renderDatos()`.
 - `RATE()` = `state.fx.rate > 0 ? state.fx.rate : 150`.
 - `toEUR(imp, mon)` = `mon === 'EUR' ? +imp : +imp / RATE()`. `toISK(imp, mon)` = `mon === 'ISK' ? +imp : +imp * RATE()`.
@@ -124,7 +124,7 @@ En `app.js`, justo después de `const blankFx = …` / `blankState` (antes de lo
   const fmtEUR = n => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
   const fmtISK = n => new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' ISK';
 
-  // Tipo del día del BCE (frankfurter.app), cacheado en state.fx. Una vez al
+  // Tipo del día del BCE (frankfurter.dev), cacheado en state.fx. Una vez al
   // arrancar; si no hay conexión o ya es de hoy, no hace nada. Fallo silencioso.
   function refreshFx() {
     if (!navigator.onLine) return;
@@ -183,7 +183,7 @@ En un navegador limpio (DevTools > Application > Service Workers > Unregister; b
 // se puede ver el efecto de refreshFx por el fetch en la pestaña Network.
 ```
 Expected:
-- DevTools > Network: hay una petición a `api.frankfurter.app/latest?from=EUR&to=ISK` con **200** y respuesta `{ "amount":1, "base":"EUR", "date":"…", "rates":{ "ISK": <~140-160> } }`.
+- DevTools > Network: hay una petición a `api.frankfurter.dev/v1/latest?from=EUR&to=ISK` con **200** y respuesta `{ "amount":1, "base":"EUR", "date":"…", "rates":{ "ISK": <~130-160> } }`.
 - DevTools > Application > Local Storage → `islandia_trip_v1` → el JSON contiene `"gastos":[]` y `"fx":{"rate":<~140-160>,"date":"…","source":"api"}`.
 - DevTools > Application > Cache Storage: `shell-v16` con **28 entradas** (`./style.css?v=16`, `./app.js?v=16` incluidas). `shell-v15` desaparece. `tiles-v2` intacta.
 - Consola sin errores.

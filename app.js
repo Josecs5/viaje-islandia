@@ -144,10 +144,40 @@
      ========================================================== */
   const STORE_KEY = 'islandia_trip_v1';
 
+  const blankFx = () => ({ rate: 150, date: null, source: 'default' });
+
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
-    vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: []
+    vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
+    gastos: [], fx: blankFx()
   });
+
+  /* ==========================================================
+     Dinero · D1 — Tipo de cambio ISK↔€ y formato
+     ========================================================== */
+  const RATE  = () => (state.fx && state.fx.rate > 0 ? state.fx.rate : 150);
+  const toEUR = (imp, mon) => (mon === 'EUR' ? +imp : +imp / RATE());
+  const toISK = (imp, mon) => (mon === 'ISK' ? +imp : +imp * RATE());
+  const fmtEUR = n => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
+  const fmtISK = n => new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' ISK';
+
+  // Tipo del día del BCE (frankfurter.dev), cacheado en state.fx. Una vez al
+  // arrancar; si no hay conexión o ya es de hoy, no hace nada. Fallo silencioso.
+  function refreshFx() {
+    if (!navigator.onLine) return;
+    if (state.fx && state.fx.date === hoyYMD()) return;
+    fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=ISK')
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(j => {
+        const isk = j && j.rates && j.rates.ISK;
+        if (typeof isk === 'number' && isk > 0) {
+          state.fx = { rate: isk, date: j.date || hoyYMD(), source: 'api' };
+          save();
+          renderDatos();
+        }
+      })
+      .catch(() => {});
+  }
 
   // Vuelo de ida real (TAP, vía Lisboa) precargado en el primer arranque.
   const IDA_SEED = {
@@ -357,7 +387,9 @@
         excursiones: p.excursiones || [],
         comidas: p.comidas || [],
         lugares: p.lugares || [],
-        recomendaciones: p.recomendaciones || []
+        recomendaciones: p.recomendaciones || [],
+        gastos: p.gastos || [],
+        fx: Object.assign(blankFx(), p.fx || {})
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -2525,6 +2557,7 @@
     initGazList();
     renderAll();
     showScreen(location.hash.slice(1) || 'datos');
+    refreshFx();
   } catch (err) {
     console.error('Error al iniciar:', err);
     const b = document.getElementById('datos-body');
