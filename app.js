@@ -144,7 +144,7 @@
      ========================================================== */
   const STORE_KEY = 'islandia_trip_v1';
 
-  const blankFx = () => ({ rate: 150, date: null, source: 'default' });
+  const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
@@ -161,22 +161,23 @@
   const fmtEUR = n => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
   const fmtISK = n => new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' ISK';
 
-  // Tipo del día del BCE (frankfurter.dev), cacheado en state.fx. Una vez al
-  // arrancar; si no hay conexión o ya es de hoy, no hace nada. Fallo silencioso.
+  // Tipo del día del BCE (frankfurter.dev), cacheado en state.fx. Una vez al día
+  // (stamp = día en que se consultó o se fijó a mano); si no hay conexión, no
+  // hace nada. Solo se silencian los fallos de red / HTTP / parseo: si peta el
+  // re-render posterior, que se vea en consola.
   function refreshFx() {
     if (!navigator.onLine) return;
-    if (state.fx && state.fx.date === hoyYMD()) return;
+    if (state.fx && state.fx.stamp === hoyYMD()) return;
     fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=ISK')
       .then(r => (r.ok ? r.json() : Promise.reject()))
+      .catch(() => null)
       .then(j => {
         const isk = j && j.rates && j.rates.ISK;
-        if (typeof isk === 'number' && isk > 0) {
-          state.fx = { rate: isk, date: j.date || hoyYMD(), source: 'api' };
-          save();
-          renderDatos();
-        }
-      })
-      .catch(() => {});
+        if (typeof isk !== 'number' || !(isk > 0)) return;
+        state.fx = { rate: isk, date: j.date || hoyYMD(), source: 'api', stamp: hoyYMD() };
+        save();
+        renderDatos();
+      });
   }
 
   // Vuelo de ida real (TAP, vía Lisboa) precargado en el primer arranque.
@@ -463,8 +464,8 @@
       fields: [
         { k: 'fecha', l: 'Fecha', t: 'date', req: true },
         { k: 'concepto', l: 'Concepto', t: 'text', req: true, ph: 'Cena en Vík' },
-        { k: 'categoria', l: 'Categoría', t: 'select', opts: CATS, def: 'Comida/super' },
-        { k: 'moneda', l: 'Moneda', t: 'select', opts: ['ISK', 'EUR'], def: 'ISK' },
+        { k: 'categoria', l: 'Categoría', t: 'select', opts: CATS, def: 'Comida/super', req: true },
+        { k: 'moneda', l: 'Moneda', t: 'select', opts: ['ISK', 'EUR'], def: 'ISK', req: true },
         { k: 'importe', l: 'Importe', t: 'number', req: true, min: 0 },
         { k: 'notas', l: 'Notas', t: 'textarea' }
       ]
@@ -1206,7 +1207,7 @@
     box.appendChild(tot);
 
     Object.keys(porCat)
-      .filter(k => porCat[k] > 0.005)
+      .filter(k => Math.abs(porCat[k]) > 0.005)   // incluye netos negativos (reembolsos) para que cuadre con el total
       .sort((a, b) => porCat[b] - porCat[a])
       .forEach(k => {
         const row = el('p', 'gasto-cat');
@@ -1218,14 +1219,17 @@
     const fx = state.fx || blankFx();
     const etiqueta = fx.source === 'api' ? 'BCE ' + fmtFecha(fx.date)
       : fx.source === 'manual' ? 'manual' : 'aprox.';
+    const rateShown = String(+(+fx.rate || 150).toFixed(2));   // precisión real, sin ceros de más
     const line = el('p', 'fx-line');
-    line.innerHTML = `1 € = <input type="number" step="0.1" min="0" class="fx-line__rate" value="${(+fx.rate || 150).toFixed(1)}"> ISK <span class="muted">· ${esc(etiqueta)}</span>`;
+    line.innerHTML = `1 € = <input type="number" step="0.1" min="0" class="fx-line__rate" value="${rateShown}"> ISK <span class="muted">· ${esc(etiqueta)}</span>`;
     line.querySelector('.fx-line__rate').addEventListener('change', ev => {
       const v = +ev.target.value;
       if (v > 0) {
-        state.fx = { rate: v, date: hoyYMD(), source: 'manual' };
+        state.fx = { rate: v, date: hoyYMD(), source: 'manual', stamp: hoyYMD() };
         save();
         renderDatos();
+      } else {
+        ev.target.value = rateShown;   // valor vacío o <= 0: no se guarda; se restaura lo que había
       }
     });
     box.appendChild(line);
