@@ -1689,6 +1689,7 @@
     const keys = Object.keys(W);
     if (!keys.length) return null;
     const loc = locForDate(day.date);
+    if (isIceCenter(loc)) return null;   // día sin alojamiento: no inventar viento
     let best = null, bestD = Infinity;
     keys.forEach(k => {
       const [la, lo] = k.split(',').map(Number);
@@ -1697,8 +1698,10 @@
     });
     if (bestD > 40) return null;
 
-    const ini = Date.parse(day.date + 'T08:00:00Z');
-    const fin = Date.parse(day.date + 'T21:00:00Z');
+    // Ventana amplia: cubre la salida recomendada (B1 baja hasta las 07:30) y las
+    // llegadas de noche en octubre.
+    const ini = Date.parse(day.date + 'T07:00:00Z');
+    const fin = Date.parse(day.date + 'T23:00:00Z');
     let maxGust = null, maxSpd = null;
     (W[best] || []).forEach(x => {
       const ms = Date.parse(x.t);
@@ -1706,14 +1709,17 @@
       if (typeof x.gust === 'number' && (maxGust == null || x.gust > maxGust)) maxGust = x.gust;
       if (typeof x.spd === 'number' && (maxSpd == null || x.spd > maxSpd)) maxSpd = x.spd;
     });
-    if (maxGust == null || maxGust < 45) return null;
+    if (maxGust == null) return null;
 
+    // El nivel se decide sobre el número REDONDEADO que se muestra (si no, "rachas
+    // 90" podía salir en ámbar en vez de rojo).
     const g = Math.round(maxGust), v = maxSpd == null ? null : Math.round(maxSpd);
+    if (g < 45) return null;
     let level, txt;
-    if (maxGust < 65) {
+    if (g < 65) {
       level = 'info';
-      txt = `viento ${v != null ? v + ' km/h, ' : ''}rachas ${g}`;
-    } else if (maxGust < 90) {
+      txt = `viento ${v != null ? v + ' km/h, ' : ''}rachas ${g} km/h`;
+    } else if (g < 90) {
       level = 'aviso';
       txt = `rachas ${g} km/h — abre las puertas del coche agarrándolas con fuerza`;
     } else {
@@ -1771,9 +1777,11 @@
     const w = windFor(day);
     if (w) {
       const pw = el('p', 'day-wind');
+      // aviso/fuerte conservan su color aunque el dato sea rancio: es info de
+      // seguridad y el sufijo « (hace N h)» ya avisa de la antigüedad.
       if (w.level === 'aviso') pw.classList.add('day-wind--aviso');
       else if (w.level === 'fuerte') pw.classList.add('day-wind--fuerte');
-      if (w.stale || w.level === 'info') pw.classList.add('is-dim');
+      pw.title = 'Viento de Open-Meteo en la celda de la pernocta, máximo entre las 07:00 y las 23:00 UTC';
       pw.innerHTML = `💨 ${esc(w.txt)}`;
       wrap.appendChild(pw);
     }
@@ -2860,10 +2868,13 @@
      ========================================================== */
   const NOAA_KP = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
 
+  const isIceCenter = l => l && l.lat === ICE_CENTER.lat && l.lng === ICE_CENTER.lng;
+
   function meteoLocs() {
     const seen = new Set(), out = [];
     eachDay(state.meta.fechaInicio, state.meta.fechaFin).forEach(d => {
       const l = locForDate(d);
+      if (isIceCenter(l)) return;   // día sin alojamiento: no pedir meteo del centro (viento de glaciar de interior, no el de tu ruta)
       const key = l.lat.toFixed(2) + ',' + l.lng.toFixed(2);
       if (!seen.has(key)) { seen.add(key); out.push({ key, lat: l.lat, lng: l.lng }); }
     });
@@ -2926,10 +2937,26 @@
               .filter(x => typeof x.gust === 'number' && inTrip(x.t));
           }
         });
+        // Poda las claves de ubicaciones que ya no están en el viaje (alojamiento
+        // cambiado/borrado): evita crecer sin límite y que una clave vieja gane
+        // el match de "más cercana".
+        const cur = new Set(locs.map(l => l.key));
+        [clouds, wind].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
+
         state.meteo = { kp, clouds, wind, fetched: new Date().toISOString() };
         save();
-        renderClima();
-        renderItinerario();
+        // Si no ha entrado ningún dato (viaje fuera de la ventana de previsión),
+        // no se re-pinta: ahorra el rebuild completo y no roba el foco de un
+        // campo que se esté editando en el Itinerario.
+        const hayDatos = kp.length
+          || Object.keys(clouds).some(k => clouds[k].length)
+          || Object.keys(wind).some(k => wind[k].length);
+        if (hayDatos) {
+          renderClima();
+          const ae = document.activeElement;
+          const itin = $('#itin-body');
+          if (!(ae && itin && itin.contains(ae))) renderItinerario();
+        }
       });
   }
 

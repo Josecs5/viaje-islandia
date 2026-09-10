@@ -65,11 +65,19 @@ const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, fetched: null });
   ```
   Guard: exigir `Array.isArray(H.wind_speed_10m) && Array.isArray(H.wind_gusts_10m)`
   además de `H.time` y `H.cloud_cover`.
-- `state.meteo = { kp, clouds, wind, fetched: ... }`. `wind` parte de lo cacheado
-  igual que `clouds` (`Object.assign({}, prev.wind, nuevo)`).
+- `state.meteo = { kp, clouds, wind, fetched: ... }`. `wind` y `clouds` parten de
+  lo cacheado (`Object.assign({}, prev, nuevo)`) y luego **se podan las claves que
+  ya no estén en `locs`** (alojamiento cambiado/borrado): no crecen sin límite y
+  una clave vieja no puede ganar el match de «más cercana».
 - El resto (guards de frescura 2 h, `meteoFetching`, `.catch(()=>null)` antes del
-  éxito, `save()` + `renderClima()`) **sin cambios**. Además `renderItinerario()`
-  al resolver (la línea de viento vive en el Itinerario) — llamar a los dos.
+  éxito, `save()`) **sin cambios**. Al resolver, si entró **algún** dato
+  (`kp`/`clouds`/`wind` no vacíos), `renderClima()` y `renderItinerario()`; si el
+  Itinerario tiene un campo con el foco (edición del panel de combustible D2), se
+  omite su re-render para no robar el foco. Si no entró ningún dato (viaje fuera
+  de la ventana de previsión) no se re-pinta nada — solo se guarda `fetched`.
+- `meteoLocs()` **descarta el día que cae a `ICE_CENTER`** (sin alojamiento): no
+  se pide meteo del centro de Islandia (viento de glaciar de interior, no el de
+  tu ruta), y `windFor` también devuelve `null` para esos días.
 - Llamada: ya se dispara en init y en `showScreen('clima')`; **añadir**
   `showScreen('itinerario')` → `refreshMeteo()` (para que el viento se cargue al
   entrar en Itinerario aunque no se haya abierto Clima).
@@ -79,19 +87,22 @@ const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, fetched: null });
 `day` = objeto de `buildItinerary().days` (`{date, idx, items, km}`).
 
 1. `loc = locForDate(day.date)` (proxy: la meteo de la pernocta ≈ la de la zona
-   ese día; el viento exacto de la ruta varía, pero da la foto regional).
-2. Ventana: `day.date` `08:00`–`21:00` UTC (horas de conducción con luz en octubre).
+   ese día; el viento exacto de la ruta varía, pero da la foto regional). Si `loc`
+   es `ICE_CENTER` (día sin alojamiento) → `return null`.
+2. Ventana: `day.date` `07:00`–`23:00` UTC (cubre la salida recomendada por B1
+   —baja hasta las 07:30— y las llegadas de noche en octubre).
 3. `key` de `state.meteo.wind` más cercana a `loc` (haversine); si `> 40 km` → sin dato.
 4. `maxGust` / `maxSpd` = máximos de `gust` / `spd` de esa clave dentro de la ventana.
    Si no hay entradas → `return null`.
 5. `stale` = `state.meteo.fetched` con > 18 h.
-6. Nivel por `maxGust` (km/h):
-   | ráfaga | nivel | copy |
+6. `g = Math.round(maxGust)` (el número que se muestra). **El nivel se decide
+   sobre `g`**, no sobre `maxGust` crudo (si no, «rachas 90» podía salir en ámbar):
+   | `g` (km/h) | nivel | copy |
    |---|---|---|
    | < 45 | — (`return null`, no se pinta) | |
-   | 45–64 | `info` | `viento {spd} km/h, rachas {gust}` |
-   | 65–89 | `aviso` | `rachas {gust} km/h — abre las puertas del coche agarrándolas con fuerza` |
-   | ≥ 90 | `fuerte` | `rachas {gust} km/h — puertas con las dos manos; ojo en puentes, altos y tramos de grava; mal día para tienda de campaña o F-roads` |
+   | 45–64 | `info` | `viento {spd} km/h, rachas {g} km/h` |
+   | 65–89 | `aviso` | `rachas {g} km/h — abre las puertas del coche agarrándolas con fuerza` |
+   | ≥ 90 | `fuerte` | `rachas {g} km/h — puertas con las dos manos; ojo en puentes, altos y tramos de grava; mal día para tienda de campaña o F-roads` |
 7. `txt` con sufijo ` (hace {h} h)` si `stale`.
 8. Return `{ txt, level:'info'|'aviso'|'fuerte', stale }`.
 
@@ -107,23 +118,27 @@ if (w) {
   const pw = el('p', 'day-wind');
   if (w.level === 'aviso') pw.classList.add('day-wind--aviso');
   else if (w.level === 'fuerte') pw.classList.add('day-wind--fuerte');
-  if (w.stale || w.level === 'info') pw.classList.add('is-dim');
+  pw.title = 'Viento de Open-Meteo en la celda de la pernocta, máximo entre las 07:00 y las 23:00 UTC';
   pw.innerHTML = `💨 ${esc(w.txt)}`;
   wrap.appendChild(pw);
 }
 ```
 
+- **No hay `is-dim`**: `info` ya sale en gris (`--c-text-2`, color base de
+  `.day-wind`); `aviso`/`fuerte` conservan su color aunque el dato sea **rancio**
+  (es info de seguridad; el sufijo « (hace N h)» avisa de la antigüedad).
+- El `title` traslada a la UI la advertencia del §7.1 (celda de la pernocta, no la
+  ruta; máximo 07:00–23:00) sin ensuciar la línea.
+
 ## 9. Estilos (`style.css`)
 
-Junto a `.day-fuel`:
+Junto a `.day-fuel` — `--c-warning` y `--c-danger` ya existen en `:root` (los usa
+`.day-verdict--ambar` / `--rojo`):
 ```css
 .day-wind { font-size: var(--step--1); color: var(--c-text-2); margin: var(--space-4) 0 0; }
-.day-wind.is-dim { color: var(--c-text-2); }
-.day-wind--aviso { color: var(--c-warn, oklch(0.82 0.13 75)); }
-.day-wind--fuerte { color: var(--c-accent); font-weight: 600; }
+.day-wind--aviso { color: var(--c-warning); }
+.day-wind--fuerte { color: var(--c-danger); font-weight: 600; }
 ```
-*(Comprobar si existe un token de aviso/ámbar en `:root` — `--c-warn`, `--c-amber`,
-o el color que use `.day-verdict--ambar`; usar ese en vez del literal.)*
 
 ## 10. Integración y release
 
