@@ -45,12 +45,19 @@ exteriores y, en los malos, dar alternativas de interior.
 `day` = objeto de `buildItinerary().days`.
 
 1. `loc = locForDate(day.date)`; si `isIceCenter(loc)` → `return null`.
-2. Ventana **de día**: `day.date` `09:00`–`19:00` UTC (octubre en Islandia).
-3. Clave más cercana (≤ 40 km) en `clouds` / `wind` / `precip` (la misma para las
-   tres, por `haversine` a `loc`); si `> 40 km` o sin ninguna serie → `return null`.
+2. Ventana **de día**: `day.date` `09:00`–`19:00` UTC (octubre en Islandia). Nota:
+   Open-Meteo da `precipitation` como suma de la hora anterior, así que para la
+   lluvia la ventana efectiva es ~08:00–19:00; irrelevante para el nivel.
+3. **Una sola clave** (la más cercana entre la unión de las claves de `clouds` /
+   `wind` / `precip`, por `haversine` a `loc`); si `> 40 km` o no hay ninguna clave
+   → `return null`. Las tres métricas se leen de esa misma clave (spec previa pedía
+   "la misma para las tres"; ahora se garantiza de verdad).
 4. Sobre la ventana: `avgCloud` (media `%`), `maxGust` (máx km/h), `sumPrecip`
    (suma mm), `hoursRain` (nº de horas con `mm >= 0.5`).
 5. Si las tres series no tienen ninguna entrada en la ventana → `return null`.
+   (Una serie ausente cuenta 0; p. ej. justo tras subir a v22, `precip:{}` durante
+   las 2 h del guard de frescura → el día no puede salir `malo`, solo `regular` —
+   transitorio y conservador: sin dato de lluvia no se grita "plan B".)
 6. **Puntuación** (cuanto más alto, peor) — la lluvia y el viento son la señal;
    en Islandia un cielo gris es lo normal, así que las nubes solo suman con techo total:
    `score = (avgCloud>=85 ? 0.5 : 0) + (maxGust>=75?2:maxGust>=55?1:0) + Math.min(sumPrecip,8)/2.5 + (hoursRain>=4?0.8:hoursRain>=2?0.4:0)`
@@ -59,23 +66,28 @@ exteriores y, en los malos, dar alternativas de interior.
    - `score < 2.6` → `regular`
    - resto → `malo`
 8. `txt`:
-   - `regular` → `día irregular: ` + los factores presentes (`nubes 80%`, `rachas 60`, `2 mm`)
-   - `malo` → `día de plan B` + factores + ` — alternativas de interior en Ideas`
-9. `stale` (>18 h) → sufijo ` (hace {h} h)`; **no** atenúa (`malo` es señal útil).
-10. Return `{ level:'bueno'|'regular'|'malo', txt, stale }`.
+   - `bueno` → `''` (no se pinta).
+   - `regular` → `día irregular: ` + los factores presentes (`nubes 80%`, `rachas 60`, `2 mm`).
+   - `malo` → `día de plan B` + factores + ` — alternativas de interior en Ideas`.
+   - `mm` con coma decimal (`toLocaleString('es-ES')`), como el resto de la app.
+9. `stale` (>18 h) → sufijo ` (hace {h} h)` si hay `txt`; **no** atenúa (`malo` es señal útil).
+10. Return `{ level:'bueno'|'regular'|'malo', txt, stale, score }`. Memoizado por
+    `(fecha + fetched)` dentro de un mismo `renderItinerario` (se llama 2× por día).
 
 ## 6. Cabecera del Itinerario — nudge
 
 En `renderItinerario`, tras `itinFuelBlock(it)` y antes de `.chips--itin`,
 `body.appendChild(outdoorRankBlock(it))`:
 
-- `outdoorRankBlock(it)` calcula `outdoorFor` de cada día; si **menos de 2 días**
-  tienen dato → devuelve un `<section hidden>` (nada que rankear).
-- Si hay ≥ 2: `<section class="itin-outlook">` con:
-  `Días con mejor pinta para exteriores: {mejores} · peores: {peores}. Si puedes
-  mover una excursión al aire libre, hazla a un día verde.`
-  donde `mejores` = los 2-3 de menor score, `peores` = los 1-2 de mayor score
-  (por «Día N», con la fecha corta entre paréntesis).
+- `outdoorRankBlock(it)` calcula `outdoorFor` de cada día y parte en `flojos`
+  (`level != 'bueno'`, ordenados peor→mejor) y `buenos` (ordenados mejor→peor).
+- Si **no hay días flojos** o **no hay días buenos** → `<section hidden>` (no hay
+  nada que mover, o no hay a dónde). Esto evita nombrar «peores» días que en
+  realidad son buenos y para los que `dayBlock` no pinta línea (contradicción).
+- Si hay de ambos: `<section class="itin-outlook">` con
+  `Días flojos para exteriores: {peores 1-2} · mejor pinta: {mejores 1-3}. Si
+  puedes mover una salida al aire libre, llévala a un día verde.`
+  (cada día como «Día N (fecha corta)»).
 
 ## 7. Render — `dayBlock`
 

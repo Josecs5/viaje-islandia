@@ -1574,6 +1574,7 @@
     const body = $('#itin-body');
     const sub = $('#itin-sub');
     body.innerHTML = '';
+    _odCache = {};   // A5: cache de outdoorFor válido solo dentro de este render (locForDate depende de state.alojamientos)
 
     if (!state.meta.fechaInicio || !state.meta.fechaFin) {
       sub.textContent = '';
@@ -1683,19 +1684,19 @@
     return box;
   }
 
-  // Nudge de la cabecera del Itinerario: qué días pintan mejor/peor para
-  // exteriores (dentro de la previsión). No reordena nada — lo decide el usuario.
+  // Nudge de la cabecera del Itinerario: solo cuando hay días flojos Y días buenos
+  // (o sea, algo que mover y a dónde). No reordena nada — lo decide el usuario.
   function outdoorRankBlock(it) {
     const box = el('section', 'itin-outlook');
     const rated = it.days.map(d => ({ d, o: outdoorFor(d) })).filter(x => x.o);
-    if (rated.length < 2) { box.hidden = true; return box; }
-    rated.sort((a, b) => a.o.score - b.o.score);
+    const flojos = rated.filter(x => x.o.level !== 'bueno').sort((a, b) => b.o.score - a.o.score);
+    const buenos = rated.filter(x => x.o.level === 'bueno').sort((a, b) => a.o.score - b.o.score);
+    if (!flojos.length || !buenos.length) { box.hidden = true; return box; }
     const tag = x => `Día ${x.d.idx} (${fmtFecha(x.d.date)})`;
-    const nMej = Math.min(3, rated.length - 1);
-    const mejores = rated.slice(0, nMej).map(tag);
-    const peores = rated.slice(-Math.min(2, rated.length - nMej)).reverse().map(tag);
+    const peores = flojos.slice(0, 2).map(tag);
+    const mejores = buenos.slice(0, 3).map(tag);
     box.innerHTML =
-      `<p>Días con mejor pinta para exteriores: <b>${esc(mejores.join(' · '))}</b> · peores: ${esc(peores.join(' · '))}.</p>` +
+      `<p>Días flojos para exteriores: <b>${esc(peores.join(' · '))}</b> · mejor pinta: ${esc(mejores.join(' · '))}.</p>` +
       `<p class="itin-outlook__nudge">Si puedes mover una salida al aire libre (Círculo Dorado, una cascada, una excursión movible), llévala a un día verde.</p>`;
     return box;
   }
@@ -1754,33 +1755,37 @@
 
   // Condiciones para planes al aire libre ese día (nubes + ráfaga + lluvia de las
   // horas de día). Devuelve null si no hay dato; el nivel 'bueno' no se pinta.
+  // Memoizado por (fecha + fetch): renderItinerario lo llama 2× por día.
+  let _odCache = {};
   function outdoorFor(day) {
     const M = state.meteo || {};
+    const ck = day.date + '|' + (M.fetched || '');
+    if (ck in _odCache) return _odCache[ck];
+    const done = r => { _odCache[ck] = r; return r; };
+
     const loc = locForDate(day.date);
-    if (isIceCenter(loc)) return null;
-    const near = map => {
-      const keys = Object.keys(map || {});
-      if (!keys.length) return null;
-      let best = null, bestD = Infinity;
-      keys.forEach(k => {
-        const [la, lo] = k.split(',').map(Number);
-        const d = haversine({ lat: la, lng: lo }, loc);
-        if (d < bestD) { bestD = d; best = k; }
-      });
-      return bestD > 40 ? null : best;
-    };
-    const kc = near(M.clouds), kw = near(M.wind), kpr = near(M.precip);
+    if (isIceCenter(loc)) return done(null);
+    // Una sola clave (la más cercana entre las tres series) para nubes/viento/lluvia.
+    const allKeys = [...new Set([].concat(Object.keys(M.clouds || {}), Object.keys(M.wind || {}), Object.keys(M.precip || {})))];
+    let key = null, bestD = Infinity;
+    allKeys.forEach(k => {
+      const [la, lo] = k.split(',').map(Number);
+      const d = haversine({ lat: la, lng: lo }, loc);
+      if (d < bestD) { bestD = d; key = k; }
+    });
+    if (key == null || bestD > 40) return done(null);
+
     const ini = Date.parse(day.date + 'T09:00:00Z');
     const fin = Date.parse(day.date + 'T19:00:00Z');
     const inWin = t => { const ms = Date.parse(t); return ms >= ini && ms <= fin; };
 
     let cSum = 0, cN = 0;
-    ((kc && M.clouds[kc]) || []).forEach(x => { if (inWin(x.t) && typeof x.pct === 'number') { cSum += x.pct; cN++; } });
+    ((M.clouds && M.clouds[key]) || []).forEach(x => { if (inWin(x.t) && typeof x.pct === 'number') { cSum += x.pct; cN++; } });
     let maxGust = null;
-    ((kw && M.wind[kw]) || []).forEach(x => { if (inWin(x.t) && typeof x.gust === 'number' && (maxGust == null || x.gust > maxGust)) maxGust = x.gust; });
+    ((M.wind && M.wind[key]) || []).forEach(x => { if (inWin(x.t) && typeof x.gust === 'number' && (maxGust == null || x.gust > maxGust)) maxGust = x.gust; });
     let pSum = 0, pN = 0, hoursRain = 0;
-    ((kpr && M.precip[kpr]) || []).forEach(x => { if (inWin(x.t) && typeof x.mm === 'number') { pSum += x.mm; pN++; if (x.mm >= 0.5) hoursRain++; } });
-    if (!cN && maxGust == null && !pN) return null;
+    ((M.precip && M.precip[key]) || []).forEach(x => { if (inWin(x.t) && typeof x.mm === 'number') { pSum += x.mm; pN++; if (x.mm >= 0.5) hoursRain++; } });
+    if (!cN && maxGust == null && !pN) return done(null);
 
     // La lluvia y el viento son la señal; en Islandia un cielo gris es lo normal,
     // así que las nubes solo suman un poco cuando es un techo total.
@@ -1794,15 +1799,15 @@
     const fac = [];
     if (avgCloud != null && avgCloud >= 60) fac.push(`nubes ${Math.round(avgCloud)}%`);
     if (maxGust != null && maxGust >= 50) fac.push(`rachas ${Math.round(maxGust)}`);
-    if (pSum >= 1) fac.push(`${pSum.toFixed(pSum < 10 ? 1 : 0)} mm`);
+    if (pSum >= 1) fac.push(`${pSum.toLocaleString('es-ES', { maximumFractionDigits: pSum < 10 ? 1 : 0 })} mm`);
     const cola = fac.length ? ': ' + fac.join(' · ') : '';
-    let txt = level === 'malo'
-      ? 'día de plan B' + cola + ' — alternativas de interior en Ideas'
-      : 'día irregular' + cola;
+    let txt = level === 'malo' ? 'día de plan B' + cola + ' — alternativas de interior en Ideas'
+      : level === 'regular' ? 'día irregular' + cola
+      : '';
 
-    const stale = !!(state.meteo && state.meteo.fetched) && (Date.now() - Date.parse(state.meteo.fetched)) > 18 * 3600e3;
-    if (stale) txt += ` (hace ${Math.round((Date.now() - Date.parse(state.meteo.fetched)) / 3600e3)} h)`;
-    return { level, txt, stale, score };
+    const stale = !!M.fetched && (Date.now() - Date.parse(M.fetched)) > 18 * 3600e3;
+    if (stale && txt) txt += ` (hace ${Math.round((Date.now() - Date.parse(M.fetched)) / 3600e3)} h)`;
+    return done({ level, txt, stale, score });
   }
 
   function dayBlock(day) {
