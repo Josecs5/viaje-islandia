@@ -70,7 +70,37 @@
       Math.cos(toR(a.lat)) * Math.cos(toR(b.lat)) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(s));
   }
-  const driveEst = km => Math.round(km / 65 * 60) + 5; // minutos (aprox. carretera islandesa)
+  // Tiempo de conducción estimado por carretera: distancia en línea recta ×
+  // factor de rodeo según la zona ÷ velocidad media. Offline, sin API.
+  const AVG_KMH = 75;   // límite de 90 en abierto, menos pueblos, curvas y meteo
+  const PARK_MIN = 4;   // aparcar y arrancar
+
+  // Factores calibrados contra distancias reales de la Ruta 1 (la carretera de
+  // circunvalación bordea la costa y cruza el puerto de Holtavörðuheiði, así que
+  // rodea bastante más que la línea recta, sobre todo en el norte y el noroeste).
+  const ZONAS = [
+    { name: 'suroeste',   lat: [63.80, 64.30], lng: [-22.70, -21.30], factor: 1.20 },
+    { name: 'costa sur',  lat: [63.30, 64.30], lng: [-21.30, -16.00], factor: 1.15 },
+    { name: 'fiordos E',  lat: [64.00, 65.40], lng: [-16.00, -13.40], factor: 1.75 },
+    { name: 'norte',      lat: [65.20, 66.20], lng: [-19.50, -14.90], factor: 1.55 },
+    { name: 'oeste',      lat: [64.60, 65.60], lng: [-22.00, -19.30], factor: 1.45 }
+  ];
+  const ZONA_DEFAULT = { name: 'otro', factor: 1.40 };
+
+  function zoneFor(p) {
+    for (const z of ZONAS) {
+      if (p.lat >= z.lat[0] && p.lat <= z.lat[1] && p.lng >= z.lng[0] && p.lng <= z.lng[1]) return z;
+    }
+    return ZONA_DEFAULT;
+  }
+
+  function driveByRoad(a, b) {
+    const kmRecta = haversine(a, b);
+    const mid = { lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 };
+    const kmRuta = kmRecta * zoneFor(mid).factor;
+    const min = Math.round(kmRuta / AVG_KMH * 60) + PARK_MIN;
+    return { km: kmRuta, min };
+  }
   const MIN_LEG_KM = 1; // por debajo de esto no se muestra trayecto (mismo sitio / a pie)
 
   function fmtDur(min) {
@@ -1244,10 +1274,7 @@
       let km = 0, prev = null;
       items.forEach(it => {
         if (it.loc && it.loc.lat != null) {
-          if (prev) {
-            const d = haversine(prev, it.loc);
-            if (d >= MIN_LEG_KM) km += d;
-          }
+          if (prev && haversine(prev, it.loc) >= MIN_LEG_KM) km += driveByRoad(prev, it.loc).km;
           prev = it.loc;
         }
       });
@@ -1478,8 +1505,7 @@
     let prevLoc = null;
     day.items.forEach(it => {
       if (it.loc && it.loc.lat != null && prevLoc) {
-        const km = haversine(prevLoc, it.loc);
-        if (km >= MIN_LEG_KM) tl.appendChild(legRow(km));
+        if (haversine(prevLoc, it.loc) >= MIN_LEG_KM) tl.appendChild(legRow(prevLoc, it.loc));
       }
       if (it.loc && it.loc.lat != null) prevLoc = it.loc;
       tl.appendChild(slotRow(it));
@@ -1524,9 +1550,10 @@
     return r;
   }
 
-  function legRow(km) {
+  function legRow(a, b) {
+    const { km, min } = driveByRoad(a, b);
     const r = el('div', 'leg');
-    r.innerHTML = `<span class="leg__ico">🚗</span><span>≈ ${fmtDur(driveEst(km))} · ${km.toFixed(km < 10 ? 1 : 0)} km en coche</span>`;
+    r.innerHTML = `<span class="leg__ico">🚗</span><span>≈ ${fmtDur(min)} · ${km.toFixed(km < 10 ? 1 : 0)} km en coche</span>`;
     return r;
   }
 
