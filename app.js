@@ -3108,15 +3108,16 @@
 
         state.meteo = { kp, clouds, wind, precip, fetched: new Date().toISOString() };
         save();
-        // Si no ha entrado ningún dato (viaje fuera de la ventana de previsión),
-        // no se re-pinta: ahorra el rebuild completo y no roba el foco de un
-        // campo que se esté editando en el Itinerario.
+        // Clima siempre: aunque no haya datos en ventana, la línea de auroras pasa
+        // de "sin datos — mira vedur.is" a "previsión disponible ~3 días antes" al
+        // confirmarse el fetch. El Itinerario solo si hay datos que mostrar, y sin
+        // robar el foco de un campo que se esté editando (panel de combustible D2).
+        renderClima();
         const hayDatos = kp.length
           || Object.keys(clouds).some(k => clouds[k].length)
           || Object.keys(wind).some(k => wind[k].length)
           || Object.keys(precip).some(k => precip[k].length);
         if (hayDatos) {
-          renderClima();
           const ae = document.activeElement;
           const itin = $('#itin-body');
           if (!(ae && itin && itin.contains(ae))) renderItinerario();
