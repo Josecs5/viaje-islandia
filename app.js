@@ -146,11 +146,12 @@
 
   const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
   const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel' });
+  const blankAurora = () => ({ kp: [], clouds: {}, fetched: null });
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel()
+    gastos: [], fx: blankFx(), combustible: blankFuel(), aurora: blankAurora()
   });
 
   /* ==========================================================
@@ -406,7 +407,8 @@
         recomendaciones: p.recomendaciones || [],
         gastos: p.gastos || [],
         fx: Object.assign(blankFx(), p.fx || {}),
-        combustible: Object.assign(blankFuel(), p.combustible || {})
+        combustible: Object.assign(blankFuel(), p.combustible || {}),
+        aurora: Object.assign(blankAurora(), p.aurora || {})
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -2346,6 +2348,7 @@
     window.scrollTo(0, 0);
     // La primera vez que se abre "Clima" con el viaje en curso, centra la
     // tarjeta de hoy (aquí, no en renderClima: allí la sección aún está oculta).
+    if (name === 'clima') refreshAurora();
     if (name === 'clima' && !climaScrolled) {
       const hoyCard = $('#clima-body .sky-card.day--hoy');
       if (hoyCard) {
@@ -2589,6 +2592,7 @@
     return {
       date: dateStr,
       locLabel: loc.label,
+      loc: { lat: loc.lat, lng: loc.lng },
       sunrise: isDate(t.sunrise) ? t.sunrise : null,
       sunset: isDate(t.sunset) ? t.sunset : null,
       dayLengthMin: todayLen,
@@ -2779,6 +2783,134 @@
     return c;
   }
 
+  /* ==========================================================
+     Clima · A2 — Previsión de auroras (NOAA Kp + Open-Meteo nubes)
+     ========================================================== */
+  const NOAA_KP = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
+
+  function auroraLocs() {
+    const seen = new Set(), out = [];
+    eachDay(state.meta.fechaInicio, state.meta.fechaFin).forEach(d => {
+      const l = locForDate(d);
+      const key = l.lat.toFixed(2) + ',' + l.lng.toFixed(2);
+      if (!seen.has(key)) { seen.add(key); out.push({ key, lat: l.lat, lng: l.lng }); }
+    });
+    return out;
+  }
+
+  // Kp de NOAA (~3 días) + nubosidad de Open-Meteo (~16 días) por ubicación de
+  // pernocta. Cacheado en state.aurora; refresco máx. cada 2 h. Fallo silencioso
+  // (solo red/HTTP/parseo; si renderClima peta, que se vea en consola).
+  let auroraFetching = false;
+  function refreshAurora() {
+    if (auroraFetching) return;                       // ya hay una petición en curso (init + showScreen)
+    if (!navigator.onLine) return;
+    if (!state.meta.fechaInicio || !state.meta.fechaFin) return;
+    const f = state.aurora && state.aurora.fetched;
+    if (f && Date.now() - Date.parse(f) < 2 * 3600e3) return;
+
+    const locs = auroraLocs();
+    if (!locs.length) return;
+    const om = 'https://api.open-meteo.com/v1/forecast'
+      + '?latitude=' + locs.map(l => l.lat).join(',')
+      + '&longitude=' + locs.map(l => l.lng).join(',')
+      + '&hourly=cloud_cover&forecast_days=16&timezone=UTC';
+
+    auroraFetching = true;
+    Promise.all([
+      fetch(NOAA_KP).then(r => (r.ok ? r.json() : Promise.reject())),
+      fetch(om).then(r => (r.ok ? r.json() : Promise.reject()))
+    ])
+      .catch(() => null)
+      .then(pair => {
+        auroraFetching = false;
+        if (!pair) return;
+        const [kpRaw, omRaw] = pair;
+        const kp = (Array.isArray(kpRaw) ? kpRaw : [])
+          .filter(x => x && x.time_tag && typeof x.kp === 'number')
+          .map(x => ({ t: x.time_tag + 'Z', kp: x.kp, pred: x.observed !== 'observed' }));
+        const results = Array.isArray(omRaw) ? omRaw : [omRaw];
+        const clouds = {};
+        results.forEach((res, i) => {
+          if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time)) return;
+          const H = res.hourly;
+          clouds[locs[i].key] = H.time.map((t, j) => ({ t: t + 'Z', pct: H.cloud_cover[j] }));
+        });
+        state.aurora = { kp, clouds, fetched: new Date().toISOString() };
+        save();
+        renderClima();
+      });
+  }
+
+  // Kp + nubes de la noche de `s` cruzados con su ventana de oscuridad.
+  function auroraFor(s) {
+    const A = state.aurora || { kp: [], clouds: {}, fetched: null };
+    const stale = !!A.fetched && (Date.now() - Date.parse(A.fetched)) > 18 * 3600e3;
+
+    let ini, fin;
+    if (s.darkWindow) {
+      ini = s.darkWindow.start.getTime();
+      fin = s.darkWindow.end.getTime();
+    } else if (isDate(s.sunset)) {
+      ini = s.sunset.getTime() + 60 * 60e3;
+      const d2 = new Date(s.sunset); d2.setUTCDate(d2.getUTCDate() + 1); d2.setUTCHours(2, 0, 0, 0);
+      fin = d2.getTime();
+    } else {
+      return { txt: '—', level: null, stale: false };
+    }
+    const M = 90 * 60e3; // margen para encajar bloques de 3 h de Kp
+
+    let maxKp = null;
+    A.kp.forEach(e => {
+      const ms = Date.parse(e.t);
+      if (ms >= ini - M && ms <= fin + M && (maxKp == null || e.kp > maxKp)) maxKp = e.kp;
+    });
+
+    let cloudPct = null;
+    const keys = Object.keys(A.clouds);
+    if (keys.length && s.loc) {
+      let best = null, bestD = Infinity;
+      keys.forEach(k => {
+        const [la, lo] = k.split(',').map(Number);
+        const d = haversine({ lat: la, lng: lo }, s.loc);
+        if (d < bestD) { bestD = d; best = k; }
+      });
+      const arr = (A.clouds[best] || []).filter(x => {
+        const ms = Date.parse(x.t);
+        return ms >= ini && ms <= fin && typeof x.pct === 'number';
+      });
+      if (arr.length) cloudPct = Math.round(arr.reduce((s2, x) => s2 + x.pct, 0) / arr.length);
+    }
+
+    let level = null;
+    if (maxKp != null || cloudPct != null) {
+      if (maxKp != null && maxKp >= 3 && cloudPct != null && cloudPct <= 35 && s.darkWindow) level = 'alta';
+      else if ((maxKp != null && maxKp >= 3 && (cloudPct == null || cloudPct <= 65)) || (maxKp != null && maxKp >= 5)) level = 'media';
+      else level = 'baja';
+    }
+
+    const kpTxt = maxKp == null ? null : (Number.isInteger(maxKp) ? String(maxKp) : maxKp.toFixed(1));
+    const palabra = level === 'alta' ? 'buena' : level === 'media' ? 'posible' : level === 'baja' ? 'floja' : '';
+    let txt;
+    if (maxKp == null && cloudPct == null) {
+      const lejano = Date.parse(s.date + 'T00:00:00Z') - Date.now() > 3 * 86400e3;
+      txt = !A.fetched ? 'sin datos — mira vedur.is (Aurora)'
+        : lejano ? 'previsión disponible ~3 días antes'
+        : 'sin datos esta noche';
+    } else if (cloudPct == null) {
+      txt = `Kp ${kpTxt}${palabra ? ' · ' + palabra : ''}`;
+    } else if (maxKp == null) {
+      txt = `nubes ${cloudPct}% · Kp sin previsión`;
+    } else {
+      txt = `Kp ${kpTxt} · nubes ${cloudPct}%${palabra ? ' · ' + palabra : ''}`;
+    }
+    if (stale) {
+      const h = Math.round((Date.now() - Date.parse(A.fetched)) / 3600e3);
+      txt += ` (hace ${h} h)`;
+    }
+    return { txt, level, stale };
+  }
+
   function renderClima() {
     const body = $('#clima-body');
     if (!body) return;
@@ -2810,6 +2942,7 @@
     renderAll();
     showScreen(location.hash.slice(1) || 'datos');
     refreshFx();
+    refreshAurora();
   } catch (err) {
     console.error('Error al iniciar:', err);
     const b = document.getElementById('datos-body');
