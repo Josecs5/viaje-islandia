@@ -5,6 +5,7 @@ desktop.ini
 
 # Herramientas de diseño (metadatos locales)
 .hallmark/
+.superpowers/
 
 # Editores
 .vscode/
