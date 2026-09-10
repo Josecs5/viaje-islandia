@@ -410,8 +410,8 @@
     }, 150);
   }
 
-  const COL_OF  = { vuelo: 'vuelos', coche: 'coches', alojamiento: 'alojamientos', excursion: 'excursiones', comida: 'comidas', lugar: 'lugares', recomendacion: 'recomendaciones' };
-  const KIND_OF = { vuelos: 'vuelo', coches: 'coche', alojamientos: 'alojamiento', excursiones: 'excursion', comidas: 'comida', lugares: 'lugar', recomendaciones: 'recomendacion' };
+  const COL_OF  = { vuelo: 'vuelos', coche: 'coches', alojamiento: 'alojamientos', excursion: 'excursiones', comida: 'comidas', lugar: 'lugares', recomendacion: 'recomendaciones', gasto: 'gastos' };
+  const KIND_OF = { vuelos: 'vuelo', coches: 'coche', alojamientos: 'alojamiento', excursiones: 'excursion', comidas: 'comida', lugares: 'lugar', recomendaciones: 'recomendacion', gastos: 'gasto' };
 
   /* ==========================================================
      Lugares conocidos de Islandia (autocompletado + coordenadas)
@@ -453,9 +453,22 @@
      ========================================================== */
   const TIPOS_COMIDA = ['Cafetería', 'Desayuno', 'Brunch', 'Almuerzo', 'Cena', 'Café / postre', 'Alta cocina', 'Casual / rápido', 'Supermercado'];
 
+  const CATS = ['Comida/super', 'Restaurante', 'Combustible', 'Compras', 'Actividad', 'Transporte', 'Alojamiento', 'Otros'];
+
   const SCHEMAS = {
     // Los vuelos usan un formulario propio (openFlightSheet) que admite escalas.
     vuelo: { sing: 'vuelo', icon: '✈️', fields: [] },
+    gasto: {
+      sing: 'gasto', icon: '💶',
+      fields: [
+        { k: 'fecha', l: 'Fecha', t: 'date', req: true },
+        { k: 'concepto', l: 'Concepto', t: 'text', req: true, ph: 'Cena en Vík' },
+        { k: 'categoria', l: 'Categoría', t: 'select', opts: CATS, def: 'Comida/super' },
+        { k: 'moneda', l: 'Moneda', t: 'select', opts: ['ISK', 'EUR'], def: 'ISK' },
+        { k: 'importe', l: 'Importe', t: 'number', req: true, min: 0 },
+        { k: 'notas', l: 'Notas', t: 'textarea' }
+      ]
+    },
     recomendacion: {
       sing: 'recomendación', icon: '💡',
       fields: [
@@ -944,13 +957,14 @@
       ['alojamientos', 'Alojamientos', alojSummary],
       ['excursiones', 'Excursiones', excSummary],
       ['comidas', 'Dónde comer', comidaSummary],
-      ['lugares', 'Qué ver', lugarSummary]
+      ['lugares', 'Qué ver', lugarSummary],
+      ['gastos', 'Gastos', gastoSummary]
     ].forEach(([col, label, sum]) => body.appendChild(groupEl(col, label, sum)));
   }
 
   // Los datos del viaje (fechas, vuelos, coche, alojamientos, excursiones) son de
   // solo lectura. Solo "Dónde comer" y "Qué ver" admiten añadir / editar / eliminar.
-  const EDITABLE_COLS = ['comidas', 'lugares', 'recomendaciones'];
+  const EDITABLE_COLS = ['comidas', 'lugares', 'recomendaciones', 'gastos'];
   const isSeed = it => String(it && it.id || '').startsWith('seed-');
 
   function metaCard() {
@@ -1023,7 +1037,7 @@
 
     // Solo se pueden editar/eliminar los elementos añadidos por el usuario
     // en "Dónde comer" y "Qué ver"; el resto es de solo lectura.
-    const canEdit = (kind === 'comida' || kind === 'lugar' || kind === 'recomendacion') && !isSeed(it);
+    const canEdit = (kind === 'comida' || kind === 'lugar' || kind === 'recomendacion' || kind === 'gasto') && !isSeed(it);
     if (canEdit) {
       const acts = el('div', 'item__acts');
       const edit = el('button', 'icon-btn');
@@ -1054,6 +1068,7 @@
   }
 
   function itemSorter(col) {
+    if (col === 'gastos') return (a, b) => (b.fecha || '').localeCompare(a.fecha || '');
     const key = {
       vuelos: x => (x.tramos && x.tramos[0] && x.tramos[0].salida) || '',
       coches: x => x.recogida || '',
@@ -1169,6 +1184,15 @@
     return `<div class="item__title">${esc(l.nombre || '')} <span class="prio prio--${p.toLowerCase()}">${esc(p)}</span></div>
       <div class="item__meta">${locLine(l.loc)}</div>
       <div class="item__meta">${l.visita ? fmtDur(+l.visita) + ' de visita' : ''} ${l.fecha ? '· ' + fmtFecha(l.fecha) : ''}</div>`;
+  }
+  function gastoSummary(g) {
+    const imp = +g.importe || 0;
+    const propia = g.moneda === 'ISK' ? fmtISK(imp) : fmtEUR(imp);
+    const otra = g.moneda === 'ISK' ? fmtEUR(toEUR(imp, 'ISK')) : fmtISK(toISK(imp, 'EUR'));
+    return `<div class="item__title">${esc(g.concepto || 'Gasto')}</div>
+      <div class="item__meta">${g.fecha ? fmtFecha(g.fecha) : '—'} · <span class="chip chip--cat">${esc(g.categoria || 'Otros')}</span></div>
+      <div class="item__meta gasto-amt"><b>${propia}</b> <span class="muted">≈ ${otra}</span></div>
+      ${g.notas ? `<div class="item__meta">${escLines(g.notas)}</div>` : ''}`;
   }
 
   /* ==========================================================
