@@ -1983,7 +1983,8 @@
   function showScreen(name) {
     if (!SCREENS.includes(name)) name = 'datos';
     SCREENS.forEach(s => {
-      $('#screen-' + s).hidden = (s !== name);
+      const scr = $('#screen-' + s);
+      if (scr) scr.hidden = (s !== name);
       const tab = $(`.tab[data-tab="${s}"]`);
       if (tab) tab.setAttribute('aria-current', s === name ? 'page' : 'false');
     });
@@ -1995,6 +1996,15 @@
       setTimeout(() => { if (map) map.invalidateSize(); }, 300);
     }
     window.scrollTo(0, 0);
+    // La primera vez que se abre "Clima" con el viaje en curso, centra la
+    // tarjeta de hoy (aquí, no en renderClima: allí la sección aún está oculta).
+    if (name === 'clima' && !climaScrolled) {
+      const hoyCard = $('#clima-body .sky-card.day--hoy');
+      if (hoyCard) {
+        climaScrolled = true;
+        setTimeout(() => hoyCard.scrollIntoView({ block: 'center' }), 60);
+      }
+    }
     if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   }
 
@@ -2239,8 +2249,8 @@
       moon: {
         phaseName: moonPhaseName(mi.phase),
         illumPct: Math.round(mi.fraction * 100),
-        rise: mt.rise || null,
-        set: mt.set || null,
+        rise: isDate(mt.rise) ? mt.rise : null,
+        set: isDate(mt.set) ? mt.set : null,
         alwaysUp: !!mt.alwaysUp,
         alwaysDown: !!mt.alwaysDown,
         inDarkWindow: moonInDarkWindow(darkWindow, loc)
@@ -2250,7 +2260,7 @@
 
   function skyLine(icon, html) {
     const p = el('p', 'sky-line');
-    p.innerHTML = `<span class="sky-ic">${icon}</span><span>${html}</span>`;
+    p.innerHTML = `<span class="sky-ic" aria-hidden="true">${icon}</span><span>${html}</span>`;
     return p;
   }
 
@@ -2258,7 +2268,7 @@
     const c = el('section', 'card sky-card');
     if (s.date === hoyYMD()) c.classList.add('day--hoy');
 
-    const head = el('div', 'sky-card__head');
+    const head = el('h3', 'sky-card__head');
     head.textContent = `${cap(fmtDiaSemana(s.date))}, ${fmtFecha(s.date)} · ${s.locLabel}`;
     c.appendChild(head);
 
@@ -2268,7 +2278,8 @@
     if (s.deltaVsPrevMin != null) {
       const d = s.deltaVsPrevMin;
       const cls = d > 0 ? 'sky-delta sky-delta--up' : 'sky-delta';
-      sol += `  ·  <span class="${cls}">${d > 0 ? '+' : '−'}${Math.abs(d)} min</span>`;
+      const sign = d > 0 ? '+' : d < 0 ? '−' : '±';
+      sol += `  ·  <span class="${cls}">${sign}${Math.abs(d)} min</span>`;
     }
     c.appendChild(skyLine('☀️', sol));
 
@@ -2319,18 +2330,10 @@
       return;
     }
 
-    const days = eachDay(state.meta.fechaInicio, state.meta.fechaFin);
-    let todayCard = null;
-    days.forEach(d => {
-      const card = climaCard(sky(d));
-      if (d === hoyYMD()) todayCard = card;
-      body.appendChild(card);
+    eachDay(state.meta.fechaInicio, state.meta.fechaFin).forEach(d => {
+      body.appendChild(climaCard(sky(d)));
     });
-
-    if (todayCard && !climaScrolled) {
-      climaScrolled = true;
-      setTimeout(() => todayCard.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
-    }
+    // El scroll a la tarjeta de hoy lo hace showScreen('clima').
   }
 
   function initGazList() {

@@ -42,8 +42,8 @@ ventana de oscuridad y fase de luna. La antigua pestaña **"Ruta"** dejó de
 existir; el enlace al recorrido completo en Google Maps está ahora al final de
 **"Mapas"**.
 
-El shell (HTML/CSS/JS, Leaflet, fuentes) se guarda en la primera visita con
-conexión, así que la app arranca sin cobertura. Los tiles del mapa se guardan
+El shell (HTML/CSS/JS, Leaflet, SunCalc, fuentes) se guarda en la primera visita
+con conexión, así que la app arranca sin cobertura. Los tiles del mapa se guardan
 solo de los días que abras en **Mapas** con conexión: antes de viajar, **desde
 el propio móvil** (los tiles de una pantalla retina no son los mismos que los de
 un portátil), abre la app con wifi y pasa por el mapa de cada día.
