@@ -49,13 +49,14 @@ exteriores y, en los malos, dar alternativas de interior.
 3. Clave más cercana (≤ 40 km) en `clouds` / `wind` / `precip` (la misma para las
    tres, por `haversine` a `loc`); si `> 40 km` o sin ninguna serie → `return null`.
 4. Sobre la ventana: `avgCloud` (media `%`), `maxGust` (máx km/h), `sumPrecip`
-   (suma mm), `hoursRain` (nº de horas con `mm >= 0.2`).
+   (suma mm), `hoursRain` (nº de horas con `mm >= 0.5`).
 5. Si las tres series no tienen ninguna entrada en la ventana → `return null`.
-6. **Puntuación** (cuanto más alto, peor):
-   `score = (avgCloud/100)*1 + (maxGust>=70?2:maxGust>=50?1:0) + Math.min(sumPrecip,6)/2 + (hoursRain>=4?1:0)`
+6. **Puntuación** (cuanto más alto, peor) — la lluvia y el viento son la señal;
+   en Islandia un cielo gris es lo normal, así que las nubes solo suman con techo total:
+   `score = (avgCloud>=85 ? 0.5 : 0) + (maxGust>=75?2:maxGust>=55?1:0) + Math.min(sumPrecip,8)/2.5 + (hoursRain>=4?0.8:hoursRain>=2?0.4:0)`
 7. Nivel:
-   - `score < 1.4` → `bueno`
-   - `score < 3.0` → `regular`
+   - `score < 1.2` → `bueno`
+   - `score < 2.6` → `regular`
    - resto → `malo`
 8. `txt`:
    - `regular` → `día irregular: ` + los factores presentes (`nubes 80%`, `rachas 60`, `2 mm`)

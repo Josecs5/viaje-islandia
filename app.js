@@ -146,7 +146,7 @@
 
   const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
   const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel' });
-  const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, fetched: null });
+  const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, precip: {}, fetched: null });
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
@@ -1593,6 +1593,7 @@
     if (selectedItinDay !== 'all' && !it.days.some(d => d.date === selectedItinDay)) selectedItinDay = 'all';
 
     body.appendChild(itinFuelBlock(it));
+    body.appendChild(outdoorRankBlock(it));
 
     const chips = el('div', 'chips chips--itin');
     chips.appendChild(itinChip('all', 'Todos'));
@@ -1682,6 +1683,23 @@
     return box;
   }
 
+  // Nudge de la cabecera del Itinerario: qué días pintan mejor/peor para
+  // exteriores (dentro de la previsión). No reordena nada — lo decide el usuario.
+  function outdoorRankBlock(it) {
+    const box = el('section', 'itin-outlook');
+    const rated = it.days.map(d => ({ d, o: outdoorFor(d) })).filter(x => x.o);
+    if (rated.length < 2) { box.hidden = true; return box; }
+    rated.sort((a, b) => a.o.score - b.o.score);
+    const tag = x => `Día ${x.d.idx} (${fmtFecha(x.d.date)})`;
+    const nMej = Math.min(3, rated.length - 1);
+    const mejores = rated.slice(0, nMej).map(tag);
+    const peores = rated.slice(-Math.min(2, rated.length - nMej)).reverse().map(tag);
+    box.innerHTML =
+      `<p>Días con mejor pinta para exteriores: <b>${esc(mejores.join(' · '))}</b> · peores: ${esc(peores.join(' · '))}.</p>` +
+      `<p class="itin-outlook__nudge">Si puedes mover una salida al aire libre (Círculo Dorado, una cascada, una excursión movible), llévala a un día verde.</p>`;
+    return box;
+  }
+
   // Viento previsto (Open-Meteo) para las horas de conducción del día, en la zona
   // de la pernocta. null si no hay dato o si la ráfaga máx. no llega a 45 km/h.
   function windFor(day) {
@@ -1734,6 +1752,59 @@
     return { txt, level, stale };
   }
 
+  // Condiciones para planes al aire libre ese día (nubes + ráfaga + lluvia de las
+  // horas de día). Devuelve null si no hay dato; el nivel 'bueno' no se pinta.
+  function outdoorFor(day) {
+    const M = state.meteo || {};
+    const loc = locForDate(day.date);
+    if (isIceCenter(loc)) return null;
+    const near = map => {
+      const keys = Object.keys(map || {});
+      if (!keys.length) return null;
+      let best = null, bestD = Infinity;
+      keys.forEach(k => {
+        const [la, lo] = k.split(',').map(Number);
+        const d = haversine({ lat: la, lng: lo }, loc);
+        if (d < bestD) { bestD = d; best = k; }
+      });
+      return bestD > 40 ? null : best;
+    };
+    const kc = near(M.clouds), kw = near(M.wind), kpr = near(M.precip);
+    const ini = Date.parse(day.date + 'T09:00:00Z');
+    const fin = Date.parse(day.date + 'T19:00:00Z');
+    const inWin = t => { const ms = Date.parse(t); return ms >= ini && ms <= fin; };
+
+    let cSum = 0, cN = 0;
+    ((kc && M.clouds[kc]) || []).forEach(x => { if (inWin(x.t) && typeof x.pct === 'number') { cSum += x.pct; cN++; } });
+    let maxGust = null;
+    ((kw && M.wind[kw]) || []).forEach(x => { if (inWin(x.t) && typeof x.gust === 'number' && (maxGust == null || x.gust > maxGust)) maxGust = x.gust; });
+    let pSum = 0, pN = 0, hoursRain = 0;
+    ((kpr && M.precip[kpr]) || []).forEach(x => { if (inWin(x.t) && typeof x.mm === 'number') { pSum += x.mm; pN++; if (x.mm >= 0.5) hoursRain++; } });
+    if (!cN && maxGust == null && !pN) return null;
+
+    // La lluvia y el viento son la señal; en Islandia un cielo gris es lo normal,
+    // así que las nubes solo suman un poco cuando es un techo total.
+    const avgCloud = cN ? cSum / cN : null;
+    const score = (avgCloud != null && avgCloud >= 85 ? 0.5 : 0)
+      + (maxGust == null ? 0 : maxGust >= 75 ? 2 : maxGust >= 55 ? 1 : 0)
+      + Math.min(pSum, 8) / 2.5
+      + (hoursRain >= 4 ? 0.8 : hoursRain >= 2 ? 0.4 : 0);
+    const level = score < 1.2 ? 'bueno' : score < 2.6 ? 'regular' : 'malo';
+
+    const fac = [];
+    if (avgCloud != null && avgCloud >= 60) fac.push(`nubes ${Math.round(avgCloud)}%`);
+    if (maxGust != null && maxGust >= 50) fac.push(`rachas ${Math.round(maxGust)}`);
+    if (pSum >= 1) fac.push(`${pSum.toFixed(pSum < 10 ? 1 : 0)} mm`);
+    const cola = fac.length ? ': ' + fac.join(' · ') : '';
+    let txt = level === 'malo'
+      ? 'día de plan B' + cola + ' — alternativas de interior en Ideas'
+      : 'día irregular' + cola;
+
+    const stale = !!(state.meteo && state.meteo.fetched) && (Date.now() - Date.parse(state.meteo.fetched)) > 18 * 3600e3;
+    if (stale) txt += ` (hace ${Math.round((Date.now() - Date.parse(state.meteo.fetched)) / 3600e3)} h)`;
+    return { level, txt, stale, score };
+  }
+
   function dayBlock(day) {
     const wrap = el('section', 'day');
     const esHoy = day.date === hoyYMD();
@@ -1763,6 +1834,13 @@
       const p = el('p', 'day-plan');
       p.innerHTML = verdict + (bits.length ? ' ' + bits.join(' · ') : '');
       wrap.appendChild(p);
+    }
+
+    const od = outdoorFor(day);
+    if (od && od.level !== 'bueno') {
+      const po = el('p', 'day-out day-out--' + od.level);
+      po.innerHTML = `${od.level === 'malo' ? '🌧️' : '⛅'} ${esc(od.txt)}`;
+      wrap.appendChild(po);
     }
 
     const km = day.km || 0;
@@ -2942,7 +3020,7 @@
     const om = 'https://api.open-meteo.com/v1/forecast'
       + '?latitude=' + locs.map(l => l.lat).join(',')
       + '&longitude=' + locs.map(l => l.lng).join(',')
-      + '&hourly=cloud_cover,wind_speed_10m,wind_gusts_10m&wind_speed_unit=kmh&forecast_days=16&timezone=UTC';
+      + '&hourly=cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation&wind_speed_unit=kmh&forecast_days=16&timezone=UTC';
 
     meteoFetching = true;
     Promise.all([
@@ -2968,6 +3046,7 @@
         // Parten de lo cacheado: si Open-Meteo no devuelve una ubicación, no se pierde su serie previa.
         const clouds = Object.assign({}, (state.meteo && state.meteo.clouds) || {});
         const wind = Object.assign({}, (state.meteo && state.meteo.wind) || {});
+        const precip = Object.assign({}, (state.meteo && state.meteo.precip) || {});
         results.forEach((res, i) => {
           if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time)) return;
           const H = res.hourly;
@@ -2981,21 +3060,27 @@
               .map((t, j) => ({ t: t + 'Z', spd: H.wind_speed_10m[j], gust: H.wind_gusts_10m[j] }))
               .filter(x => typeof x.gust === 'number' && inTrip(x.t));
           }
+          if (Array.isArray(H.precipitation)) {
+            precip[locs[i].key] = H.time
+              .map((t, j) => ({ t: t + 'Z', mm: H.precipitation[j] }))
+              .filter(x => typeof x.mm === 'number' && inTrip(x.t));
+          }
         });
         // Poda las claves de ubicaciones que ya no están en el viaje (alojamiento
         // cambiado/borrado): evita crecer sin límite y que una clave vieja gane
         // el match de "más cercana".
         const cur = new Set(locs.map(l => l.key));
-        [clouds, wind].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
+        [clouds, wind, precip].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
 
-        state.meteo = { kp, clouds, wind, fetched: new Date().toISOString() };
+        state.meteo = { kp, clouds, wind, precip, fetched: new Date().toISOString() };
         save();
         // Si no ha entrado ningún dato (viaje fuera de la ventana de previsión),
         // no se re-pinta: ahorra el rebuild completo y no roba el foco de un
         // campo que se esté editando en el Itinerario.
         const hayDatos = kp.length
           || Object.keys(clouds).some(k => clouds[k].length)
-          || Object.keys(wind).some(k => wind[k].length);
+          || Object.keys(wind).some(k => wind[k].length)
+          || Object.keys(precip).some(k => precip[k].length);
         if (hayDatos) {
           renderClima();
           const ae = document.activeElement;

@@ -724,6 +724,22 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 }
 .day-wind--aviso { color: var(--c-warning); }
 .day-wind--fuerte { color: var(--c-danger); font-weight: 600; }
+
+/* Día bueno/malo para exteriores (A5) */
+.day-out { font-size: var(--step--1); margin: var(--space-4) 0 0; }
+.day-out--regular { color: var(--c-text-2); }
+.day-out--malo { color: var(--c-warning); }
+.itin-outlook {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--radius-m);
+  padding: var(--space-12);
+  margin-bottom: var(--space-16);
+  font-size: var(--step--1);
+}
+.itin-outlook[hidden] { display: none; }
+.itin-outlook p { margin: 0; }
+.itin-outlook__nudge { color: var(--c-text-2); margin-top: var(--space-6) !important; }
 .itin-fuel {
   background: var(--c-surface);
   border: 1px solid var(--c-border-soft);
