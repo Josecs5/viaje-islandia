@@ -1,6 +1,6 @@
 # Viaje a Islandia — Planificador
 
-PWA (sin modo offline) para planificar un viaje por carretera por Islandia:
+PWA con modo offline para planificar un viaje por carretera por Islandia:
 vuelos con escalas, coche de alquiler, alojamientos, excursiones, sitios para
 comer y lugares que ver. Genera un **itinerario diario** automático con horas y
 tiempos de trayecto estimados, muestra el **recorrido de cada día en un mapa**
@@ -27,12 +27,19 @@ Para instalarla como app en el iPhone: ábrela en Safari → Compartir →
 | `index.html` | Estructura y meta tags PWA/iOS |
 | `style.css` | Tema oscuro, tokens OKLCH, responsive (autónomo) |
 | `app.js` | Lógica: CRUD, motor de itinerario, mapas, exportación |
+| `sw.js` | Service worker: precache del shell y caché de tiles |
+| `vendor/` | Leaflet 1.9.4 y fuentes web servidos desde el repo |
 | `manifest.json` | Manifiesto PWA |
 | `icons/` | Iconos 192 / 512 / maskable + apple-touch-icon + SVG |
 | `tokens.css` | Sistema de diseño portable (no lo usa la app; solo referencia) |
 
-Solo HTML, CSS y JavaScript. Sin frameworks. Sin service worker.
-Leaflet se carga por CDN.
+Solo HTML, CSS y JavaScript. Sin frameworks. Service worker para uso sin
+conexión; Leaflet y las fuentes van incluidos en el repo.
+
+La app se actualiza sola: al detectar una versión nueva se recarga cuando no
+hay ningún formulario abierto. Si algo se queda raro, cierra la app del todo y
+vuelve a abrirla, o borra los datos del sitio en el navegador (se borran caché
+y datos).
 
 ## Aviso
 

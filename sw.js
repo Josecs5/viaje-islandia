@@ -77,7 +77,11 @@ const SHELL_ASSETS = [
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(SHELL_CACHE).then(cache => cache.addAll(SHELL_ASSETS))
+    caches.open(SHELL_CACHE).then(cache => cache.addAll(
+      // 'reload' evita que un asset servido rancio por la caché HTTP del
+      // navegador quede horneado en el precache del SW.
+      SHELL_ASSETS.map(u => new Request(u, { cache: 'reload' }))
+    ))
   );
 });
 

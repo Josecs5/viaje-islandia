@@ -2164,14 +2164,76 @@
 })();
 
 /* ==========================================================
-   Service worker: registro
-   (la actualización automática se añade en la Task 5)
+   Service worker: registro y actualización automática
    ========================================================== */
 (function () {
   if (!('serviceWorker' in navigator)) return;
+
+  var LOOP_KEY = 'sw-reload-at';
+  var reloaded = false;
+  // Solo recargamos en el controllerchange que provoca una actualización que
+  // hemos iniciado nosotros. El controllerchange de la primera instalación
+  // (por el clients.claim() del SW) no debe recargar nada.
+  var updating = false;
+
+  // Solo es seguro recargar si no hay ningún panel modal abierto.
+  function safeToReload() {
+    var sheet = document.getElementById('sheet');
+    var conf = document.getElementById('confirm');
+    return (!sheet || sheet.hidden) && (!conf || conf.hidden);
+  }
+
+  // Pide al worker en espera que tome el control; si hay un modal abierto,
+  // reintenta en 2 s.
+  function applyUpdate(reg) {
+    if (!reg.waiting) return;
+    if (!safeToReload()) {
+      setTimeout(function () { applyUpdate(reg); }, 2000);
+      return;
+    }
+    updating = true;
+    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }
+
+  // El worker nuevo ha tomado el control: recargar una vez, salvo bucle.
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!updating || reloaded) return;
+    reloaded = true;
+    var last = +sessionStorage.getItem(LOOP_KEY) || 0;
+    if (Date.now() - last < 10000) {
+      console.warn('[sw] recarga omitida: posible bucle de actualización.');
+      return;
+    }
+    try { sessionStorage.setItem(LOOP_KEY, String(Date.now())); } catch (e) {}
+    location.reload();
+  });
+
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('sw.js').then(function (reg) {
-      reg.update();
+      reg.update().catch(function () {});
+
+      // Ya hay una versión nueva esperando de una carga anterior.
+      if (reg.waiting && navigator.serviceWorker.controller) applyUpdate(reg);
+
+      // Aparece una versión nueva mientras la app está abierta.
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            applyUpdate(reg);
+          }
+        });
+      });
+
+      // Al volver a primer plano tras un rato, buscar versión nueva.
+      var lastCheck = Date.now();
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState !== 'visible') return;
+        if (Date.now() - lastCheck < 15 * 60 * 1000) return;
+        lastCheck = Date.now();
+        reg.update().catch(function () {});
+      });
     }).catch(function (e) {
       console.warn('[sw] registro fallido:', e);
     });
