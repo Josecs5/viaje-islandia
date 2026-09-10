@@ -2156,6 +2156,97 @@
     renderReco();
   }
 
+  /* ==========================================================
+     Clima · A1 — Luz y luna (cálculo local con SunCalc)
+     ========================================================== */
+  const ICE_CENTER = { lat: 64.9, lng: -18.6, label: 'centro de Islandia' };
+  const isDate = d => d instanceof Date && !isNaN(d.getTime());
+
+  // Ubicación de un día = alojamiento donde se duerme esa noche; si no, la
+  // noche anterior; si nada, el centro de Islandia.
+  function locForDate(dateStr) {
+    let d = dateStr;
+    for (let i = 0; i < 40; i++) {
+      const a = state.alojamientos.find(x =>
+        x.checkin && x.checkout && x.checkin <= d && d < x.checkout &&
+        x.loc && x.loc.lat != null && x.loc.lng != null);
+      if (a) return { lat: a.loc.lat, lng: a.loc.lng, label: a.nombre || 'Alojamiento' };
+      const dt = parseDate(d);
+      if (!dt) break;
+      dt.setDate(dt.getDate() - 1);
+      d = ymd(dt);
+      if (state.meta.fechaInicio && d < state.meta.fechaInicio) break;
+    }
+    return { lat: ICE_CENTER.lat, lng: ICE_CENTER.lng, label: ICE_CENTER.label };
+  }
+
+  function moonPhaseName(p) {
+    if (p < 0.02 || p >= 0.98) return 'Luna nueva';
+    if (p < 0.24) return 'Creciente';
+    if (p < 0.26) return 'Cuarto creciente';
+    if (p < 0.48) return 'Gibosa creciente';
+    if (p < 0.52) return 'Luna llena';
+    if (p < 0.74) return 'Gibosa menguante';
+    if (p < 0.76) return 'Cuarto menguante';
+    return 'Menguante';
+  }
+
+  const hhmm = d => (isDate(d) ? `${pad2(d.getHours())}:${pad2(d.getMinutes())}` : '—');
+
+  function dayLenMin(dateNoon, loc) {
+    const t = SunCalc.getTimes(dateNoon, loc.lat, loc.lng);
+    if (!isDate(t.sunrise) || !isDate(t.sunset)) return null;
+    return Math.round((t.sunset - t.sunrise) / 60000);
+  }
+
+  function moonInDarkWindow(win, loc) {
+    if (!win) return null;
+    const pts = [win.start.getTime(), (win.start.getTime() + win.end.getTime()) / 2, win.end.getTime()];
+    const up = pts.filter(ms =>
+      SunCalc.getMoonPosition(new Date(ms), loc.lat, loc.lng).altitude > 0).length;
+    return up === 3 ? 'sí' : up === 0 ? 'no' : 'a medias';
+  }
+
+  function sky(dateStr) {
+    const loc = locForDate(dateStr);
+    const noon = parseDate(dateStr);
+    const prev = parseDate(dateStr); prev.setDate(prev.getDate() - 1);
+    const next = parseDate(dateStr); next.setDate(next.getDate() + 1);
+
+    const t = SunCalc.getTimes(noon, loc.lat, loc.lng);
+    const tNext = SunCalc.getTimes(next, loc.lat, loc.lng);
+
+    const todayLen = dayLenMin(noon, loc);
+    const prevLen = dayLenMin(prev, loc);
+
+    const darkWindow = (isDate(t.night) && isDate(tNext.nightEnd))
+      ? { start: t.night, end: tNext.nightEnd } : null;
+
+    const mi = SunCalc.getMoonIllumination(noon);
+    const mt = SunCalc.getMoonTimes(noon, loc.lat, loc.lng);
+
+    return {
+      date: dateStr,
+      locLabel: loc.label,
+      sunrise: isDate(t.sunrise) ? t.sunrise : null,
+      sunset: isDate(t.sunset) ? t.sunset : null,
+      dayLengthMin: todayLen,
+      deltaVsPrevMin: (todayLen != null && prevLen != null) ? todayLen - prevLen : null,
+      goldenAM: { start: isDate(t.sunrise) ? t.sunrise : null, end: isDate(t.goldenHourEnd) ? t.goldenHourEnd : null },
+      goldenPM: { start: isDate(t.goldenHour) ? t.goldenHour : null, end: isDate(t.sunset) ? t.sunset : null },
+      darkWindow,
+      moon: {
+        phaseName: moonPhaseName(mi.phase),
+        illumPct: Math.round(mi.fraction * 100),
+        rise: mt.rise || null,
+        set: mt.set || null,
+        alwaysUp: !!mt.alwaysUp,
+        alwaysDown: !!mt.alwaysDown,
+        inDarkWindow: moonInDarkWindow(darkWindow, loc)
+      }
+    };
+  }
+
   function initGazList() {
     const dl = $('#gaz-list');
     if (!dl) return;
