@@ -146,12 +146,12 @@
 
   const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
   const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel' });
-  const blankAurora = () => ({ kp: [], clouds: {}, fetched: null });
+  const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, fetched: null });
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), aurora: blankAurora()
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo()
   });
 
   /* ==========================================================
@@ -408,7 +408,7 @@
         gastos: p.gastos || [],
         fx: Object.assign(blankFx(), p.fx || {}),
         combustible: Object.assign(blankFuel(), p.combustible || {}),
-        aurora: Object.assign(blankAurora(), p.aurora || {})
+        meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {})
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -2346,10 +2346,10 @@
       setTimeout(() => { if (map) map.invalidateSize(); }, 300);
     }
     window.scrollTo(0, 0);
-    if (name === 'clima') refreshAurora();
+    if (name === 'clima' || name === 'itinerario') refreshMeteo();
     // La primera vez que se abre "Clima" con el viaje en curso, centra la
     // tarjeta de hoy (aquí, no en renderClima: allí la sección aún está oculta).
-    // Se re-busca la tarjeta al disparar el timer: refreshAurora puede re-pintar
+    // Se re-busca la tarjeta al disparar el timer: refreshMeteo puede re-pintar
     // Clima en medio y dejar huérfana una referencia capturada antes.
     if (name === 'clima' && !climaScrolled) {
       climaScrolled = true;
@@ -2804,7 +2804,7 @@
      ========================================================== */
   const NOAA_KP = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
 
-  function auroraLocs() {
+  function meteoLocs() {
     const seen = new Set(), out = [];
     eachDay(state.meta.fechaInicio, state.meta.fechaFin).forEach(d => {
       const l = locForDate(d);
@@ -2814,32 +2814,32 @@
     return out;
   }
 
-  // Kp de NOAA (~3 días) + nubosidad de Open-Meteo (~16 días) por ubicación de
-  // pernocta. Cacheado en state.aurora; refresco máx. cada 2 h. Fallo silencioso
-  // (solo red/HTTP/parseo; si renderClima peta, que se vea en consola).
-  let auroraFetching = false;
-  function refreshAurora() {
-    if (auroraFetching) return;                       // ya hay una petición en curso (init + showScreen)
+  // Kp de NOAA (~3 días) + nubes y viento de Open-Meteo (~16 días) por ubicación
+  // de pernocta. Cacheado en state.meteo; refresco máx. cada 2 h. Fallo silencioso
+  // (solo red/HTTP/parseo; si el re-render peta, que se vea en consola).
+  let meteoFetching = false;
+  function refreshMeteo() {
+    if (meteoFetching) return;                        // ya hay una petición en curso (init + showScreen)
     if (!navigator.onLine) return;
     if (!state.meta.fechaInicio || !state.meta.fechaFin) return;
-    const f = state.aurora && state.aurora.fetched;
+    const f = state.meteo && state.meteo.fetched;
     if (f && Date.now() - Date.parse(f) < 2 * 3600e3) return;
 
-    const locs = auroraLocs();
+    const locs = meteoLocs();
     if (!locs.length) return;
     const om = 'https://api.open-meteo.com/v1/forecast'
       + '?latitude=' + locs.map(l => l.lat).join(',')
       + '&longitude=' + locs.map(l => l.lng).join(',')
-      + '&hourly=cloud_cover&forecast_days=16&timezone=UTC';
+      + '&hourly=cloud_cover,wind_speed_10m,wind_gusts_10m&wind_speed_unit=kmh&forecast_days=16&timezone=UTC';
 
-    auroraFetching = true;
+    meteoFetching = true;
     Promise.all([
       fetch(NOAA_KP).then(r => (r.ok ? r.json() : Promise.reject())),
       fetch(om).then(r => (r.ok ? r.json() : Promise.reject()))
     ])
       .catch(() => null)
       .then(pair => {
-        auroraFetching = false;
+        meteoFetching = false;
         if (!pair) return;
         const [kpRaw, omRaw] = pair;
         // Recorta las series a la ventana del viaje (± margen): evita guardar 16
@@ -2853,24 +2853,33 @@
           .map(x => ({ t: x.time_tag + 'Z', kp: x.kp, pred: x.observed !== 'observed' }))
           .filter(x => inTrip(x.t));
         const results = Array.isArray(omRaw) ? omRaw : [omRaw];
-        // Parte de lo cacheado: si Open-Meteo no devuelve una ubicación, no se pierde su serie previa.
-        const clouds = Object.assign({}, (state.aurora && state.aurora.clouds) || {});
+        // Parten de lo cacheado: si Open-Meteo no devuelve una ubicación, no se pierde su serie previa.
+        const clouds = Object.assign({}, (state.meteo && state.meteo.clouds) || {});
+        const wind = Object.assign({}, (state.meteo && state.meteo.wind) || {});
         results.forEach((res, i) => {
-          if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time) || !Array.isArray(res.hourly.cloud_cover)) return;
+          if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time)) return;
           const H = res.hourly;
-          clouds[locs[i].key] = H.time
-            .map((t, j) => ({ t: t + 'Z', pct: H.cloud_cover[j] }))
-            .filter(x => typeof x.pct === 'number' && inTrip(x.t));
+          if (Array.isArray(H.cloud_cover)) {
+            clouds[locs[i].key] = H.time
+              .map((t, j) => ({ t: t + 'Z', pct: H.cloud_cover[j] }))
+              .filter(x => typeof x.pct === 'number' && inTrip(x.t));
+          }
+          if (Array.isArray(H.wind_speed_10m) && Array.isArray(H.wind_gusts_10m)) {
+            wind[locs[i].key] = H.time
+              .map((t, j) => ({ t: t + 'Z', spd: H.wind_speed_10m[j], gust: H.wind_gusts_10m[j] }))
+              .filter(x => typeof x.gust === 'number' && inTrip(x.t));
+          }
         });
-        state.aurora = { kp, clouds, fetched: new Date().toISOString() };
+        state.meteo = { kp, clouds, wind, fetched: new Date().toISOString() };
         save();
         renderClima();
+        renderItinerario();
       });
   }
 
   // Kp + nubes de la noche de `s` cruzados con su ventana de oscuridad.
   function auroraFor(s) {
-    const A = state.aurora || { kp: [], clouds: {}, fetched: null };
+    const A = state.meteo || { kp: [], clouds: {}, wind: {}, fetched: null };
     const stale = !!A.fetched && (Date.now() - Date.parse(A.fetched)) > 18 * 3600e3;
 
     let ini, fin;
@@ -2973,7 +2982,7 @@
     renderAll();
     showScreen(location.hash.slice(1) || 'datos');
     refreshFx();
-    refreshAurora();
+    refreshMeteo();
   } catch (err) {
     console.error('Error al iniciar:', err);
     const b = document.getElementById('datos-body');
