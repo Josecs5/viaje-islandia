@@ -19,7 +19,10 @@ cierran con temporal) con enlaces a umferdin.is y safetravel.is. La pestaña
 **Clima** da, por día,
 salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
 SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad
-de Open-Meteo) con aviso cuando coinciden cielo despejado y actividad alta.
+de Open-Meteo) con aviso cuando coinciden cielo despejado y actividad alta. El
+Itinerario marca además los días que pintan **mejor o peor para exteriores**
+(nubes, viento y lluvia de Open-Meteo) y Ideas trae **planes de interior por
+zona** para los días malos.
 
 Todo se guarda en `localStorage` del navegador: los datos no salen del dispositivo.
 

@@ -2343,6 +2343,19 @@
     ]
   };
 
+  /* Planes de interior para días de lluvia o viento, por zona (Clima A5). */
+  const PLAN_B = {
+    intro: 'Si el parte pinta feo, cambia exteriores por interior sin salir de la zona donde duermes ese día.',
+    zonas: [
+      { z: 'Reikiavik y alrededores', items: ['Piscinas geotermales (al aire libre pero con jacuzzis calientes): Laugardalslaug, Sundhöllin, Vesturbæjarlaug', 'Museo Nacional y Perlan (exposición del glaciar bajo la cúpula)', 'Sky Lagoon o los baños de Hvammsvík si te apetece spa', 'Cafés y librerías del centro: Reykjavík Roasters, Kaffibrennslan'] },
+      { z: 'Sur (Selfoss–Vík)', items: ['Piscina de Selfoss y la de Hveragerði', 'LAVA Centre (Hvolsvöllur): volcanes y terremotos, muy interactivo', 'Museo de Skógar (folclore) junto a la cascada', 'Seljavallalaug (piscina geotermal semiabrigada por la montaña) si no hay viento'] },
+      { z: 'Sureste (Höfn)', items: ['Piscina de Höfn (Sundlaug Hafnar), climatizada y con toboganes', 'Gamlabúð, centro de visitantes del Vatnajökull', 'Café Nýhöfn o Pakkhús para langostino sin prisa'] },
+      { z: 'Este (Egilsstaðir)', items: ['Vök Baths: pozas termales flotantes en el lago', 'Piscina de Egilsstaðir', 'Museo del Este (Minjasafn Austurlands) y la cervecería local'] },
+      { z: 'Norte (Mývatn–Akureyri)', items: ['Mývatn Nature Baths (la "Laguna Azul del norte", con menos gente)', 'Piscina de Akureyri, de las mejores del país', 'Museo de la Aviación y el Jardín Botánico (invernadero) de Akureyri', 'GeoSea en Húsavík: baños de agua de mar geotermal con vistas al fiordo'] },
+      { z: 'Oeste (Borgarnes–Snæfellsnes)', items: ['Settlement Centre de Borgarnes (sagas, audioguía en español)', 'Piscinas de Borgarnes y de Stykkishólmur', 'Krauma: baños termales junto a Deildartunguhver, el manantial más caudaloso de Europa'] }
+    ]
+  };
+
   function renderEmergencias(body) {
     const lead = el('section', 'reco-cat emerg-lead');
     lead.innerHTML =
@@ -2432,6 +2445,21 @@
     body.appendChild(sec);
   }
 
+  function renderPlanB(body) {
+    const sec = el('section', 'reco-cat');
+    sec.style.setProperty('--rc', '210');
+    sec.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">🌧️</span>` +
+      `<h3>Plan B para días de lluvia o viento</h3>` +
+      `</div>` +
+      `<p class="emerg-intro">${esc(PLAN_B.intro)}</p>` +
+      `<div class="reco-cat__list">` +
+      PLAN_B.zonas.map(g => `<div class="reco-card"><b>${esc(g.z)}.</b> ${esc(g.items.join(' · '))}</div>`).join('') +
+      `</div>`;
+    body.appendChild(sec);
+  }
+
   const RECO_CAT_ICO = { Ver: '👁️', Hacer: '🎯', Comer: '🍴', Comprar: '🛍️', Consejo: '💬', Otro: '📌' };
 
   function recoSummary(it) {
@@ -2496,6 +2524,7 @@
 
     renderMercados(body);
     renderCarreteras(body);
+    renderPlanB(body);
     renderEmergencias(body);
   }
 
