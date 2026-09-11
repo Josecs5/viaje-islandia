@@ -2421,7 +2421,9 @@
       'Ovejas sueltas hasta noviembre: si ves una a un lado, la cría suele cruzar de golpe. Frena recto, no esquives bruscamente.',
       'Túnel de Hvalfjörður (norte de Reikiavik): gratis desde 2018. El de Vaðlaheiði (junto a Akureyri) se paga online en veggjald.is dentro de 24 h.',
       'Tramos que se cierran primero con temporal: Öxi (939), Möðrudalur y Mývatn–Egilsstaðir, Holtavörðuheiði (oeste), Hellisheiði y Þrengsli (salida sur de Reikiavik). Si uno está en rojo suele haber un desvío por la costa más largo.',
-      'Faros encendidos siempre (obligatorio 24 h todo el año), cinturón todos, nada de móvil en la mano.'
+      'Faros encendidos siempre (obligatorio 24 h todo el año), cinturón todos, nada de móvil en la mano.',
+      'Radares: velocidad media en algunos túneles (incluido Vaðlaheiði) y radares fijos en tramos rectos de la Ruta 1; también controles móviles de policía. Límites: 90 km/h asfalto, 80 km/h grava, 50 km/h en núcleos urbanos — se aplican con poco margen.',
+      'Parkings de pago: cráteres y cascadas muy visitadas (Kerið, Seljalandsfoss, Skógafoss) y el centro de Reikiavik cobran aparcamiento — con app (Parka, EasyPark), máquina o QR en el propio parking. Llévalo en cuenta al planear paradas cortas.'
     ],
     links: [
       { l: 'umferdin.is — estado y cierres', u: 'https://umferdin.is/en/' },
