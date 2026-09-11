@@ -2494,6 +2494,21 @@
     ]
   };
 
+  /* Calendario de temporada: qué tiene sentido en estas fechas (Experiencia E2). */
+  const TEMPORADA = {
+    intro: 'El viaje es del 8 al 16 de octubre. Esto es lo que cambia por calendario, más allá del parte meteorológico de cada día.',
+    items: [
+      'Frailecillos (puffins): se han ido. Su temporada es de mayo a agosto; en octubre no vas a ver ninguno, da igual el acantilado.',
+      'Avistamiento de ballenas: activo todo el año desde Reikiavik. Otoño es buena época y hay menos turistas que en verano.',
+      'Cuevas de hielo azules: NO empiezan hasta noviembre — dependen de que el hielo se estabilice. Si algo se anuncia en octubre es una cueva de lava, no de hielo glaciar.',
+      'Rutas de montaña y refugios de tierras altas (Laugavegur, Fimmvörðuháls, Landmannalaugar): cierran a mediados de septiembre. En octubre ya no hay buses de tierras altas ni refugios con servicio.',
+      'F-roads: cerradas de mediados de octubre a mediados de junio (detalle completo en «Carreteras: antes de conducir»).',
+      'Auroras: la temporada de oscuridad ya ha empezado (ver la pestaña Clima para la previsión de cada noche del viaje).',
+      'Ferri a Vestmannaeyjar (Islas Westman): sigue en marcha pero con horario reducido de temporada baja; confirma el mismo día si hay viento fuerte, cancela con facilidad.',
+      'Horas de luz: bajan día a día durante el viaje (ver la pestaña Clima para la cifra exacta de cada jornada).'
+    ]
+  };
+
   /* Planes de interior para días de lluvia o viento, por zona (Clima A5). */
   const PLAN_B = {
     intro: 'Si el parte pinta feo, cambia exteriores por interior sin salir de la zona donde duermes ese día.',
@@ -2646,6 +2661,21 @@
     body.appendChild(sec);
   }
 
+  function renderTemporada(body) {
+    const sec = el('section', 'reco-cat');
+    sec.style.setProperty('--rc', '30');
+    sec.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">🍂</span>` +
+      `<h3>Calendario de temporada: octubre</h3>` +
+      `</div>` +
+      `<p class="emerg-intro">${esc(TEMPORADA.intro)}</p>` +
+      `<div class="reco-cat__list">` +
+      TEMPORADA.items.map(t => `<div class="reco-card">${esc(t)}</div>`).join('') +
+      `</div>`;
+    body.appendChild(sec);
+  }
+
   function renderPlanB(body) {
     const sec = el('section', 'reco-cat');
     sec.style.setProperty('--rc', '210');
@@ -2727,6 +2757,7 @@
     renderCarreteras(body);
     renderGasolineras(body);
     renderPiscinas(body);
+    renderTemporada(body);
     renderPlanB(body);
     renderEmergencias(body);
   }
