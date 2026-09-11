@@ -756,6 +756,17 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .day-wind--aviso { color: var(--c-warning); }
 .day-wind--fuerte { color: var(--c-danger); font-weight: 600; }
 
+/* Diario de viaje (Experiencia E4) */
+.day-diario { margin-top: var(--space-12); }
+.day-diario__label {
+  margin: 0 0 var(--space-4);
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  color: var(--c-text-2);
+}
+
 /* Día bueno/malo para exteriores (A5) */
 .day-out { font-size: var(--step--1); margin: var(--space-4) 0 0; }
 .day-out--regular { color: var(--c-text-2); }

@@ -23,7 +23,8 @@ de la ruta, con buscador por nombre o zona y las normas de ducha/etiqueta, y
 un **calendario de temporada** que resume qué actividades tienen sentido (o
 no) en esas fechas, más allá del tiempo del día a día. Datos incluye una
 **lista de equipaje** curada para el viaje, con checklist, ítems propios y
-borrado. La pestaña
+borrado. Cada día del Itinerario tiene un campo de **diario de viaje** para
+anotar cómo fue esa jornada. La pestaña
 **Clima** da, por día,
 salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
 SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad

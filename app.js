@@ -151,7 +151,7 @@
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: []
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}
   });
 
   /* ==========================================================
@@ -445,7 +445,8 @@
         fx: Object.assign(blankFx(), p.fx || {}),
         combustible: Object.assign(blankFuel(), p.combustible || {}),
         meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {}),
-        equipaje: p.equipaje !== undefined ? p.equipaje : JSON.parse(JSON.stringify(EQUIPAJE_SEED))
+        equipaje: p.equipaje !== undefined ? p.equipaje : JSON.parse(JSON.stringify(EQUIPAJE_SEED)),
+        diario: p.diario || {}
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -2130,6 +2131,7 @@
       wrap.appendChild(notice('Día libre — sin actividades planificadas.'));
       const rl = recsBlock(day);
       if (rl) wrap.appendChild(rl);
+      wrap.appendChild(diarioBlock(day));
       return wrap;
     }
 
@@ -2157,6 +2159,29 @@
     const rl = recsBlock(day);
     if (rl) wrap.appendChild(rl);
 
+    wrap.appendChild(diarioBlock(day));
+    return wrap;
+  }
+
+  // Diario de viaje (Experiencia E4, solo texto — fotos quedan para más
+  // adelante, ver spec). Sin re-render al escribir: nada más en la tarjeta
+  // depende de este texto, así que el handler solo actualiza el state y
+  // guarda; el guard de foco de #itin-body ya existente (refresco de meteo)
+  // protege este textarea sin cambios adicionales.
+  function diarioBlock(day) {
+    const wrap = el('div', 'day-diario');
+    const label = el('p', 'day-diario__label');
+    label.textContent = '📝 Diario del día';
+    const ta = el('textarea', 'day-diario__text');
+    ta.placeholder = 'Escribe algo sobre este día…';
+    ta.value = state.diario[day.date] || '';
+    ta.rows = 3;
+    ta.addEventListener('input', () => {
+      const v = ta.value;
+      if (v) state.diario[day.date] = v; else delete state.diario[day.date];
+      save();
+    });
+    wrap.append(label, ta);
     return wrap;
   }
 
