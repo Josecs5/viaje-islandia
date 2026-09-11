@@ -3678,10 +3678,18 @@
       return;
     }
 
-    eachDay(state.meta.fechaInicio, state.meta.fechaFin).forEach(d => {
-      body.appendChild(climaCard(sky(d)));
-    });
-    // El scroll a la tarjeta de hoy lo hace showScreen('clima').
+    const dates = eachDay(state.meta.fechaInicio, state.meta.fechaFin);
+    if (selectedClimaDay !== 'all' && dates.indexOf(selectedClimaDay) === -1) selectedClimaDay = 'all';
+
+    const chips = el('div', 'chips chips--itin');
+    chips.appendChild(climaChip('all', 'Todos'));
+    dates.forEach((d, i) => chips.appendChild(climaChip(d, 'Día ' + (i + 1))));
+    body.appendChild(chips);
+
+    const show = selectedClimaDay === 'all' ? dates : dates.filter(d => d === selectedClimaDay);
+    show.forEach(d => body.appendChild(climaCard(sky(d))));
+    // El scroll a la tarjeta de hoy lo hace showScreen('clima') (solo aplica
+    // con el filtro en "Todos"; con un único día visible no hace falta).
   }
 
   function initGazList() {
