@@ -18,7 +18,9 @@ de estado, F-roads cerradas en octubre, puentes de un carril, tramos que se
 cierran con temporal) con enlaces a umferdin.is y safetravel.is. El
 Itinerario lista las **gasolineras fiables** de cada día y el tramo más largo
 sin ninguna, y el panel de combustible calcula la **autonomía cómoda** según
-depósito y consumo. La pestaña
+depósito y consumo. Ideas incluye una guía de **piscinas y pozas termales**
+de la ruta, con buscador por nombre o zona y las normas de ducha/etiqueta. La
+pestaña
 **Clima** da, por día,
 salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
 SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad

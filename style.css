@@ -1058,6 +1058,7 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   margin: 0;
 }
 .reco-cat__list { display: grid; gap: var(--space-8); }
+.piscinas-search { margin: var(--space-8) 0 var(--space-12); }
 
 .reco-card {
   position: relative;

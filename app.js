@@ -2447,6 +2447,29 @@
     nota: 'Regla práctica para este viaje (Duster, ~50 L): con el depósito lleno tienes de sobra para cualquier etapa de la Ruta 1. El riesgo real es olvidarse de repostar en el pueblo y darse cuenta a mitad del páramo.'
   };
 
+  /* Piscinas y pozas termales (Experiencia E1). */
+  const PISCINAS = {
+    intro: 'Ducha obligatoria y a fondo, sin bañador, antes de entrar — hay vestuarios y duchas separados por sexo. Es la norma más estricta para quien viene de fuera; el personal a veces lo comprueba. Nada de zapatos en la zona de duchas/piscina.',
+    items: [
+      { n: 'Laugardalslaug', zona: 'Reikiavik y alrededores', tipo: 'Piscina municipal', nota: '~1.400 ISK. La más grande de Reikiavik: toboganes, jacuzzis a distintas temperaturas, sauna.' },
+      { n: 'Sundhöllin', zona: 'Reikiavik y alrededores', tipo: 'Piscina municipal', nota: 'La más antigua de la ciudad, en el centro; terraza exterior con vistas.' },
+      { n: 'Vesturbæjarlaug', zona: 'Reikiavik y alrededores', tipo: 'Piscina municipal', nota: 'La preferida de los locales: ambiente tranquilo, buenos jacuzzis.' },
+      { n: 'Sky Lagoon', zona: 'Reikiavik y alrededores', tipo: 'Laguna geotermal', nota: '~12.000 ISK. Infinity pool con vistas al mar; conviene reservar con antelación online.' },
+      { n: 'Piscina de Selfoss', zona: 'Sur (Selfoss–Vík)', tipo: 'Piscina municipal', nota: 'Moderna, buena opción de paso hacia el sur.' },
+      { n: 'Piscina de Hveragerði', zona: 'Sur (Selfoss–Vík)', tipo: 'Piscina municipal', nota: 'Junto al pueblo con más actividad geotérmica del país.' },
+      { n: 'Reykjadalur', zona: 'Sur (Selfoss–Vík)', tipo: 'Poza natural', nota: 'Gratis. Caminata de ~45 min desde Hveragerði hasta un río templado; sin duchas ni vestuario, llévate lo puesto.' },
+      { n: 'Seljavallalaug', zona: 'Sur (Selfoss–Vík)', tipo: 'Poza natural', nota: 'Gratis. Piscina de 1923 semiabierta al pie de la montaña; el agua no siempre está caliente, sin servicios.' },
+      { n: 'Piscina de Höfn (Sundlaug Hafnar)', zona: 'Sureste (Höfn)', tipo: 'Piscina municipal', nota: 'Climatizada, con toboganes; buena opción para un día de lluvia.' },
+      { n: 'Vök Baths', zona: 'Este (Egilsstaðir)', tipo: 'Laguna geotermal', nota: 'Pozas flotantes en el lago Urriðavatn; cafetería con infusiones de agua termal.' },
+      { n: 'Piscina de Egilsstaðir', zona: 'Este (Egilsstaðir)', tipo: 'Piscina municipal', nota: 'Sencilla y económica.' },
+      { n: 'Mývatn Nature Baths', zona: 'Norte (Mývatn–Akureyri)', tipo: 'Laguna geotermal', nota: '~7.000 ISK. La "Laguna Azul del norte", con menos gente que la original.' },
+      { n: 'Piscina de Akureyri', zona: 'Norte (Mývatn–Akureyri)', tipo: 'Piscina municipal', nota: 'De las mejores del país: muchos toboganes.' },
+      { n: 'GeoSea (Húsavík)', zona: 'Norte (Mývatn–Akureyri)', tipo: 'Laguna geotermal', nota: 'Agua de mar geotermal, infinity pool con vistas al fiordo.' },
+      { n: 'Piscina de Borgarnes', zona: 'Oeste (Borgarnes–Snæfellsnes)', tipo: 'Piscina municipal', nota: 'De paso camino al oeste.' },
+      { n: 'Krauma', zona: 'Oeste (Borgarnes–Snæfellsnes)', tipo: 'Laguna geotermal', nota: 'Junto a Deildartunguhver, el manantial de agua caliente más caudaloso de Europa; varias piscinas a distinta temperatura.' }
+    ]
+  };
+
   /* Planes de interior para días de lluvia o viento, por zona (Clima A5). */
   const PLAN_B = {
     intro: 'Si el parte pinta feo, cambia exteriores por interior sin salir de la zona donde duermes ese día.',
@@ -2565,6 +2588,40 @@
     body.appendChild(sec);
   }
 
+  function renderPiscinas(body) {
+    const sec = el('section', 'reco-cat');
+    sec.style.setProperty('--rc', '178');
+    sec.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">🛁</span>` +
+      `<h3>Piscinas y pozas termales</h3>` +
+      `</div>` +
+      `<p class="emerg-intro">${esc(PISCINAS.intro)}</p>` +
+      `<input type="text" class="piscinas-search" placeholder="Buscar por nombre, zona o tipo…" aria-label="Buscar piscinas y pozas termales">` +
+      `<div class="reco-cat__list piscinas-list"></div>` +
+      `<p class="reco-empty piscinas-empty" hidden>Sin resultados.</p>`;
+    const list = sec.querySelector('.piscinas-list');
+    PISCINAS.items.forEach(it => {
+      const c = el('div', 'reco-card');
+      c.dataset.search = normTxt(`${it.n} ${it.zona} ${it.tipo} ${it.nota}`);
+      c.innerHTML = `<b>${esc(it.n)}</b> <span class="muted">· ${esc(it.zona)} · ${esc(it.tipo)}</span><br>${esc(it.nota)}`;
+      list.appendChild(c);
+    });
+    const empty = sec.querySelector('.piscinas-empty');
+    const input = sec.querySelector('.piscinas-search');
+    input.addEventListener('input', () => {
+      const q = normTxt(input.value.trim());
+      let visible = 0;
+      list.querySelectorAll('.reco-card').forEach(c => {
+        const show = !q || c.dataset.search.includes(q);
+        c.hidden = !show;
+        if (show) visible++;
+      });
+      empty.hidden = visible > 0;
+    });
+    body.appendChild(sec);
+  }
+
   function renderPlanB(body) {
     const sec = el('section', 'reco-cat');
     sec.style.setProperty('--rc', '210');
@@ -2645,6 +2702,7 @@
     renderMercados(body);
     renderCarreteras(body);
     renderGasolineras(body);
+    renderPiscinas(body);
     renderPlanB(body);
     renderEmergencias(body);
   }
