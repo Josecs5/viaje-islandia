@@ -2017,6 +2017,34 @@
     tot.appendChild(add);
     box.appendChild(tot);
 
+    // Repostado real (seguimiento B2-bis): suma de state.gastos con categoría
+    // "Combustible" dentro de las fechas del viaje. Solo a nivel de todo el
+    // viaje, no por día — no se reposta cada día, así que comparar día a día
+    // daría huecos engañosos en los días sin parada de gasolinera.
+    const realGastos = state.gastos.filter(g =>
+      g.categoria === 'Combustible' && g.fecha >= state.meta.fechaInicio && g.fecha <= state.meta.fechaFin);
+    const realISK = realGastos.reduce((s, g) => s + toISK(g.importe, g.moneda), 0);
+    const real = el('p', 'itin-fuel__real');
+    if (realGastos.length) {
+      const diff = realISK - totalISK;
+      const diffTxt = (diff >= 0 ? '+' : '-') + fmtISK(Math.abs(diff));
+      real.innerHTML = `<span>Repostado real: <b>${fmtISK(realISK)}</b> · ${fmtEUR(toEUR(realISK, 'ISK'))} (${realGastos.length} repostaje${realGastos.length !== 1 ? 's' : ''}) · ${diffTxt} vs. estimado</span>`;
+    } else {
+      real.innerHTML = `<span class="muted">Repostado real: aún nada anotado</span>`;
+    }
+    const addReal = el('button', 'btn btn--ghost btn--sm');
+    addReal.type = 'button';
+    addReal.textContent = '+ Anotar repostaje real';
+    addReal.addEventListener('click', () => openSheet('gasto', null, {
+      fecha: hoyYMD(),
+      concepto: 'Combustible (repostaje real)',
+      categoria: 'Combustible',
+      moneda: 'ISK',
+      importe: ''
+    }));
+    real.appendChild(addReal);
+    box.appendChild(real);
+
     const f = FUEL();
     const cfg = el('details', 'itin-fuel__cfg');
     cfg.open = itinFuelOpen;

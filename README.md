@@ -6,7 +6,8 @@ comer y lugares que ver. Genera un **itinerario diario** automático: estima los
 carretera (factor de rodeo por región, sin conexión) y marca la **viabilidad de
 cada día** — horas de luz y horas al volante — con la hora recomendada de
 salida. Estima también el **coste de combustible** de cada día y del viaje
-(consumo y precio del litro ajustables) y permite anotarlo como gasto, y avisa
+(consumo y precio del litro ajustables) y permite anotarlo como gasto,
+comparándolo con lo que de verdad hayas repostado, y avisa
 del **viento** por día (ráfagas de Open-Meteo, a partir de 45 km/h) con la acción
 concreta: puertas del coche, puentes, tiendas de campaña, F-roads. Muestra el
 **recorrido de cada día en un mapa** (Leaflet + OpenStreetMap) y permite
