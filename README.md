@@ -15,7 +15,10 @@ con el tipo de cambio del día (BCE vía frankfurter.dev, cacheado, con ajuste
 manual) y un resumen por categoría, una guía rápida de **supermercados baratos
 (Bónus/Krónan)** y trucos para un país caro, y una guía de **carreteras** (códigos
 de estado, F-roads cerradas en octubre, puentes de un carril, tramos que se
-cierran con temporal) con enlaces a umferdin.is y safetravel.is. La pestaña
+cierran con temporal) con enlaces a umferdin.is y safetravel.is. El
+Itinerario lista las **gasolineras fiables** de cada día y el tramo más largo
+sin ninguna, y el panel de combustible calcula la **autonomía cómoda** según
+depósito y consumo. La pestaña
 **Clima** da, por día,
 salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
 SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad

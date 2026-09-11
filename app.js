@@ -2431,6 +2431,20 @@
     ]
   };
 
+  /* Gasolineras y autonomía (Conducción B2). Los tramos largos conocidos de la ruta. */
+  const GASINFO = {
+    intro: 'En Islandia las estaciones fiables son N1, Olís, ÓB y Orkan (y Costco en Reikiavik). Muchas son automáticas 24 h: hace falta tarjeta con chip y PIN. En el este y el norte, no bajes de medio depósito.',
+    tramos: [
+      'Kirkjubæjarklaustur → Höfn (~200 km): entre ambos no hay nada. Reposta en Kirkjubæjarklaustur antes de salir hacia el este.',
+      'Höfn → Egilsstaðir por la costa (Ruta 1, ~250 km): estaciones en Djúpivogur y Breiðdalsvík; por el atajo de la Öxi (939) no hay ninguna.',
+      'Egilsstaðir → Mývatn (~165 km por la Ruta 1): nada en medio; el páramo de Möðrudalur no cuenta. Sal lleno de Egilsstaðir.',
+      'Mývatn → Akureyri (~100 km): solo la de Reykjahlíð (Mývatn) y ya las de Akureyri.',
+      'Círculo Dorado: Laugarvatn, Flúðir y Selfoss; Þingvellir y Geysir no tienen.',
+      'Interior y F-roads (Kjölur, Sprengisandur, Landmannalaugar): sin gasolineras. En octubre están cerradas de todas formas.'
+    ],
+    nota: 'Regla práctica para este viaje (Duster, ~50 L): con el depósito lleno tienes de sobra para cualquier etapa de la Ruta 1. El riesgo real es olvidarse de repostar en el pueblo y darse cuenta a mitad del páramo.'
+  };
+
   /* Planes de interior para días de lluvia o viento, por zona (Clima A5). */
   const PLAN_B = {
     intro: 'Si el parte pinta feo, cambia exteriores por interior sin salir de la zona donde duermes ese día.',
@@ -2533,6 +2547,22 @@
     body.appendChild(sec);
   }
 
+  function renderGasolineras(body) {
+    const sec = el('section', 'reco-cat');
+    sec.style.setProperty('--rc', '200');
+    sec.innerHTML =
+      `<div class="reco-cat__head">` +
+      `<span class="reco-cat__badge">⛽</span>` +
+      `<h3>Gasolineras y autonomía</h3>` +
+      `</div>` +
+      `<p class="emerg-intro">${esc(GASINFO.intro)}</p>` +
+      `<div class="reco-cat__list">` +
+      GASINFO.tramos.map(t => `<div class="reco-card">${esc(t)}</div>`).join('') +
+      `<div class="reco-card">${esc(GASINFO.nota)}</div>` +
+      `</div>`;
+    body.appendChild(sec);
+  }
+
   function renderPlanB(body) {
     const sec = el('section', 'reco-cat');
     sec.style.setProperty('--rc', '210');
@@ -2612,6 +2642,7 @@
 
     renderMercados(body);
     renderCarreteras(body);
+    renderGasolineras(body);
     renderPlanB(body);
     renderEmergencias(body);
   }
