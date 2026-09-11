@@ -116,29 +116,48 @@ En `app.js`, justo antes de `function windFor(day) {` (o junto a los otros datos
 
 - [ ] **Step 3: `fuelStopsFor(day)`**
 
+**Corrección de diseño respecto a la primera versión de este plan**: comprobar solo
+si una gasolinera está «cerca de un waypoint» (parada del día) deja fuera las
+que están **de camino entre dos paradas** pero no son ellas mismas un item del
+itinerario — p. ej. Vík o Kirkjubæjarklaustur, que se cruzan en la Ruta 1 pero
+no siempre tienen una excursión/comida asociada ese día. Eso producía falsos
+«ninguna fiable en ruta» en días que sí pasan por un pueblo con gasolinera.
+Fix: comprobar cada **tramo** (par de puntos consecutivos) contra un test de
+desvío — la gasolinera «está en» ese tramo si ir a por ella no añade más de
+~24 km de ida y vuelta sobre la línea recta. Además, el primer punto de la
+ruta del día es **dónde dormiste anoche** (`locForDate` del día anterior), no
+solo los items de hoy — así el tramo de salida también se comprueba.
+
 En `app.js`, junto a `windFor` (antes o después):
 ```js
   // Gasolineras fiables en la ruta del día + tramo más largo sin ninguna.
   function fuelStopsFor(day) {
-    const pts = day.items.filter(x => x.loc && x.loc.lat != null).slice();
+    const pts = [];
+    const hoyDt = parseDate(day.date);
+    if (hoyDt) {
+      const ayerDt = new Date(hoyDt); ayerDt.setDate(ayerDt.getDate() - 1);
+      const ayer = locForDate(ymd(ayerDt));
+      if (ayer && ayer.lat != null) pts.push(ayer);
+    }
+    day.items.forEach(x => { if (x.loc && x.loc.lat != null) pts.push(x.loc); });
     const fin = locForDate(day.date);
     if (fin && fin.lat != null) pts.push(fin);
     if (pts.length < 2) return null;
 
-    const cerca = P => GASOLINERAS.some(g => haversine(g, P) <= 12);
-    const nombres = [];
-    const addNames = P => GASOLINERAS.forEach(g => {
-      if (haversine(g, P) <= 12 && nombres.indexOf(g.n) === -1) nombres.push(g.n);
-    });
+    // Una gasolinera "está en" el tramo A→B si ir a por ella no añade más de
+    // ~24 km de ida y vuelta sobre la línea recta (aprox. de desvío admisible).
+    const onLeg = (A, B) => GASOLINERAS.filter(g =>
+      haversine(A, g) + haversine(g, B) - haversine(A, B) <= 24);
 
-    let gap = 0, maxGap = 0;
-    addNames(pts[0]);
+    const nombres = [];
+    let maxGap = 0;
     for (let i = 1; i < pts.length; i++) {
-      gap += driveByRoad(pts[i - 1], pts[i]).km;
-      addNames(pts[i]);
-      if (cerca(pts[i])) { maxGap = Math.max(maxGap, gap); gap = 0; }
+      const A = pts[i - 1], B = pts[i];
+      const legKm = driveByRoad(A, B).km;
+      const gs = onLeg(A, B);
+      gs.forEach(g => { if (nombres.indexOf(g.n) === -1) nombres.push(g.n); });
+      if (!gs.length) maxGap = Math.max(maxGap, legKm);
     }
-    maxGap = Math.max(maxGap, gap);
 
     const aut = autonomiaKm();
     const level = maxGap >= aut ? 'fuerte' : maxGap >= aut * 0.75 ? 'aviso' : null;
@@ -146,6 +165,9 @@ En `app.js`, junto a `windFor` (antes o después):
     return { nombres, maxGap: Math.round(maxGap), aut, level };
   }
 ```
+*(`parseDate`/`ymd` son los helpers de fecha local del propio archivo —
+`parseDate` da un `Date` a mediodía local, igual que usa `eachDay`; se
+reutiliza el mismo patrón para "ayer" en vez de aritmética en `Date.parse`.)*
 
 - [ ] **Step 4: Línea `.day-fuelstops` en `dayBlock`**
 

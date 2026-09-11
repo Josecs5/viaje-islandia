@@ -145,7 +145,7 @@
   const STORE_KEY = 'islandia_trip_v1';
 
   const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
-  const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel' });
+  const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel', deposito: 50 });
   const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, precip: {}, fetched: null });
 
   const blankState = () => ({
@@ -188,6 +188,8 @@
   const FUEL = () => state.combustible || blankFuel();
   const litros100  = () => { const c = +FUEL().consumo; return c > 0 ? c : 7; };
   const precioLitro = () => { const p = +FUEL().precioL; return p > 0 ? p : 309; };
+  const depositoL  = () => { const d = +FUEL().deposito; return d > 0 ? d : 50; };
+  const autonomiaKm = () => Math.round(depositoL() * 0.8 / litros100() * 100);   // reserva 20 % (B2)
 
   // km recorridos -> { litros, isk, eur }. Estimación: consumo medio × precio/L.
   function fuelEst(km) {
@@ -1649,14 +1651,14 @@
       if (again) again.focus();
     };
 
-    const mkNum = (k, label, unit, step, max) => {
+    const mkNum = (k, label, unit, step, max, get) => {
       const wrap = el('label', 'field');
       wrap.innerHTML = `<span>${label}</span>`;
       const inp = el('input');
       inp.type = 'number'; inp.step = step; inp.min = '0'; inp.max = String(max);
       inp.inputMode = step === '1' ? 'numeric' : 'decimal';
       inp.dataset.fuel = k;
-      inp.value = String(k === 'consumo' ? litros100() : precioLitro());
+      inp.value = String(get());
       const shown = inp.value;
       inp.addEventListener('change', () => {
         const v = +inp.value;
@@ -1667,8 +1669,14 @@
       if (unit) { const u = el('span', 'field__unit'); u.textContent = unit; wrap.appendChild(u); }
       return wrap;
     };
-    cfg.appendChild(mkNum('consumo', 'Consumo', 'L/100 km', '0.1', 50));
-    cfg.appendChild(mkNum('precioL', 'Precio', 'ISK/L', '1', 5000));
+    cfg.appendChild(mkNum('consumo', 'Consumo', 'L/100 km', '0.1', 50, litros100));
+    cfg.appendChild(mkNum('precioL', 'Precio', 'ISK/L', '1', 5000, precioLitro));
+    cfg.appendChild(mkNum('deposito', 'Depósito', 'L', '1', 200, depositoL));
+
+    const aut = el('p', 'field');
+    aut.style.marginTop = 'var(--space-8)';
+    aut.innerHTML = `<span>Autonomía cómoda</span> <span class="field__unit">~${autonomiaKm()} km</span>`;
+    cfg.appendChild(aut);
 
     const tw = el('label', 'field');
     tw.innerHTML = `<span>Tipo</span>`;
@@ -1699,6 +1707,72 @@
       `<p>Días flojos para exteriores: <b>${esc(peores.join(' · '))}</b> · mejor pinta: ${esc(mejores.join(' · '))}.</p>` +
       `<p class="itin-outlook__nudge">Si puedes mover una salida al aire libre (Círculo Dorado, una cascada, una excursión movible), llévala a un día verde.</p>`;
     return box;
+  }
+
+  // Gasolineras fiables (N1 / Olís / ÓB / Orkan / Costco) en o junto a la ruta del
+  // viaje. Coords aproximadas del pueblo/estación. Para el aviso de autonomía B2.
+  const GASOLINERAS = [
+    { n: 'Costco (Reikiavik)', lat: 64.0870, lng: -21.9260 },
+    { n: 'N1 Reikiavik', lat: 64.1370, lng: -21.8950 },
+    { n: 'Orkan Keflavík', lat: 64.0100, lng: -22.5650 },
+    { n: 'N1 Selfoss', lat: 63.9330, lng: -21.0000 },
+    { n: 'Orkan Hveragerði', lat: 64.0000, lng: -21.1900 },
+    { n: 'N1 Hvolsvöllur', lat: 63.7500, lng: -20.2200 },
+    { n: 'N1 Vík', lat: 63.4200, lng: -19.0100 },
+    { n: 'N1 Kirkjubæjarklaustur', lat: 63.7900, lng: -18.0600 },
+    { n: 'N1 Höfn', lat: 64.2530, lng: -15.2110 },
+    { n: 'Olís Djúpivogur', lat: 64.6650, lng: -14.2830 },
+    { n: 'N1 Breiðdalsvík', lat: 64.7920, lng: -14.0100 },
+    { n: 'N1 Egilsstaðir', lat: 65.2660, lng: -14.3940 },
+    { n: 'Orkan Reyðarfjörður', lat: 65.0330, lng: -14.2200 },
+    { n: 'Olís Reykjahlíð (Mývatn)', lat: 65.6420, lng: -16.9130 },
+    { n: 'N1 Akureyri', lat: 65.6840, lng: -18.0900 },
+    { n: 'N1 Varmahlíð', lat: 65.5340, lng: -19.4300 },
+    { n: 'N1 Blönduós', lat: 65.6580, lng: -20.2880 },
+    { n: 'Staðarskáli (Brú)', lat: 65.1850, lng: -21.0900 },
+    { n: 'N1 Borgarnes', lat: 64.5390, lng: -21.9200 },
+    { n: 'Olís Búðardalur', lat: 65.1120, lng: -21.7550 },
+    { n: 'N1 Laugarvatn', lat: 64.2130, lng: -20.7300 },
+    { n: 'ÓB Flúðir', lat: 64.1330, lng: -20.3130 },
+    { n: 'Orkan Þorlákshöfn', lat: 63.8580, lng: -21.3830 },
+    { n: 'N1 Grindavík', lat: 63.8420, lng: -22.4340 }
+  ];
+
+  // Gasolineras fiables en la ruta del día + tramo más largo sin ninguna. El
+  // primer punto de la ruta es dónde dormiste anoche (locForDate del día
+  // anterior), no solo los items de hoy, para poder comprobar también el
+  // tramo de salida. Una gasolinera "está en" un tramo A→B si ir a por ella no
+  // añade más de ~24 km de ida y vuelta sobre la línea recta (desvío admisible).
+  function fuelStopsFor(day) {
+    const pts = [];
+    const hoyDt = parseDate(day.date);
+    if (hoyDt) {
+      const ayerDt = new Date(hoyDt); ayerDt.setDate(ayerDt.getDate() - 1);
+      const ayer = locForDate(ymd(ayerDt));
+      if (ayer && ayer.lat != null) pts.push(ayer);
+    }
+    day.items.forEach(x => { if (x.loc && x.loc.lat != null) pts.push(x.loc); });
+    const fin = locForDate(day.date);
+    if (fin && fin.lat != null) pts.push(fin);
+    if (pts.length < 2) return null;
+
+    const onLeg = (A, B) => GASOLINERAS.filter(g =>
+      haversine(A, g) + haversine(g, B) - haversine(A, B) <= 24);
+
+    const nombres = [];
+    let maxGap = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const A = pts[i - 1], B = pts[i];
+      const legKm = driveByRoad(A, B).km;
+      const gs = onLeg(A, B);
+      gs.forEach(g => { if (nombres.indexOf(g.n) === -1) nombres.push(g.n); });
+      if (!gs.length) maxGap = Math.max(maxGap, legKm);
+    }
+
+    const aut = autonomiaKm();
+    const level = maxGap >= aut ? 'fuerte' : maxGap >= aut * 0.75 ? 'aviso' : null;
+    if (!nombres.length && maxGap < 60) return null;
+    return { nombres, maxGap: Math.round(maxGap), aut, level };
   }
 
   // Viento previsto (Open-Meteo) para las horas de conducción del día, en la zona
@@ -1855,6 +1929,15 @@
       const litTxt = fe.litros.toLocaleString('es-ES', { maximumFractionDigits: fe.litros < 10 ? 1 : 0 });
       pf.innerHTML = `⛽ ~<span>${litTxt} L</span> · ${fmtISK(fe.isk)} <span class="muted">· ≈ ${fmtEUR(fe.eur)}</span>`;
       wrap.appendChild(pf);
+    }
+
+    const fs = km >= 40 ? fuelStopsFor(day) : null;
+    if (fs) {
+      const pfs = el('p', 'day-fuelstops' + (fs.level ? ' day-fuelstops--' + fs.level : ''));
+      const lista = fs.nombres.length ? fs.nombres.join(' · ') : 'ninguna fiable en ruta';
+      const gap = fs.maxGap >= 60 ? ' · tramo más largo sin repostar: ~' + fs.maxGap + ' km' : '';
+      pfs.innerHTML = `⛽ gasolineras hoy: ${esc(lista + gap)}`;
+      wrap.appendChild(pfs);
     }
 
     const w = windFor(day);

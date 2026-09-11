@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const SHELL_CACHE = 'shell-v23';
+const SHELL_CACHE = 'shell-v24';
 // v2: los tiles pasaron de petición no-cors (opaca) a cors; empezar limpio.
 const TILE_CACHE  = 'tiles-v2';
 const TILE_MAX = 300;
@@ -54,8 +54,8 @@ async function tileFetch(request) {
 const SHELL_ASSETS = [
   './',                       // redundante a propósito (red de seguridad);
   './index.html',             // la navegación resuelve contra './index.html'.
-  './style.css?v=23',
-  './app.js?v=23',
+  './style.css?v=24',
+  './app.js?v=24',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

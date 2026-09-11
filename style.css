@@ -716,6 +716,14 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
   color: var(--c-text-2);
   margin: var(--space-4) 0 0;
 }
+/* Gasolineras en ruta del día (B2) */
+.day-fuelstops {
+  font-size: var(--step--1);
+  color: var(--c-text-2);
+  margin: var(--space-4) 0 0;
+}
+.day-fuelstops--aviso { color: var(--c-warning); }
+.day-fuelstops--fuerte { color: var(--c-danger); font-weight: 600; }
 /* Aviso de viento del día (A3): info = gris (base), aviso = ámbar, fuerte = rojo+negrita */
 .day-wind {
   font-size: var(--step--1);
