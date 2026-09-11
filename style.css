@@ -775,6 +775,29 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .itin-outlook { font-size: var(--step--1); }
 .itin-outlook p { margin: 0; }
 .itin-outlook p + p { color: var(--c-text-2); margin-top: var(--space-6); }
+.hoy-card {
+  background: var(--c-accent-soft);
+  border: 1px solid color-mix(in oklab, var(--c-accent) 45%, transparent);
+  border-radius: var(--radius-m);
+  padding: var(--space-12);
+  margin-bottom: var(--space-16);
+}
+.hoy-card__head {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  margin: 0 0 var(--space-8);
+}
+.hoy-card__plan,
+.hoy-card__wind,
+.hoy-card__out,
+.hoy-card__aurora {
+  font-size: var(--step-0);
+  margin: var(--space-4) 0 0;
+  line-height: 1.5;
+}
+.hoy-card__wind--fuerte { color: var(--c-danger); font-weight: 600; }
+
 .itin-fuel, .itin-outlook {
   background: var(--c-surface);
   border: 1px solid var(--c-border-soft);

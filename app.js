@@ -1978,6 +1978,8 @@
 
     if (selectedItinDay !== 'all' && !it.days.some(d => d.date === selectedItinDay)) selectedItinDay = 'all';
 
+    const hb = hoyBlock(it);
+    if (hb) body.appendChild(hb);
     body.appendChild(itinFuelBlock(it));
     body.appendChild(outdoorRankBlock(it));
 
@@ -1990,6 +1992,56 @@
     dias.forEach(day => body.appendChild(dayBlock(day)));
 
     if (selectedItinDay === 'all' && it.unassigned.length) body.appendChild(unassignedBlock(it.unassigned));
+  }
+
+  // Tarjeta condensada del día en curso, arriba de todo en Itinerario.
+  // No calcula nada nuevo: ensambla dayPlan/windFor/outdoorFor/auroraFor,
+  // ya verificados en B1/A3/A5/A2. null si hoy no cae dentro del viaje.
+  function hoyBlock(it) {
+    const hoy = diaHoyYMD();
+    if (!hoy) return null;
+    const day = it.days.find(d => d.date === hoy);
+    if (!day) return null;
+
+    const plan = dayPlan(day);
+    const w = windFor(day);
+    const od = outdoorFor(day);
+    const aur = auroraFor(sky(hoy));
+
+    const box = el('section', 'hoy-card');
+    const head = el('p', 'hoy-card__head');
+    head.innerHTML = `📍 <b>Hoy</b> · ${esc(cap(fmtDiaSemana(hoy)))}, ${esc(fmtFecha(hoy))} (Día ${day.idx})`;
+    box.appendChild(head);
+
+    if (plan.veredicto) {
+      const label = verdictLabel(plan);
+      const bits = [];
+      if (plan.salirMin != null && plan.salirMin >= plan.inicioMin - 120) {
+        bits.push('Sal sobre las <span class="mono">' + hhmmFromMin(plan.salirMin) + '</span>');
+      }
+      if (plan.drivingMin > 0 && plan.volante === 'ok') bits.push(fmtDur(plan.drivingMin) + ' al volante');
+      const kmTxt = day.km >= 1 ? ' · ' + Math.round(day.km) + ' km' : '';
+      const p = el('p', 'hoy-card__plan');
+      p.innerHTML = `<span class="day-verdict day-verdict--${plan.veredicto}">${esc(label)}</span>${kmTxt}` +
+        (bits.length ? '<br>' + bits.join(' · ') : '');
+      box.appendChild(p);
+    }
+
+    if (w) {
+      const pw = el('p', 'hoy-card__wind' + (w.level === 'fuerte' ? ' hoy-card__wind--fuerte' : ''));
+      pw.innerHTML = `💨 ${esc(w.txt)}`;
+      box.appendChild(pw);
+    }
+    if (od && od.level !== 'bueno') {
+      const po = el('p', 'hoy-card__out');
+      po.innerHTML = `${od.level === 'malo' ? '🌧️' : '⛅'} ${esc(od.txt)}`;
+      box.appendChild(po);
+    }
+    const pa = el('p', 'hoy-card__aurora');
+    pa.innerHTML = `🌌 ${esc(aur.txt)}`;
+    box.appendChild(pa);
+
+    return box;
   }
 
   // Bloque de cabecera del itinerario: coste estimado de combustible del viaje,
