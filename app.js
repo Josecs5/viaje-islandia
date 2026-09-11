@@ -1674,7 +1674,6 @@
     cfg.appendChild(mkNum('deposito', 'Depósito', 'L', '1', 200, depositoL));
 
     const aut = el('p', 'field');
-    aut.style.marginTop = 'var(--space-8)';
     aut.innerHTML = `<span>Autonomía cómoda</span> <span class="field__unit">~${autonomiaKm()} km</span>`;
     cfg.appendChild(aut);
 
@@ -1732,6 +1731,9 @@
     { n: 'Staðarskáli (Brú)', lat: 65.1850, lng: -21.0900 },
     { n: 'N1 Borgarnes', lat: 64.5390, lng: -21.9200 },
     { n: 'Olís Búðardalur', lat: 65.1120, lng: -21.7550 },
+    { n: 'N1 Ólafsvík', lat: 64.8940, lng: -23.7130 },
+    { n: 'Orkan Grundarfjörður', lat: 64.9250, lng: -23.2540 },
+    { n: 'N1 Stykkishólmur', lat: 65.0750, lng: -22.7270 },
     { n: 'N1 Laugarvatn', lat: 64.2130, lng: -20.7300 },
     { n: 'ÓB Flúðir', lat: 64.1330, lng: -20.3130 },
     { n: 'Orkan Þorlákshöfn', lat: 63.8580, lng: -21.3830 },
@@ -1740,38 +1742,60 @@
 
   // Gasolineras fiables en la ruta del día + tramo más largo sin ninguna. El
   // primer punto de la ruta es dónde dormiste anoche (locForDate del día
-  // anterior), no solo los items de hoy, para poder comprobar también el
-  // tramo de salida. Una gasolinera "está en" un tramo A→B si ir a por ella no
-  // añade más de ~24 km de ida y vuelta sobre la línea recta (desvío admisible).
+  // anterior, salvo que caiga en el fallback ICE_CENTER — día sin pernocta
+  // real, no se usa como punto de ruta) para comprobar también el tramo de
+  // salida. day.items ya viene ordenado por sortT (buildItinerary), así que
+  // pts refleja el orden real de visita. Una gasolinera "está en" un tramo
+  // A→B si su desvío perpendicular a la línea recta A→B (aproximación plana
+  // en km, válida a la escala de Islandia) es ≤ UMBRAL_KM; se proyecta sobre
+  // el tramo para saber a qué km de ruta cae, y el hueco más largo se mide
+  // entre paradas consecutivas a lo largo de TODA la ruta (no tramo a tramo,
+  // para que una gasolinera cerca del principio de un tramo no "tape" un
+  // hueco largo al final del mismo tramo).
   function fuelStopsFor(day) {
     const pts = [];
     const hoyDt = parseDate(day.date);
     if (hoyDt) {
       const ayerDt = new Date(hoyDt); ayerDt.setDate(ayerDt.getDate() - 1);
       const ayer = locForDate(ymd(ayerDt));
-      if (ayer && ayer.lat != null) pts.push(ayer);
+      if (ayer && ayer.lat != null && !isIceCenter(ayer)) pts.push(ayer);
     }
     day.items.forEach(x => { if (x.loc && x.loc.lat != null) pts.push(x.loc); });
     const fin = locForDate(day.date);
-    if (fin && fin.lat != null) pts.push(fin);
+    if (fin && fin.lat != null && !isIceCenter(fin)) pts.push(fin);
     if (pts.length < 2) return null;
 
-    const onLeg = (A, B) => GASOLINERAS.filter(g =>
-      haversine(A, g) + haversine(g, B) - haversine(A, B) <= 24);
-
-    const nombres = [];
-    let maxGap = 0;
+    const UMBRAL_KM = 15;   // desvío perpendicular admitido a la ruta
+    const cuts = [];
+    let acc = 0;
     for (let i = 1; i < pts.length; i++) {
       const A = pts[i - 1], B = pts[i];
       const legKm = driveByRoad(A, B).km;
-      const gs = onLeg(A, B);
-      gs.forEach(g => { if (nombres.indexOf(g.n) === -1) nombres.push(g.n); });
-      if (!gs.length) maxGap = Math.max(maxGap, legKm);
+      const latRef = (A.lat + B.lat) / 2;
+      const kmLat = 110.574, kmLng = 111.320 * Math.cos(latRef * Math.PI / 180);
+      const toXY = p => ({ x: p.lng * kmLng, y: p.lat * kmLat });
+      const a = toXY(A), b = toXY(B);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy;
+      GASOLINERAS.forEach(g => {
+        const p = toXY(g);
+        let t = len2 > 0 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 : 0;
+        t = Math.max(0, Math.min(1, t));
+        const dist = Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+        if (dist <= UMBRAL_KM) cuts.push({ km: acc + legKm * t, n: g.n });
+      });
+      acc += legKm;
     }
+    cuts.sort((x, y) => x.km - y.km);
+    const nombres = [];
+    cuts.forEach(c => { if (nombres.indexOf(c.n) === -1) nombres.push(c.n); });
+    let maxGap = 0, prev = 0;
+    cuts.forEach(c => { maxGap = Math.max(maxGap, c.km - prev); prev = c.km; });
+    maxGap = Math.max(maxGap, acc - prev);
 
+    if (!nombres.length && maxGap < 60) return null;
     const aut = autonomiaKm();
     const level = maxGap >= aut ? 'fuerte' : maxGap >= aut * 0.75 ? 'aviso' : null;
-    if (!nombres.length && maxGap < 60) return null;
     return { nombres, maxGap: Math.round(maxGap), aut, level };
   }
 
@@ -1935,7 +1959,7 @@
     if (fs) {
       const pfs = el('p', 'day-fuelstops' + (fs.level ? ' day-fuelstops--' + fs.level : ''));
       const lista = fs.nombres.length ? fs.nombres.join(' · ') : 'ninguna fiable en ruta';
-      const gap = fs.maxGap >= 60 ? ' · tramo más largo sin repostar: ~' + fs.maxGap + ' km' : '';
+      const gap = (fs.maxGap >= 60 || fs.level) ? ' · tramo más largo sin repostar: ~' + fs.maxGap + ' km' : '';
       pfs.innerHTML = `⛽ gasolineras hoy: ${esc(lista + gap)}`;
       wrap.appendChild(pfs);
     }

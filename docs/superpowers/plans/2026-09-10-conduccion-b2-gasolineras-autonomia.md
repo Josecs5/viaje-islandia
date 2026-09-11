@@ -122,52 +122,143 @@ que están **de camino entre dos paradas** pero no son ellas mismas un item del
 itinerario — p. ej. Vík o Kirkjubæjarklaustur, que se cruzan en la Ruta 1 pero
 no siempre tienen una excursión/comida asociada ese día. Eso producía falsos
 «ninguna fiable en ruta» en días que sí pasan por un pueblo con gasolinera.
-Fix: comprobar cada **tramo** (par de puntos consecutivos) contra un test de
-desvío — la gasolinera «está en» ese tramo si ir a por ella no añade más de
-~24 km de ida y vuelta sobre la línea recta. Además, el primer punto de la
-ruta del día es **dónde dormiste anoche** (`locForDate` del día anterior), no
-solo los items de hoy — así el tramo de salida también se comprueba.
+Primer fix: comprobar cada **tramo** (par de puntos consecutivos) contra un
+test de desvío — la gasolinera «está en» ese tramo si ir a por ella no añade
+más de ~24 km de ida y vuelta sobre la línea recta. Además, el primer punto
+de la ruta del día es **dónde dormiste anoche** (`locForDate` del día
+anterior), no solo los items de hoy — así el tramo de salida también se
+comprueba.
+
+**Segunda corrección (tras revisión final con subagente opus, ver ledger)**:
+el primer fix de arriba se implementó y se envió (`a24a0eb`), pero tenía dos
+fallos reales, confirmados con un harness numérico standalone que replica
+`haversine`/`driveByRoad`/`GASOLINERAS`/`fuelStopsFor` fuera del navegador:
+
+1. **`maxGap` nunca medía el hueco real**: el bucle solo acumulaba `legKm` en
+   `maxGap` cuando el tramo **entero** no tenía ninguna gasolinera cerca; si
+   una gasolinera caía cerca de un extremo del tramo pero el resto del tramo
+   (p. ej. 190 de 200 km) estaba vacío, ese tramo contaba como "cubierto" y
+   aportaba **0** a `maxGap`. Verificado: en 8 días representativos del
+   itinerario real, `maxGap` daba **0** en absolutamente todos — el aviso de
+   tramo largo (objetivo §2.1 del spec) era código muerto.
+2. **Semilla "ayer" con `ICE_CENTER`**: en el primer día del viaje (o
+   cualquier día sin pernocta real la noche anterior), `locForDate("ayer")`
+   cae al *fallback* `ICE_CENTER` (centro geográfico de Islandia) y
+   `fuelStopsFor` lo aceptaba como punto de ruta real (`ayer.lat != null` es
+   cierto también para `ICE_CENTER`), inventando un tramo de cientos de km
+   con gasolineras de sitios que no tienen nada que ver con la ruta real de
+   ese día — cobertura falsa o hueco falso, según el caso. `isIceCenter` ya
+   existe en el archivo (usado por `windFor`/`meteoLocs` con el mismo
+   propósito) y no se estaba reutilizando aquí.
+3. (Relacionado con 1) El test de desvío `haversine(A,g)+haversine(g,B)-
+   haversine(A,B) <= 24` admite un desvío perpendicular que **crece con la
+   longitud del tramo** (≈ `sqrt(12·L)`): a 200 km de tramo, una gasolinera a
+   50 km en línea recta de la carretera ya cuenta como "en ruta" — en la
+   práctica islandesa eso puede ser un rodeo real de 100+ km por carretera.
+   Compone el fallo 1.
+4. El orden de `nombres` era el de aparición en el array `GASOLINERAS`
+   dentro de cada tramo, no el orden real a lo largo de la ruta — el mismo
+   trayecto en los dos sentidos (A→B y B→A) devolvía la lista idéntica.
+
+**Fix aplicado** (sustituye por completo el `onLeg` de desvío-por-exceso):
+para cada tramo se proyecta cada gasolinera sobre el segmento A→B usando una
+aproximación plana en km (válida a la escala de Islandia — factor de
+longitud/latitud, sin geometría esférica completa), se mide la distancia
+perpendicular real (no el exceso de ida-y-vuelta) contra un umbral **fijo**
+de 15 km, y se anota el punto de corte en **km acumulados de ruta** (no de
+tramo). Al final se ordenan todos los cortes por km y el hueco más largo se
+mide entre paradas consecutivas a lo largo de **toda** la ruta del día, no
+tramo a tramo — así una gasolinera al principio de un tramo largo ya no
+"tapa" el resto del tramo. El orden de `nombres` sale de los cortes ya
+ordenados por km, así que refleja el orden real de la ruta. La semilla
+"ayer"/"hoy" descarta explícitamente `ICE_CENTER`. De paso se añadieron 3
+gasolineras de Snæfellsnes (Ólafsvík, Grundarfjörður, Stykkishólmur) que
+faltaban en `GASOLINERAS` — hueco de datos real detectado en la misma
+revisión, sin relación con la lógica pero barato de cerrar.
+
+Verificado con el harness standalone contra los 8 días de antes: los tramos
+que el spec §1 usa como motivación (Klaustur→Höfn, Höfn→Egilsstaðir,
+Egilsstaðir→Mývatn) pasan de `maxGap=0` a `202`/`164`/`192` km; el día 1 sin
+semilla `ICE_CENTER` da un hueco realista (~38 km) en vez de un hueco/cobertura
+inventados; el mismo tramo en los dos sentidos da listas en orden opuesto
+coherente; bajando depósito/consumo a valores pequeños el nivel `aviso`/
+`fuerte` sí se dispara (antes nunca lo hacía, con ningún valor). Repetido en
+el navegador contra el itinerario real de 9 días: las líneas `.day-fuelstops`
+ahora muestran `tramo más largo sin repostar: ~NN km` en 6 de los 8 días con
+`km>=40` (antes, en ninguno); con depósito 15 L, 4 días pasan a `--fuerte`
+correctamente y 0 con depósito 50 L (por defecto) — sin falsos positivos.
 
 En `app.js`, junto a `windFor` (antes o después):
 ```js
-  // Gasolineras fiables en la ruta del día + tramo más largo sin ninguna.
+  // Gasolineras fiables en la ruta del día + tramo más largo sin ninguna. El
+  // primer punto de la ruta es dónde dormiste anoche (locForDate del día
+  // anterior, salvo que caiga en el fallback ICE_CENTER — día sin pernocta
+  // real, no se usa como punto de ruta) para comprobar también el tramo de
+  // salida. day.items ya viene ordenado por sortT (buildItinerary), así que
+  // pts refleja el orden real de visita. Una gasolinera "está en" un tramo
+  // A→B si su desvío perpendicular a la línea recta A→B (aproximación plana
+  // en km, válida a la escala de Islandia) es ≤ UMBRAL_KM; se proyecta sobre
+  // el tramo para saber a qué km de ruta cae, y el hueco más largo se mide
+  // entre paradas consecutivas a lo largo de TODA la ruta (no tramo a tramo,
+  // para que una gasolinera cerca del principio de un tramo no "tape" un
+  // hueco largo al final del mismo tramo).
   function fuelStopsFor(day) {
     const pts = [];
     const hoyDt = parseDate(day.date);
     if (hoyDt) {
       const ayerDt = new Date(hoyDt); ayerDt.setDate(ayerDt.getDate() - 1);
       const ayer = locForDate(ymd(ayerDt));
-      if (ayer && ayer.lat != null) pts.push(ayer);
+      if (ayer && ayer.lat != null && !isIceCenter(ayer)) pts.push(ayer);
     }
     day.items.forEach(x => { if (x.loc && x.loc.lat != null) pts.push(x.loc); });
     const fin = locForDate(day.date);
-    if (fin && fin.lat != null) pts.push(fin);
+    if (fin && fin.lat != null && !isIceCenter(fin)) pts.push(fin);
     if (pts.length < 2) return null;
 
-    // Una gasolinera "está en" el tramo A→B si ir a por ella no añade más de
-    // ~24 km de ida y vuelta sobre la línea recta (aprox. de desvío admisible).
-    const onLeg = (A, B) => GASOLINERAS.filter(g =>
-      haversine(A, g) + haversine(g, B) - haversine(A, B) <= 24);
-
-    const nombres = [];
-    let maxGap = 0;
+    const UMBRAL_KM = 15;   // desvío perpendicular admitido a la ruta
+    const cuts = [];
+    let acc = 0;
     for (let i = 1; i < pts.length; i++) {
       const A = pts[i - 1], B = pts[i];
       const legKm = driveByRoad(A, B).km;
-      const gs = onLeg(A, B);
-      gs.forEach(g => { if (nombres.indexOf(g.n) === -1) nombres.push(g.n); });
-      if (!gs.length) maxGap = Math.max(maxGap, legKm);
+      const latRef = (A.lat + B.lat) / 2;
+      const kmLat = 110.574, kmLng = 111.320 * Math.cos(latRef * Math.PI / 180);
+      const toXY = p => ({ x: p.lng * kmLng, y: p.lat * kmLat });
+      const a = toXY(A), b = toXY(B);
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy;
+      GASOLINERAS.forEach(g => {
+        const p = toXY(g);
+        let t = len2 > 0 ? ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2 : 0;
+        t = Math.max(0, Math.min(1, t));
+        const dist = Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+        if (dist <= UMBRAL_KM) cuts.push({ km: acc + legKm * t, n: g.n });
+      });
+      acc += legKm;
     }
+    cuts.sort((x, y) => x.km - y.km);
+    const nombres = [];
+    cuts.forEach(c => { if (nombres.indexOf(c.n) === -1) nombres.push(c.n); });
+    let maxGap = 0, prev = 0;
+    cuts.forEach(c => { maxGap = Math.max(maxGap, c.km - prev); prev = c.km; });
+    maxGap = Math.max(maxGap, acc - prev);
 
+    if (!nombres.length && maxGap < 60) return null;
     const aut = autonomiaKm();
     const level = maxGap >= aut ? 'fuerte' : maxGap >= aut * 0.75 ? 'aviso' : null;
-    if (!nombres.length && maxGap < 60) return null;
     return { nombres, maxGap: Math.round(maxGap), aut, level };
   }
 ```
 *(`parseDate`/`ymd` son los helpers de fecha local del propio archivo —
 `parseDate` da un `Date` a mediodía local, igual que usa `eachDay`; se
-reutiliza el mismo patrón para "ayer" en vez de aritmética en `Date.parse`.)*
+reutiliza el mismo patrón para "ayer" en vez de aritmética en `Date.parse`.
+`isIceCenter` ya existe en el archivo, se reutiliza tal cual.)*
+
+**Nota sobre §5 del spec (accumulate + `cerca` 12 km) y §11**: ambos textos
+describen el algoritmo original, ya superado dos veces (primero por el fix
+de tramo/desvío, ahora por el de proyección/cross-track). Este Step 3 es la
+versión autoritativa; el spec queda como registro histórico del objetivo,
+no del algoritmo exacto.
 
 - [ ] **Step 4: Línea `.day-fuelstops` en `dayBlock`**
 
