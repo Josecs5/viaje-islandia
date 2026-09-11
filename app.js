@@ -151,7 +151,7 @@
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: []
   });
 
   /* ==========================================================
@@ -459,6 +459,21 @@
     { id: 'seed-eq-28', texto: 'Cargador de coche / adaptador de mechero', cat: 'Coche y carretera', packed: false }
   ];
 
+  // Checklist de tareas antes de salir (no objetos que llevar, eso es
+  // EQUIPAJE_SEED). "anchor" liga una tarea a un vuelo real de state.vuelos
+  // ('vuelo-ida'/'vuelo-vuelta') para calcular su fecha límite (24 h antes de
+  // la salida del primer tramo) en vez de escribirla a mano — ver
+  // anteDeadline()/anteFechaTxt(). null = sin fecha calculada, solo texto.
+  const ANTES_SEED = [
+    { id: 'seed-an-1', texto: 'Facturar el vuelo de ida (TAP)', cat: 'Vuelos', anchor: 'vuelo-ida', hecho: false },
+    { id: 'seed-an-2', texto: 'Facturar el vuelo de vuelta (British Airways)', cat: 'Vuelos', anchor: 'vuelo-vuelta', hecho: false },
+    { id: 'seed-an-3', texto: 'Avisar al banco de que vas a usar la tarjeta en Islandia', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-4', texto: 'Confirmar que el seguro de viaje está contratado', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-5', texto: 'Comprobar que el DNI o pasaporte no caduca durante el viaje', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-6', texto: 'Activar roaming de datos o comprar una eSIM', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-7', texto: 'Probar la app sin conexión: abrir Mapas de cada día con wifi antes de salir', cat: 'General', anchor: null, hecho: false }
+  ];
+
   function seedState() {
     const s = blankState();
     s.meta.fechaInicio = '2026-10-08';
@@ -471,6 +486,7 @@
     s.equipaje = JSON.parse(JSON.stringify(EQUIPAJE_SEED));
     s.lugares = JSON.parse(JSON.stringify(LUGAR_SEED));
     s.comidas = JSON.parse(JSON.stringify(COMIDA_SEED));
+    s.antesDeViajar = JSON.parse(JSON.stringify(ANTES_SEED));
     return s;
   }
 
@@ -518,7 +534,8 @@
         combustible: Object.assign(blankFuel(), p.combustible || {}),
         meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {}),
         equipaje: p.equipaje !== undefined ? p.equipaje : JSON.parse(JSON.stringify(EQUIPAJE_SEED)),
-        diario: p.diario || {}
+        diario: p.diario || {},
+        antesDeViajar: p.antesDeViajar !== undefined ? p.antesDeViajar : JSON.parse(JSON.stringify(ANTES_SEED))
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -1105,6 +1122,7 @@
     const chips = el('div', 'chips chips--itin');
     chips.appendChild(datosChip('all', 'Todo'));
     groups.forEach(([col, label]) => chips.appendChild(datosChip(col, SCHEMAS[KIND_OF[col]].icon + ' ' + label)));
+    chips.appendChild(datosChip('antes', '✅ Antes de viajar'));
     chips.appendChild(datosChip('equipaje', '🎒 Equipaje'));
     body.appendChild(chips);
 
@@ -1113,7 +1131,29 @@
     groups.forEach(([col, label, sum]) => {
       if (selectedDatosTopic === 'all' || selectedDatosTopic === col) body.appendChild(groupEl(col, label, sum));
     });
+    if (selectedDatosTopic === 'all' || selectedDatosTopic === 'antes') body.appendChild(antesDeViajarBlock());
     if (selectedDatosTopic === 'all' || selectedDatosTopic === 'equipaje') body.appendChild(equipajeBlock());
+  }
+
+  // Fecha límite real de una tarea "antes de viajar" ligada a un vuelo (24 h
+  // antes de la salida del primer tramo). null si no hay anchor o no se
+  // encuentra el vuelo — la tarea se pinta entonces sin fecha, como texto
+  // plano igual que las que no tienen anchor.
+  function anteDeadline(anchor) {
+    const tipo = anchor === 'vuelo-ida' ? 'Ida' : anchor === 'vuelo-vuelta' ? 'Vuelta' : null;
+    if (!tipo) return null;
+    const v = state.vuelos.find(x => x.tipo === tipo);
+    const salida = v && v.tramos && v.tramos[0] && v.tramos[0].salida;
+    if (!salida) return null;
+    const d = new Date(salida);
+    if (isNaN(d)) return null;
+    d.setHours(d.getHours() - 24);
+    return d;
+  }
+  function anteFechaTxt(anchor) {
+    const d = anteDeadline(anchor);
+    if (!d) return '';
+    return fmtFecha(ymd(d)) + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
   // Checklist de equipaje (Experiencia E3). No usa SCHEMAS/openSheet porque
@@ -1189,6 +1229,96 @@
       const texto = input.value.trim();
       if (!texto) return;
       state.equipaje.push({ id: uid(), texto, cat: 'Otros', packed: false });
+      save();
+      renderDatos();
+    });
+    bodyWrap.appendChild(addRow);
+
+    head.addEventListener('click', () => {
+      const willOpen = bodyWrap.hidden;
+      bodyWrap.hidden = !willOpen;
+      head.setAttribute('aria-expanded', String(willOpen));
+      localStorage.setItem(openKey, willOpen ? '1' : '0');
+    });
+
+    g.append(head, bodyWrap);
+    return g;
+  }
+
+  // Checklist de tareas antes de salir (no objetos que llevar, eso es
+  // equipajeBlock). Mismo patrón exacto: sin SCHEMAS/openSheet, tap-to-marcar,
+  // solo renderDatos() tras cada cambio. La única diferencia es la fecha
+  // límite calculada para las tareas con anchor (ver anteFechaTxt).
+  function antesDeViajarBlock() {
+    const g = el('div', 'group');
+    const openKey = 'open_antes';
+    const isOpen = localStorage.getItem(openKey) !== '0';
+    const total = state.antesDeViajar.length;
+    const hechas = state.antesDeViajar.filter(x => x.hecho).length;
+
+    const head = el('button', 'group__head');
+    head.type = 'button';
+    head.setAttribute('aria-expanded', String(isOpen));
+    head.innerHTML =
+      `<span class="group__label">✅ Antes de viajar</span>` +
+      `<span class="group__right"><span class="count">${hechas}/${total}</span><span class="chev">⌄</span></span>`;
+
+    const bodyWrap = el('div', 'group__body');
+    bodyWrap.hidden = !isOpen;
+
+    if (!total) {
+      const e = el('div', 'empty');
+      e.textContent = 'Sin elementos.';
+      bodyWrap.appendChild(e);
+    } else {
+      const cats = [];
+      const byCat = {};
+      state.antesDeViajar.forEach(it => {
+        if (!byCat[it.cat]) { byCat[it.cat] = []; cats.push(it.cat); }
+        byCat[it.cat].push(it);
+      });
+      cats.forEach(cat => {
+        const catEl = el('p', 'equipaje-cat');
+        catEl.textContent = cat;
+        bodyWrap.appendChild(catEl);
+        const list = el('div', 'equipaje-list');
+        byCat[cat].forEach(it => {
+          const fechaTxt = it.anchor ? anteFechaTxt(it.anchor) : '';
+          const row = el('label', 'equipaje-row' + (it.hecho ? ' equipaje-row--done' : ''));
+          row.innerHTML =
+            `<input type="checkbox"${it.hecho ? ' checked' : ''}>` +
+            `<span>${esc(it.texto)}${fechaTxt ? '<br><span class="ante-fecha">Disponible desde: ' + esc(fechaTxt) + '</span>' : ''}</span>`;
+          row.querySelector('input').addEventListener('change', () => {
+            it.hecho = !it.hecho;
+            save();
+            renderDatos();
+          });
+          const del = el('button', 'icon-btn icon-btn--danger equipaje-row__del');
+          del.type = 'button';
+          del.setAttribute('aria-label', 'Eliminar');
+          del.textContent = '🗑';
+          del.addEventListener('click', async ev => {
+            ev.preventDefault();
+            const ok = await confirmAsk('¿Eliminar «' + it.texto + '» de la lista?');
+            if (!ok) return;
+            const i = state.antesDeViajar.findIndex(x => x.id === it.id);
+            if (i > -1) { state.antesDeViajar.splice(i, 1); save(); renderDatos(); }
+          });
+          row.appendChild(del);
+          list.appendChild(row);
+        });
+        bodyWrap.appendChild(list);
+      });
+    }
+
+    const addRow = el('form', 'equipaje-add');
+    addRow.innerHTML = `<input type="text" placeholder="Añadir a la lista…" maxlength="60"><button type="submit" class="btn btn--ghost">+ Añadir</button>`;
+    addRow.addEventListener('submit', e => {
+      e.preventDefault();
+      const input = addRow.querySelector('input');
+      const texto = input.value.trim();
+      if (!texto) return;
+      state.antesDeViajar.push({ id: uid(), texto, cat: 'General', anchor: null, hecho: false });
       save();
       renderDatos();
     });

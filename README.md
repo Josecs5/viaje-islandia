@@ -22,6 +22,8 @@ depósito y consumo. Ideas incluye una guía de **piscinas y pozas termales**
 de la ruta, con buscador por nombre o zona y las normas de ducha/etiqueta, y
 un **calendario de temporada** que resume qué actividades tienen sentido (o
 no) en esas fechas, más allá del tiempo del día a día. Datos incluye una
+checklist de **tareas antes de viajar** (facturar los vuelos con su fecha
+límite calculada, avisar al banco, seguro, DNI/pasaporte...) y una
 **lista de equipaje** curada para el viaje, con checklist, ítems propios y
 borrado. Cada día del Itinerario tiene un campo de **diario de viaje** para
 anotar cómo fue esa jornada. La pestaña
