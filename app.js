@@ -151,7 +151,7 @@
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo()
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: []
   });
 
   /* ==========================================================
@@ -356,6 +356,39 @@
     ].join('\n')
   }];
 
+  // Lista de equipaje curada para este viaje (Islandia, octubre, coche de
+  // alquiler) — Experiencia E3.
+  const EQUIPAJE_SEED = [
+    { id: 'seed-eq-1',  texto: 'Capa base térmica (arriba y abajo)', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-2',  texto: 'Forro polar o jersey de abrigo', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-3',  texto: 'Chaqueta impermeable y cortavientos', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-4',  texto: 'Pantalón impermeable o cortavientos', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-5',  texto: 'Gorro que tape las orejas', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-6',  texto: 'Guantes (mejor táctiles, para el móvil)', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-7',  texto: 'Bufanda o braga de cuello', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-8',  texto: 'Calcetines de senderismo (varios pares)', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-9',  texto: 'Ropa interior para varios días', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-10', texto: 'Bañador (piscinas y lagunas geotermales)', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-11', texto: 'Botas de senderismo impermeables, ya rodadas', cat: 'Calzado', packed: false },
+    { id: 'seed-eq-12', texto: 'Calzado cómodo de repuesto para el coche/ciudad', cat: 'Calzado', packed: false },
+    { id: 'seed-eq-13', texto: 'Chanclas o sandalias para las duchas de las piscinas', cat: 'Calzado', packed: false },
+    { id: 'seed-eq-14', texto: 'Gafas de sol', cat: 'Accesorios de frío', packed: false },
+    { id: 'seed-eq-15', texto: 'Crema hidratante y protector labial (el viento reseca)', cat: 'Accesorios de frío', packed: false },
+    { id: 'seed-eq-16', texto: 'Toalla de secado rápido para piscinas/lagunas', cat: 'Accesorios de frío', packed: false },
+    { id: 'seed-eq-17', texto: 'DNI o pasaporte', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-18', texto: 'Carné de conducir', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-19', texto: 'Reservas descargadas (vuelos, coche, alojamientos) por si falla la conexión', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-20', texto: 'Tarjeta con chip y PIN (imprescindible en gasolineras automáticas)', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-21', texto: 'Seguro de viaje', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-22', texto: 'Cargador y cable de móvil', cat: 'Electrónica', packed: false },
+    { id: 'seed-eq-23', texto: 'Batería externa', cat: 'Electrónica', packed: false },
+    { id: 'seed-eq-24', texto: 'Frontal o linterna pequeña (anochece pronto en octubre)', cat: 'Electrónica', packed: false },
+    { id: 'seed-eq-25', texto: 'Analgésicos y botiquín personal básico', cat: 'Botiquín y aseo', packed: false },
+    { id: 'seed-eq-26', texto: 'Bolsas de plástico para ropa mojada', cat: 'Botiquín y aseo', packed: false },
+    { id: 'seed-eq-27', texto: 'Snacks y agua para tramos largos sin gasolinera', cat: 'Coche y carretera', packed: false },
+    { id: 'seed-eq-28', texto: 'Cargador de coche / adaptador de mechero', cat: 'Coche y carretera', packed: false }
+  ];
+
   function seedState() {
     const s = blankState();
     s.meta.fechaInicio = '2026-10-08';
@@ -365,6 +398,7 @@
     s.coches = JSON.parse(JSON.stringify(COCHE_SEED));
     s.alojamientos = JSON.parse(JSON.stringify(ALOJ_SEED));
     s.excursiones = JSON.parse(JSON.stringify(EXC_SEED));
+    s.equipaje = JSON.parse(JSON.stringify(EQUIPAJE_SEED));
     return s;
   }
 
@@ -410,7 +444,8 @@
         gastos: p.gastos || [],
         fx: Object.assign(blankFx(), p.fx || {}),
         combustible: Object.assign(blankFuel(), p.combustible || {}),
-        meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {})
+        meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {}),
+        equipaje: p.equipaje !== undefined ? p.equipaje : JSON.parse(JSON.stringify(EQUIPAJE_SEED))
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -981,6 +1016,97 @@
       ['lugares', 'Qué ver', lugarSummary],
       ['gastos', 'Gastos', gastoSummary]
     ].forEach(([col, label, sum]) => body.appendChild(groupEl(col, label, sum)));
+
+    body.appendChild(equipajeBlock());
+  }
+
+  // Checklist de equipaje (Experiencia E3). No usa SCHEMAS/openSheet porque
+  // no es una ficha con formulario, sino ítems de tap-to-marcar; solo
+  // renderDatos() hace falta tras cada cambio, el equipaje no afecta a
+  // Itinerario/Mapas/Ideas/Clima.
+  function equipajeBlock() {
+    const g = el('div', 'group');
+    const openKey = 'open_equipaje';
+    const isOpen = localStorage.getItem(openKey) !== '0';
+    const total = state.equipaje.length;
+    const packed = state.equipaje.filter(x => x.packed).length;
+
+    const head = el('button', 'group__head');
+    head.type = 'button';
+    head.setAttribute('aria-expanded', String(isOpen));
+    head.innerHTML =
+      `<span class="group__label">🎒 Equipaje</span>` +
+      `<span class="group__right"><span class="count">${packed}/${total}</span><span class="chev">⌄</span></span>`;
+
+    const bodyWrap = el('div', 'group__body');
+    bodyWrap.hidden = !isOpen;
+
+    if (!total) {
+      const e = el('div', 'empty');
+      e.textContent = 'Sin elementos.';
+      bodyWrap.appendChild(e);
+    } else {
+      const cats = [];
+      const byCat = {};
+      state.equipaje.forEach(it => {
+        if (!byCat[it.cat]) { byCat[it.cat] = []; cats.push(it.cat); }
+        byCat[it.cat].push(it);
+      });
+      cats.forEach(cat => {
+        const catEl = el('p', 'equipaje-cat');
+        catEl.textContent = cat;
+        bodyWrap.appendChild(catEl);
+        const list = el('div', 'equipaje-list');
+        byCat[cat].forEach(it => {
+          const row = el('label', 'equipaje-row' + (it.packed ? ' equipaje-row--done' : ''));
+          row.innerHTML =
+            `<input type="checkbox"${it.packed ? ' checked' : ''}>` +
+            `<span>${esc(it.texto)}</span>`;
+          row.querySelector('input').addEventListener('change', () => {
+            it.packed = !it.packed;
+            save();
+            renderDatos();
+          });
+          const del = el('button', 'icon-btn icon-btn--danger equipaje-row__del');
+          del.type = 'button';
+          del.setAttribute('aria-label', 'Eliminar');
+          del.textContent = '🗑';
+          del.addEventListener('click', async ev => {
+            ev.preventDefault();
+            const ok = await confirmAsk('¿Eliminar «' + it.texto + '» de la lista?');
+            if (!ok) return;
+            const i = state.equipaje.findIndex(x => x.id === it.id);
+            if (i > -1) { state.equipaje.splice(i, 1); save(); renderDatos(); }
+          });
+          row.appendChild(del);
+          list.appendChild(row);
+        });
+        bodyWrap.appendChild(list);
+      });
+    }
+
+    const addRow = el('form', 'equipaje-add');
+    addRow.innerHTML = `<input type="text" placeholder="Añadir a la lista…" maxlength="60"><button type="submit" class="btn btn--ghost">+ Añadir</button>`;
+    addRow.addEventListener('submit', e => {
+      e.preventDefault();
+      const input = addRow.querySelector('input');
+      const texto = input.value.trim();
+      if (!texto) return;
+      state.equipaje.push({ id: uid(), texto, cat: 'Otros', packed: false });
+      save();
+      renderDatos();
+    });
+    bodyWrap.appendChild(addRow);
+
+    head.addEventListener('click', () => {
+      const willOpen = bodyWrap.hidden;
+      bodyWrap.hidden = !willOpen;
+      head.setAttribute('aria-expanded', String(willOpen));
+      localStorage.setItem(openKey, willOpen ? '1' : '0');
+    });
+
+    g.append(head, bodyWrap);
+    return g;
   }
 
   // Los datos del viaje (fechas, vuelos, coche, alojamientos, excursiones) son de
