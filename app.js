@@ -1725,6 +1725,32 @@
     return b;
   }
 
+  function recoChip(key, label) {
+    const b = el('button', 'chip');
+    b.type = 'button';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', String(selectedRecoTopic === key));
+    b.addEventListener('click', () => {
+      if (selectedRecoTopic === key) return;
+      selectedRecoTopic = key;
+      renderReco();
+    });
+    return b;
+  }
+
+  function climaChip(key, label) {
+    const b = el('button', 'chip');
+    b.type = 'button';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', String(selectedClimaDay === key));
+    b.addEventListener('click', () => {
+      if (selectedClimaDay === key) return;
+      selectedClimaDay = key;
+      renderClima();
+    });
+    return b;
+  }
+
   function renderItinerario() {
     const body = $('#itin-body');
     const sub = $('#itin-sub');
@@ -2686,6 +2712,28 @@
     ]
   };
 
+  // Tópicos para el filtro de chips de Ideas (navegación). Cada uno cubre uno
+  // o más <h3> ya existentes en el contenido de Ideas; el único agrupamiento
+  // real es "Teléfonos" (la intro sin contenido propio + las 4 categorías de
+  // EMERGENCIAS) — todo lo demás es 1:1 con su encabezado actual.
+  const IDEAS_TOPICS = [
+    { key: 'experiencias', label: '🌌 Experiencias', heads: ['Experiencias que no te puedes perder'] },
+    { key: 'paradas', label: '📸 Paradas', heads: ['Paradas y desvíos que merecen la pena'] },
+    { key: 'probar', label: '🍽️ Para probar', heads: ['Para probar'] },
+    { key: 'consejos', label: '🧭 Consejos', heads: ['Consejos prácticos'] },
+    { key: 'tuyas', label: '✍️ Tuyas', heads: ['Tus recomendaciones'] },
+    { key: 'super', label: '🛒 Supermercados', heads: ['Supermercados baratos: Bónus y Krónan'] },
+    { key: 'trucos', label: '🛒 Trucos', heads: ['Trucos para un país caro'] },
+    { key: 'carreteras', label: '🛣️ Carreteras', heads: ['Carreteras: antes de conducir'] },
+    { key: 'gasolineras', label: '⛽ Gasolineras', heads: ['Gasolineras y autonomía'] },
+    { key: 'piscinas', label: '🛁 Piscinas', heads: ['Piscinas y pozas termales'] },
+    { key: 'temporada', label: '🍂 Temporada', heads: ['Calendario de temporada: octubre'] },
+    { key: 'planb', label: '🌧️ Plan B', heads: ['Plan B para días de lluvia o viento'] },
+    { key: 'telefonos', label: '📞 Teléfonos', heads: ['Teléfonos importantes en Islandia', 'Emergencias', 'Salud', 'Carretera y conducción', 'Policía y consulado'] }
+  ];
+  const HEAD_TO_IDEAS_TOPIC = {};
+  IDEAS_TOPICS.forEach(t => t.heads.forEach(h => { HEAD_TO_IDEAS_TOPIC[h] = t.key; }));
+
   /* Planes de interior para días de lluvia o viento, por zona (Clima A5). */
   const PLAN_B = {
     intro: 'Si el parte pinta feo, cambia exteriores por interior sin salir de la zona donde duermes ese día.',
@@ -2886,6 +2934,11 @@
     if (!body) return;
     body.innerHTML = '';
 
+    const chips = el('div', 'chips chips--itin');
+    chips.appendChild(recoChip('all', 'Todo'));
+    IDEAS_TOPICS.forEach(t => chips.appendChild(recoChip(t.key, t.label)));
+    body.appendChild(chips);
+
     RECOS.forEach(g => {
       const sec = el('section', 'reco-cat');
       if (g.tint) sec.style.setProperty('--rc', g.tint);
@@ -2937,6 +2990,12 @@
     renderTemporada(body);
     renderPlanB(body);
     renderEmergencias(body);
+
+    [...body.querySelectorAll('.reco-cat')].forEach(sec => {
+      const h3 = sec.querySelector('h3');
+      const key = h3 && HEAD_TO_IDEAS_TOPIC[h3.textContent];
+      sec.hidden = selectedRecoTopic !== 'all' && selectedRecoTopic !== key;
+    });
   }
 
   /* ==========================================================
