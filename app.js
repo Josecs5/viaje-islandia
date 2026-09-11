@@ -279,7 +279,7 @@
       reserva: '', notas: 'Check-in 15:00–00:00 · check-out hasta 12:00.' },
     { id: 'seed-a6', nombre: 'Torg Guesthouse', checkin: '2026-10-13', checkout: '2026-10-14', zona: 'Akureyri',
       loc: { texto: 'Brekkugata 1b, 600 Akureyri', lat: 65.6824, lng: -18.09193 },
-      reserva: '', notas: 'Check-in 15:00–00:00 · check-out hasta 11:00. Concretar hora con el anfitrión.' },
+      reserva: '', notas: 'Check-in 15:00–00:00 · check-out hasta 11:00. Concretar hora con el anfitrión. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
     { id: 'seed-a7', nombre: 'Travel Inn', checkin: '2026-10-14', checkout: '2026-10-15', zona: 'Reikiavik',
       loc: { texto: 'Sóleyjargata 31, 101 Reikiavik', lat: 64.13938, lng: -21.93638 },
       reserva: '', notas: 'Check-in desde 14:00 · check-out hasta 10:00. Concretar hora con el anfitrión.' },
@@ -299,7 +299,7 @@
       encuentro: { texto: 'Jökulsárlón, Laguna Glaciar', lat: 64.0784, lng: -16.2306 },
       proveedor: '',
       reserva: '',
-      notas: 'Llegar antes de las 8:15 para conservar la plaza. Sé puntual. Duración 3 h. 2 adultos. Idioma: inglés.'
+      notas: 'Llegar antes de las 8:15 para conservar la plaza. Sé puntual. Duración 3 h. 2 adultos. Idioma: inglés. Confirmar la noche antes el punto de encuentro exacto (aparcamiento de Jökulsárlón).'
     },
     {
       id: 'seed-e2',
@@ -333,6 +333,76 @@
         'Consejos: lleva bañador; ducha obligatoria sin bañador antes de entrar. Ponte mucho acondicionador en el pelo y recógelo (el agua de sílice lo reseca). Quítate las joyas de plata (se ennegrecen). La pulsera electrónica abre la taquilla y sirve para pagar la bebida. Estancia libre hasta el cierre (2–3 h habitual).'
       ].join('\n')
     }
+  ];
+
+  // Qué ver: paradas del itinerario hora por hora. Las lugares no tienen
+  // hora propia en el modelo de datos (sortT fijo en buildItinerary) — se
+  // ordenan dentro de un mismo día por el orden en que aparecen aquí, así
+  // que el orden de este array importa y sigue el plan real. Las comidas de
+  // en medio de una tanda de lugares (que sí tienen hora propia y se
+  // colarían fuera de sitio si fueran items aparte) se anotan como texto en
+  // el lugar más cercano en vez de crear un item de comida independiente.
+  const LUGAR_SEED = [
+    { id: 'seed-l1', nombre: 'Þingvellir', loc: { texto: 'Þingvellir, parque nacional', lat: 64.2559, lng: -21.1298 },
+      fecha: '2026-10-09', visita: '75', prioridad: 'Alta',
+      notas: 'Parque nacional, falla entre placas tectónicas. Salida de Reikiavik a las 08:00.' },
+    { id: 'seed-l2', nombre: 'Geysir', loc: { texto: 'Geysir, Haukadalur', lat: 64.3108, lng: -20.3024 },
+      fecha: '2026-10-09', visita: '45', prioridad: 'Alta',
+      notas: 'Strokkur erupciona cada 5–10 min.' },
+    { id: 'seed-l3', nombre: 'Gullfoss', loc: { texto: 'Gullfoss', lat: 64.3271, lng: -20.1199 },
+      fecha: '2026-10-09', visita: '50', prioridad: 'Alta',
+      notas: 'Después, comida rápida en la zona (Gullfoss/Selfoss) hacia las 13:15 antes de seguir hacia la costa sur.' },
+    { id: 'seed-l4', nombre: 'Seljalandsfoss', loc: { texto: 'Seljalandsfoss', lat: 63.6156, lng: -19.9886 },
+      fecha: '2026-10-09', visita: '45', prioridad: 'Alta',
+      notas: 'Incluye Gljúfrabúi, cascada escondida 400 m al lado.' },
+    { id: 'seed-l5', nombre: 'Skógafoss', loc: { texto: 'Skógafoss', lat: 63.5321, lng: -19.5116 },
+      fecha: '2026-10-09', visita: '30', prioridad: 'Alta',
+      notas: 'Última parada antes de Vík (~30 km).' },
+    { id: 'seed-l6', nombre: 'Pecio del DC-3 — Sólheimasandur', loc: { texto: 'Sólheimasandur, aparcamiento junto a la Ruta 1', lat: 63.4598, lng: -19.3644 },
+      fecha: '2026-10-10', visita: '120', prioridad: 'Media',
+      notas: 'No se puede reservar entrada. Caminar ~3,5 km cada trayecto por arena negra llana (~45 min, ~1h30 ida y vuelta) o shuttle de pago desde el aparcamiento, 10:00–17:00 (~15 min cada trayecto). Decidir esa misma mañana según el tiempo disponible.' },
+    { id: 'seed-l7', nombre: 'Reynisfjara', loc: { texto: 'Reynisfjara', lat: 63.4039, lng: -19.0432 },
+      fecha: '2026-10-10', visita: '45', prioridad: 'Alta',
+      notas: 'Playa de basalto; respetar las vallas, hay olas sorpresa (sneaker waves). Después, comida en Vík hacia las 13:00 antes de seguir hacia Fjaðrárgljúfur.' },
+    { id: 'seed-l8', nombre: 'Fjaðrárgljúfur', loc: { texto: 'Fjaðrárgljúfur', lat: 63.7718, lng: -18.1719 },
+      fecha: '2026-10-10', visita: '60', prioridad: 'Media',
+      notas: 'Cañón; mirador principal a 10 min a pie.' },
+    { id: 'seed-l9', nombre: 'Diamond Beach', loc: { texto: 'Diamond Beach, junto a Jökulsárlón', lat: 64.0466, lng: -16.1779 },
+      fecha: '2026-10-10', visita: '90', prioridad: 'Alta',
+      notas: 'Témpanos de hielo varados en la arena, frente a la laguna. Llegada hacia las 16:15; el atardecer (~18:15) es el mejor momento.' },
+    { id: 'seed-l10', nombre: 'Hverir', loc: { texto: 'Hverir, Námafjall', lat: 65.6386, lng: -16.8053 },
+      fecha: '2026-10-12', visita: '45', prioridad: 'Media',
+      notas: 'Campo geotérmico. Elegir 2 de los 3 sitios de Mývatn (junto con los pseudocráteres y Hverfjall) según el tiempo disponible, ventana 11:30–14:00. Mývatn es de las mejores zonas del viaje para auroras — revisar la previsión en en.vedur.is antes de acostarse.' },
+    { id: 'seed-l11', nombre: 'Pseudocráteres de Skútustaðir', loc: { texto: 'Skútustaðir', lat: 65.5864, lng: -16.9977 },
+      fecha: '2026-10-12', visita: '40', prioridad: 'Media',
+      notas: 'Elegir 2 de los 3 sitios de Mývatn según el tiempo disponible.' },
+    { id: 'seed-l12', nombre: 'Cráter Hverfjall', loc: { texto: 'Hverfjall', lat: 65.6027, lng: -16.8637 },
+      fecha: '2026-10-12', visita: '40', prioridad: 'Media',
+      notas: 'Elegir 2 de los 3 sitios de Mývatn según el tiempo disponible.' },
+    { id: 'seed-l13', nombre: 'Akureyri: paseo por el centro', loc: { texto: 'Akureyrarkirkja / puerto de Akureyri', lat: 65.6835, lng: -18.0910 },
+      fecha: '2026-10-13', visita: '180', prioridad: 'Media',
+      notas: 'Iglesia Akureyrarkirkja, puerto, cafeterías del centro. Antes, comida en Húsavík hacia las 12:30, tras el avistamiento de ballenas.' },
+    { id: 'seed-l14', nombre: 'Reikiavik: centro histórico', loc: { texto: 'Hallgrímskirkja, Reikiavik', lat: 64.1419, lng: -21.9266 },
+      fecha: '2026-10-15', visita: '180', prioridad: 'Media',
+      notas: 'Hallgrímskirkja, puerto viejo, Harpa, compras de última hora — a ritmo tranquilo.' }
+  ];
+
+  // Dónde comer: solo las comidas que quedan al principio o al final del
+  // plan de cada día (no en medio de una tanda de lugares — ver nota de
+  // LUGAR_SEED de por qué esas se anotan como texto en vez de item aparte).
+  const COMIDA_SEED = [
+    { id: 'seed-c1', nombre: 'Cena en el centro de Reikiavik', tipo: 'Cena',
+      loc: { texto: 'Laugavegur / Skólavörðustígur, Reikiavik', lat: 64.1436, lng: -21.9271 },
+      fecha: '2026-10-08', horario: '21:00', notas: 'Algo ligero tras el vuelo.' },
+    { id: 'seed-c2', nombre: 'Comida junto a Jökulsárlón', tipo: 'Casual / rápido',
+      loc: { texto: 'Jökulsárlón, Laguna Glaciar', lat: 64.0784, lng: -16.2306 },
+      fecha: '2026-10-11', horario: '12:00', notas: 'Comida ligera tras el tour de la cueva de hielo, con paseo tranquilo por la laguna antes de salir hacia Egilsstaðir.' },
+    { id: 'seed-c3', nombre: 'Comida en el centro de Reikiavik', tipo: 'Almuerzo',
+      loc: { texto: 'Centro de Reikiavik', lat: 64.1466, lng: -21.9426 },
+      fecha: '2026-10-15', horario: '13:00', notas: '' },
+    { id: 'seed-c4', nombre: 'Cena de despedida', tipo: 'Cena',
+      loc: { texto: 'Grindavík o Keflavík', lat: 63.9166, lng: -22.4408 },
+      fecha: '2026-10-15', horario: '21:00', notas: 'En Grindavík o ya en Keflavík (~20 min hasta el aeropuerto), después de la Laguna Azul.' }
   ];
 
   // Coche de alquiler.
@@ -399,6 +469,8 @@
     s.alojamientos = JSON.parse(JSON.stringify(ALOJ_SEED));
     s.excursiones = JSON.parse(JSON.stringify(EXC_SEED));
     s.equipaje = JSON.parse(JSON.stringify(EQUIPAJE_SEED));
+    s.lugares = JSON.parse(JSON.stringify(LUGAR_SEED));
+    s.comidas = JSON.parse(JSON.stringify(COMIDA_SEED));
     return s;
   }
 
@@ -1536,6 +1608,7 @@
         sortT: ht ? toMin(ht) : 780,
         titulo: c.nombre || 'Comida',
         sub: [c.tipo, c.horario].filter(Boolean).join(' · '),
+        notas: c.notas || '',
         loc: c.loc && c.loc.lat != null ? c.loc : null,
         tag: 'Comida',
         costMin: COMIDA_MIN
@@ -1555,6 +1628,7 @@
           l.prioridad ? 'Prioridad ' + l.prioridad : '',
           l.visita ? fmtDur(+l.visita) + ' de visita' : ''
         ].filter(Boolean).join(' · '),
+        notas: l.notas || '',
         loc: l.loc && l.loc.lat != null ? l.loc : null,
         tag: 'Lugar',
         costMin: l.visita ? +l.visita : LUGAR_MIN
