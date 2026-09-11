@@ -1003,12 +1003,24 @@
   /* ==========================================================
      Pantalla: DATOS
      ========================================================== */
+  function datosChip(key, label) {
+    const b = el('button', 'chip');
+    b.type = 'button';
+    b.textContent = label;
+    b.setAttribute('aria-pressed', String(selectedDatosTopic === key));
+    b.addEventListener('click', () => {
+      if (selectedDatosTopic === key) return;
+      selectedDatosTopic = key;
+      renderDatos();
+    });
+    return b;
+  }
+
   function renderDatos() {
     const body = $('#datos-body');
     body.innerHTML = '';
-    body.appendChild(metaCard());
 
-    [
+    const groups = [
       ['vuelos', 'Vuelos', vueloSummary],
       ['coches', 'Coche de alquiler', cocheSummary],
       ['alojamientos', 'Alojamientos', alojSummary],
@@ -1016,9 +1028,20 @@
       ['comidas', 'Dónde comer', comidaSummary],
       ['lugares', 'Qué ver', lugarSummary],
       ['gastos', 'Gastos', gastoSummary]
-    ].forEach(([col, label, sum]) => body.appendChild(groupEl(col, label, sum)));
+    ];
 
-    body.appendChild(equipajeBlock());
+    const chips = el('div', 'chips chips--itin');
+    chips.appendChild(datosChip('all', 'Todo'));
+    groups.forEach(([col, label]) => chips.appendChild(datosChip(col, SCHEMAS[KIND_OF[col]].icon + ' ' + label)));
+    chips.appendChild(datosChip('equipaje', '🎒 Equipaje'));
+    body.appendChild(chips);
+
+    body.appendChild(metaCard());
+
+    groups.forEach(([col, label, sum]) => {
+      if (selectedDatosTopic === 'all' || selectedDatosTopic === col) body.appendChild(groupEl(col, label, sum));
+    });
+    if (selectedDatosTopic === 'all' || selectedDatosTopic === 'equipaje') body.appendChild(equipajeBlock());
   }
 
   // Checklist de equipaje (Experiencia E3). No usa SCHEMAS/openSheet porque
@@ -1673,6 +1696,9 @@
      Pantalla: ITINERARIO
      ========================================================== */
   let selectedItinDay = 'all';
+  let selectedDatosTopic = 'all';
+  let selectedRecoTopic = 'all';
+  let selectedClimaDay = 'all';
   // La primera vez que se pinta cada sección, si hoy cae dentro del viaje,
   // se abre directamente ese día en vez de «Todos». Después el usuario manda.
   let itinDayInit = false, mapDayInit = false, climaScrolled = false;
