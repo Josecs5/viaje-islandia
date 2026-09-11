@@ -27,7 +27,10 @@ checklist de **tareas antes de viajar** (facturar los vuelos con su fecha
 límite calculada, avisar al banco, seguro, DNI/pasaporte...) y una
 **lista de equipaje** curada para el viaje, con checklist, ítems propios y
 borrado. Cada día del Itinerario tiene un campo de **diario de viaje** para
-anotar cómo fue esa jornada. La pestaña
+anotar cómo fue esa jornada. Itinerario muestra una tarjeta **Hoy** con
+el resumen del día en curso — plan y viabilidad, viento, exteriores y
+previsión de auroras de esta noche — cuando la fecha actual cae dentro
+del viaje. La pestaña
 **Clima** da, por día,
 salida/puesta de sol, hora dorada, ventana de oscuridad y luna (cálculo local con
 SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosidad
