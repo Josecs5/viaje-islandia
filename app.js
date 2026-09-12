@@ -516,6 +516,19 @@
     };
   }
 
+  // Añade a una lista de equipaje ya guardada los ítems nuevos del seed que
+  // falten (por id), sin tocar los existentes ni su estado 'packed'. Así,
+  // cuando se añade un ítem nuevo al seed en el código, quien ya tenía la
+  // app instalada lo recibe sin perder su checklist.
+  function mergeEquipajeSeed(existing) {
+    const list = Array.isArray(existing) ? existing.slice() : [];
+    const ids = new Set(list.map(i => i.id));
+    EQUIPAJE_SEED.forEach(item => {
+      if (!ids.has(item.id)) list.push(JSON.parse(JSON.stringify(item)));
+    });
+    return list;
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -535,7 +548,7 @@
         fx: Object.assign(blankFx(), p.fx || {}),
         combustible: Object.assign(blankFuel(), p.combustible || {}),
         meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {}),
-        equipaje: p.equipaje !== undefined ? p.equipaje : JSON.parse(JSON.stringify(EQUIPAJE_SEED)),
+        equipaje: p.equipaje !== undefined ? mergeEquipajeSeed(p.equipaje) : JSON.parse(JSON.stringify(EQUIPAJE_SEED)),
         diario: p.diario || {},
         antesDeViajar: p.antesDeViajar !== undefined ? p.antesDeViajar : JSON.parse(JSON.stringify(ANTES_SEED))
       };
