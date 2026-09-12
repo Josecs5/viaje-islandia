@@ -453,6 +453,8 @@
     { id: 'seed-eq-22', texto: 'Cargador y cable de móvil', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-23', texto: 'Batería externa', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-24', texto: 'Frontal o linterna pequeña (anochece pronto en octubre)', cat: 'Electrónica', packed: false },
+    { id: 'seed-eq-29', texto: 'Adaptador de enchufe tipo F (Islandia, 230V)', cat: 'Electrónica', packed: false },
+    { id: 'seed-eq-30', texto: 'Funda impermeable para el móvil o la cámara', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-25', texto: 'Analgésicos y botiquín personal básico', cat: 'Botiquín y aseo', packed: false },
     { id: 'seed-eq-26', texto: 'Bolsas de plástico para ropa mojada', cat: 'Botiquín y aseo', packed: false },
     { id: 'seed-eq-27', texto: 'Snacks y agua para tramos largos sin gasolinera', cat: 'Coche y carretera', packed: false },
