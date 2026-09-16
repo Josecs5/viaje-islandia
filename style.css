@@ -403,6 +403,24 @@ main {
   overflow-wrap: anywhere;
 }
 
+/* Foto + descripción bajo "qué ver"/excursiones/dónde comer, en Datos y
+   en Itinerario (slot__body reutiliza la misma clase). */
+.item-photo {
+  margin: var(--space-10) 0 0;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  border: 1px solid var(--c-border-soft);
+  background: var(--c-surface-2);
+}
+.item-photo img { display: block; width: 100%; height: 150px; object-fit: cover; }
+.item-photo figcaption {
+  padding: var(--space-8) var(--space-10);
+  font-size: var(--step--1);
+  line-height: 1.4;
+  color: var(--c-text-1);
+}
+.item-photo figcaption b { color: var(--c-text); }
+
 /* --- Gastos (Dinero D1): resumen y filas --- */
 .gasto-resumen {
   padding-bottom: var(--space-12);
@@ -1262,7 +1280,56 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .coche-when__loc { color: var(--c-text-2); font-size: var(--step-0); margin-top: 2px; }
 
 /* ============================================================
-   RUTA GOOGLE MAPS (dentro de "Mapas")
+   CERCA DE TI (antes "Mapas"): supermercados/gasolineras/comida
+   barata cerca de cada alojamiento
+   ============================================================ */
+.cerca-block { margin-bottom: var(--space-24); }
+.cerca-block h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-1);
+  margin: 0 0 var(--space-4);
+}
+.cerca-block > .muted { margin-bottom: var(--space-12); }
+.cerca-result { display: grid; gap: var(--space-16); }
+.cerca-stale { margin: 0; }
+.cerca-section h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-0);
+  margin: 0 0 var(--space-8);
+  color: var(--c-text-1);
+}
+.cerca-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-6); }
+.cerca-item {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px var(--space-10);
+  padding: var(--space-8) var(--space-10);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--radius-s);
+  font-size: var(--step-0);
+}
+.cerca-item--barato { border-color: color-mix(in oklab, var(--c-accent) 45%, transparent); }
+.cerca-item__name { flex: 1 1 auto; min-width: 0; font-weight: 500; }
+.cerca-item__km { color: var(--c-text-2); font-family: var(--font-mono); font-size: var(--step--1); }
+.cerca-item--barato .cerca-item__km { color: var(--c-accent); }
+.cerca-item__price { width: 100%; color: var(--c-text-2); font-size: var(--step--1); }
+.cerca-tip { margin: var(--space-6) 0 0; color: var(--c-text-2); font-size: var(--step--1); }
+
+.map-route-h {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-1);
+  margin: var(--space-24) 0 0;
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--c-border);
+}
+
+/* ============================================================
+   RUTA GOOGLE MAPS (dentro de "Cerca de ti")
    ============================================================ */
 .map-route {
   margin-top: var(--space-24);

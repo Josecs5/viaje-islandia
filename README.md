@@ -37,7 +37,12 @@ SunCalc) y una **previsión de auroras** por noche (índice Kp de NOAA + nubosid
 de Open-Meteo) con aviso cuando coinciden cielo despejado y actividad alta. El
 Itinerario marca además los días que pintan **mejor o peor para exteriores**
 (nubes, viento y lluvia de Open-Meteo) y Ideas trae **planes de interior por
-zona** para los días malos.
+zona** para los días malos. Qué ver, Excursiones y Dónde comer muestran, tanto
+en Datos como en el Itinerario, una **foto y una descripción breve** del sitio
+cuando se reconoce el nombre (Wikimedia Commons). La pestaña **Cerca de ti**
+(antes «Mapas») busca para cada alojamiento los **supermercados, gasolineras y
+comida barata más cercanos**, con la distancia y un precio orientativo en
+euros (Overpass/OpenStreetMap), además del recorrido de cada día.
 
 Todo se guarda en `localStorage` del navegador: los datos no salen del dispositivo.
 
@@ -73,7 +78,9 @@ La pestaña **"Clima"** calcula con SunCalc, sin conexión, la luz y la luna de
 cada día: salida y puesta de sol, duración y diferencia de luz, hora dorada,
 ventana de oscuridad y fase de luna. La antigua pestaña **"Ruta"** dejó de
 existir; el enlace al recorrido completo en Google Maps está ahora al final de
-**"Mapas"**.
+**"Cerca de ti"** (la antigua pestaña **"Mapas"**), que también busca lo más
+cercano a cada alojamiento (Overpass API: necesita conexión la primera vez por
+alojamiento, luego queda cacheado en el dispositivo).
 
 El shell (HTML/CSS/JS, Leaflet, SunCalc, fuentes) se guarda en la primera visita
 con conexión, así que la app arranca sin cobertura. Los tiles del mapa se guardan

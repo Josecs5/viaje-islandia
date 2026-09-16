@@ -1423,6 +1423,10 @@
     const c = el('div', 'card item');
     const main = el('div', 'item__main');
     main.innerHTML = summaryHtml;
+    if (kind === 'lugar' || kind === 'excursion' || kind === 'comida') {
+      const photo = itemPhotoBlock(kind, it);
+      if (photo) main.appendChild(photo);
+    }
     c.appendChild(main);
 
     // Solo se pueden editar/eliminar los elementos añadidos por el usuario
@@ -1800,26 +1804,56 @@
   /* ==========================================================
      Fotos de las zonas (Wikimedia Commons)
      ========================================================== */
-  const normTxt = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // \u00f0/\u00fe/\u00e6 no son letras con acento (no se descomponen con NFD), as\u00ed que sin
+  // esto "Go\u00f0afoss"/"\u00de\u00f3rsm\u00f6rk" nunca casar\u00edan con keywords en ASCII como
+  // 'godafoss'/'thorsmork' \u2014 se transliteran a mano antes de quitar acentos.
+  const normTxt = s => String(s || '').toLowerCase()
+    .replace(/\u00fe/g, 'th').replace(/\u00f0/g, 'd').replace(/\u00e6/g, 'ae')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const fotoURL = (file, w) =>
     'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(file) + '?width=' + w;
 
   // Orden = prioridad: primero los hitos/excursiones, luego pueblos y zonas.
+  // `d` es una descripción breve (Experiencia foto+descripción en Datos e
+  // Itinerario, ver itemPhotoBlock/fotoParaBlob más abajo).
   const FOTOS = [
-    { k: ['cuevas de hielo', 'cueva de hielo', 'vatnajokull'], f: 'Ice Cave Explorer - Iceland.jpg', c: 'Cuevas de hielo del Vatnajökull' },
-    { k: ['laguna azul', 'blue lagoon'], f: 'Blue Lagoon with Þorbjörn, Iceland, 20230430 1626 3692.jpg', c: 'Laguna Azul' },
-    { k: ['jokulsarlon', 'sudursveit', 'laguna glaciar'], f: 'Jökulsárlón glacier lagoon, Iceland, 20240718 1620 2403.jpg', c: 'Laguna glaciar de Jökulsárlón' },
-    { k: ['gullfoss'], f: 'Gullfoss, an iconic waterfall of Iceland.jpg', c: 'Cascada de Gullfoss' },
-    { k: ['reynisfjara', 'reynisdrangar', 'vik i myrdal', 'myrdal'], f: 'Reynisfjara and Reynisdrangar, Iceland.jpg', c: 'Playa de Reynisfjara (Vík)' },
-    { k: ['skogafoss'], f: 'Skógafoss July 2014.JPG', c: 'Cascada de Skógafoss' },
-    { k: ['seljalandsfoss'], f: 'Seljalandsfoss - panoramio (7).jpg', c: 'Cascada de Seljalandsfoss' },
-    { k: ['godafoss'], f: 'Goðafoss July 2014.JPG', c: 'Cascada de Goðafoss' },
-    { k: ['myvatn'], f: 'Myvatn Iceland 01.jpg', c: 'Lago Mývatn' },
-    { k: ['seydisfjordur', 'egilsstadir', 'eyvindara'], f: 'Seyðisfjörður Sept 2019 1.jpg', c: 'Seyðisfjörður (junto a Egilsstaðir)' },
-    { k: ['husavik', 'ballenas', 'avistamiento'], f: 'Husavik Iceland 2005 1.JPG', c: 'Húsavík' },
-    { k: ['akureyri', 'brekkugata'], f: 'Overlooking Eyjafjörður from Hamrar (close).jpeg', c: 'Akureyri y el fiordo Eyjafjörður' },
-    { k: ['reikiavik', 'reykjavik', 'hallgrim', 'laugavegur', 'soleyjargata'], f: 'Hallgrímskirkja.jpeg', c: 'Reikiavik' },
-    { k: ['keflavik', 'reykjanes', 'grindavik', 'bernhard', 'vallargata'], f: 'Reykjanesviti, Reykjanes, Iceland, 20230430 1330 3606.jpg', c: 'Península de Reykjanes (Keflavík)' }
+    { k: ['cuevas de hielo', 'cueva de hielo'], f: 'Ice Cave Explorer - Iceland.jpg', c: 'Cuevas de hielo del Vatnajökull', d: 'Cuevas de hielo azul que se forman cada invierno bajo el glaciar Vatnajökull; se visitan con guía y crampones.' },
+    { k: ['laguna azul', 'blue lagoon'], f: 'Blue Lagoon with Þorbjörn, Iceland, 20230430 1626 3692.jpg', c: 'Laguna Azul', d: 'Spa geotérmico de aguas turquesas ricas en sílice, alimentado por el agua sobrante de la central de Svartsengi.' },
+    // Más específico que la entrada de Jökulsárlón de abajo: va antes para que
+    // gane cuando el nombre/ubicación mencionen ambos (Diamond Beach está
+    // pegada a la laguna, así que su texto suele incluir "Jökulsárlón" también).
+    { k: ['diamond beach', 'breidamerkursandur', 'playa de los diamantes'], f: 'Diamond Beach - Flickr - great.escape.photos.jpg', c: 'Playa de los Diamantes', d: 'Playa de arena negra donde varan los icebergs del Jökulsárlón, brillando como diamantes.' },
+    { k: ['jokulsarlon', 'sudursveit', 'laguna glaciar'], f: 'Jökulsárlón glacier lagoon, Iceland, 20240718 1620 2403.jpg', c: 'Laguna glaciar de Jökulsárlón', d: 'Laguna donde se desprenden icebergs del glaciar Breiðamerkurjökull y flotan hasta el mar.' },
+    { k: ['gullfoss'], f: 'Gullfoss, an iconic waterfall of Iceland.jpg', c: 'Cascada de Gullfoss', d: 'Una de las cascadas más famosas de Islandia: el río Hvítá cae en dos saltos escalonados dentro de un cañón.' },
+    { k: ['reynisfjara', 'reynisdrangar', 'vik i myrdal', 'myrdal'], f: 'Reynisfjara and Reynisdrangar, Iceland.jpg', c: 'Playa de Reynisfjara (Vík)', d: 'Playa de arena negra con columnas de basalto, cuevas y los peñascos Reynisdrangar frente a la costa. Cuidado con las olas.' },
+    { k: ['skogafoss'], f: 'Skógafoss July 2014.JPG', c: 'Cascada de Skógafoss', d: 'Cascada de 60 m de caída casi vertical, con un mirador arriba al que se sube por una escalera.' },
+    { k: ['solheimasandur', 'dc-3', 'pecio', 'plane wreck'], f: 'Plane wreck of DC-3 at Sölheimsandur beach.jpg', c: 'Pecio del DC-3 (Sólheimasandur)', d: 'Fuselaje abandonado de un avión de la marina de EE. UU. en la playa negra de Sólheimasandur; se llega andando desde el aparcamiento de la Ruta 1.' },
+    { k: ['seljalandsfoss'], f: 'Seljalandsfoss - panoramio (7).jpg', c: 'Cascada de Seljalandsfoss', d: 'Cascada de 60 m por la que se puede caminar por detrás de la cortina de agua (lleva ropa impermeable).' },
+    { k: ['godafoss'], f: 'Goðafoss July 2014.JPG', c: 'Cascada de Goðafoss', d: 'La "cascada de los dioses": según la leyenda, aquí se arrojaron las estatuas paganas al cristianizarse Islandia en el año 1000.' },
+    // Van antes que la entrada genérica de Mývatn de abajo: son sitios
+    // concretos de esa zona y deben ganar cuando el texto menciona ambos.
+    { k: ['hverir', 'hverarond', 'namafjall'], f: 'Hverir geothermal area45.jpg', c: 'Zona geotérmica de Hverir', d: 'Campo geotérmico sin vegetación con pozas de barro hirviendo y fumarolas humeantes, de tierra rojiza y amarillenta.' },
+    { k: ['skutustadir', 'pseudocrater', 'pseudocrateres'], f: 'Skútustaðir banner Pseudocraters.jpg', c: 'Pseudocráteres de Skútustaðir', d: 'Grupo de conos volcánicos huecos junto al lago Mývatn, formados por explosiones de vapor bajo antiguas coladas de lava.' },
+    { k: ['hverfjall', 'hverfell'], f: 'Hverfjall July 2014.JPG', c: 'Cráter de Hverfjall', d: 'Gran cráter de ceniza volcánica muy simétrico junto al lago Mývatn, con un sendero que rodea el borde.' },
+    { k: ['myvatn'], f: 'Myvatn Iceland 01.jpg', c: 'Lago Mývatn', d: 'Lago volcánico poco profundo rodeado de cráteres, seudocráteres y campos de lava; zona geotérmica muy activa.' },
+    { k: ['seydisfjordur', 'egilsstadir', 'eyvindara'], f: 'Seyðisfjörður Sept 2019 1.jpg', c: 'Seyðisfjörður (junto a Egilsstaðir)', d: 'Pueblo de fiordo con casas de madera de colores, conocido por su calle arcoíris y su ambiente artístico.' },
+    { k: ['husavik', 'ballenas', 'avistamiento'], f: 'Husavik Iceland 2005 1.JPG', c: 'Húsavík', d: 'Pueblo pesquero del norte, considerado la capital europea del avistamiento de ballenas.' },
+    { k: ['akureyri', 'brekkugata'], f: 'Overlooking Eyjafjörður from Hamrar (close).jpeg', c: 'Akureyri y el fiordo Eyjafjörður', d: 'La "capital del norte", a orillas del fiordo más largo de Islandia, con buena oferta de restaurantes y tiendas.' },
+    { k: ['reikiavik', 'reykjavik', 'hallgrim', 'laugavegur', 'soleyjargata'], f: 'Hallgrímskirkja.jpeg', c: 'Reikiavik', d: 'La capital, con la iglesia de Hallgrímskirkja como referencia visual y la calle Laugavegur como eje comercial.' },
+    { k: ['keflavik', 'reykjanes', 'grindavik', 'bernhard', 'vallargata'], f: 'Reykjanesviti, Reykjanes, Iceland, 20230430 1330 3606.jpg', c: 'Península de Reykjanes (Keflavík)', d: 'Península volcánica junto al aeropuerto, con campos de lava, faros y actividad geotérmica.' },
+    { k: ['thingvellir', 'pingvellir'], f: 'Þingvellir from the information centre.JPG', c: 'Parque Nacional Þingvellir', d: 'Valle de rift entre las placas tectónicas de América y Eurasia; cuna del primer parlamento vikingo, en el año 930.' },
+    { k: ['geysir', 'strokkur'], f: 'Erupting geysir.jpg', c: 'Géiser Strokkur', d: 'Zona geotérmica donde el géiser Strokkur lanza una columna de agua hirviendo cada pocos minutos.' },
+    { k: ['kerid', 'crater kerid'], f: 'A girl standing on top of Kerið.jpg', c: 'Cráter de Kerið', d: 'Cráter volcánico de unos 3.000 años con un lago turquesa en el fondo, parada del Círculo Dorado.' },
+    { k: ['fjadrargljufur', 'fjadra canyon'], f: 'Iceland 2008-05-27 (2684049831).jpg', c: 'Cañón de Fjaðrárgljúfur', d: 'Cañón serpenteante de paredes cubiertas de musgo, tallado por el río Fjaðrá en el sureste de Islandia.' },
+    { k: ['skaftafell', 'vatnajokull national park'], f: 'Skaftafell Aerial 2023.jpg', c: 'Skaftafell (Vatnajökull)', d: 'Zona del Parque Nacional Vatnajökull con glaciares, cascadas y rutas de senderismo entre lenguas de hielo.' },
+    { k: ['thorsmork', 'porsmork'], f: 'Þórsmörk from Valahnúksból 20090607.jpg', c: 'Valle de Þórsmörk', d: 'Valle verde entre glaciares al que solo se llega con 4x4 vadeando ríos; muy popular para senderismo.' },
+    { k: ['landmannalaugar'], f: 'Landmannalaugar Campsite.jpg', c: 'Landmannalaugar', d: 'Montañas de riolita multicolor con aguas termales naturales, en las Tierras Altas del interior.' },
+    { k: ['dettifoss'], f: 'Dettifoss TimBekaert.JPG', c: 'Cascada de Dettifoss', d: 'La cascada más caudalosa de Europa: un muro de agua glaciar gris que cae con un estruendo brutal.' },
+    { k: ['kirkjufell'], f: 'Kirkjufell in Iceland.jpg', c: 'Montaña Kirkjufell', d: 'Montaña en forma de punta de flecha en Snæfellsnes, una de las más fotografiadas de Islandia.' },
+    { k: ['arnarstapi'], f: 'Arnarstapi 2024 (0754).jpg', c: 'Arnarstapi', d: 'Pueblo costero de Snæfellsnes con acantilados de basalto, arcos de roca y colonias de aves.' },
+    { k: ['hraunfossar'], f: 'Hraunfossar 2004.jpg', c: 'Cascadas de Hraunfossar', d: 'Decenas de cascadas que brotan directamente de un campo de lava hacia el río Hvítá.' },
+    { k: ['grabrok'], f: 'Cráter Stóri Grábrók, Vesturland, Islandia, 2014-08-15, DD 090.JPG', c: 'Cráter de Grábrók', d: 'Cono volcánico junto a la carretera de circunvalación, con mirador y escalera de subida corta.' },
+    { k: ['sky lagoon'], f: 'Sky Lagoon Exterior.jpg', c: 'Sky Lagoon', d: 'Piscina geotérmica junto al mar cerca de Reikiavik, con circuito de spa y vistas al océano.' }
   ];
 
   function diaBlob(day) {
@@ -1839,6 +1873,42 @@
       if (e.k.some(k => blob.indexOf(normTxt(k)) > -1)) out.push(e);
     }
     return out;
+  }
+
+  // Foto + descripción bajo cada "cosa de ver" (lugar/excursión/comida) en
+  // Datos e Itinerario: busca la primera entrada de FOTOS cuyo texto casa con
+  // el nombre/ubicación del elemento. Reutiliza el mismo FOTOS que ya pinta
+  // las fotos de cabecera del día; si no hay coincidencia, no se pinta nada
+  // (mejor sin foto que una genérica que no sea "lo que es").
+  function fotoParaBlob(blob) {
+    return FOTOS.find(e => e.k.some(k => blob.indexOf(normTxt(k)) > -1)) || null;
+  }
+
+  function fotoBlockEl(match) {
+    const fig = el('figure', 'item-photo');
+    const img = el('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.alt = match.c;
+    img.src = fotoURL(match.f, 640);
+    // Si el fichero de Commons no existe o cambió de nombre, se retira sin
+    // dejar hueco roto: mejor sin foto que un icono de imagen rota.
+    img.addEventListener('error', () => fig.remove());
+    const capEl = el('figcaption');
+    capEl.innerHTML = match.d ? `<b>${esc(match.c)}</b> — ${esc(match.d)}` : `<b>${esc(match.c)}</b>`;
+    fig.append(img, capEl);
+    return fig;
+  }
+
+  // kind: 'lugar' | 'excursion' | 'comida'. it: la entidad de state (con
+  // .nombre y, según el tipo, .loc o .encuentro).
+  function itemPhotoBlock(kind, it) {
+    const locTxt = kind === 'excursion' ? (it.encuentro && it.encuentro.texto) : (it.loc && it.loc.texto);
+    const blob = normTxt([it.nombre, locTxt].filter(Boolean).join(' '));
+    if (!blob) return null;
+    const match = fotoParaBlob(blob);
+    return match ? fotoBlockEl(match) : null;
   }
 
   /* ==========================================================
@@ -2546,6 +2616,11 @@
       `<div class="slot__title">${esc(it.titulo)}</div>` +
       (it.sub ? `<div class="slot__sub">${esc(it.sub)}</div>` : '') +
       (it.notas ? `<details class="slot__notes"><summary>Info importante</summary><p>${esc(it.notas)}</p></details>` : '');
+    if (it.t === 'lugar' || it.t === 'excursion' || it.t === 'comida') {
+      const blob = normTxt([it.titulo, it.loc && it.loc.texto].filter(Boolean).join(' '));
+      const match = blob && fotoParaBlob(blob);
+      if (match) body.appendChild(fotoBlockEl(match));
+    }
     if (it.loc && it.loc.lat != null) {
       const nav = el('div', 'slot__nav');
       const g = mapsLink('g', [it.loc]); g.className = 'slot__go'; g.textContent = 'Google Maps ›';
@@ -2676,7 +2751,213 @@
     dayLayer = L.layerGroup().addTo(map);
   }
 
+  /* ==========================================================
+     Cerca de ti — supermercados, gasolineras y comida barata cerca
+     de cada alojamiento (Overpass API / OpenStreetMap), con distancia
+     y precio orientativo en euros. Igual que Nominatim/frankfurter.dev,
+     es una llamada en vivo que necesita conexión la primera vez por
+     alojamiento; el resultado se cachea en localStorage aparte del
+     estado del viaje, así que después funciona sin conexión.
+     ========================================================== */
+  const CERCA_CACHE_KEY = 'islandia_cerca_v1';
+  const CERCA_RADIUS_M = 15000;
+  const CERCA_TIMEOUT_MS = 20000;
+  const CERCA_FRESH_MS = 30 * 60 * 1000;   // no reconsultar Overpass en cada cambio de pestaña
+
+  function loadCercaCache() {
+    try { return JSON.parse(localStorage.getItem(CERCA_CACHE_KEY)) || {}; } catch (e) { return {}; }
+  }
+  function saveCercaCache(c) {
+    try { localStorage.setItem(CERCA_CACHE_KEY, JSON.stringify(c)); } catch (e) { /* cuota llena: se sigue sin cachear */ }
+  }
+  let cercaCache = loadCercaCache();
+  let selectedAloj = null;
+
+  function overpassQuery(lat, lng) {
+    const r = CERCA_RADIUS_M;
+    return '[out:json][timeout:25];(' +
+      `node["shop"="supermarket"](around:${r},${lat},${lng});` +
+      `way["shop"="supermarket"](around:${r},${lat},${lng});` +
+      `node["amenity"="fuel"](around:${r},${lat},${lng});` +
+      `way["amenity"="fuel"](around:${r},${lat},${lng});` +
+      `node["shop"="bakery"](around:${r},${lat},${lng});` +
+      `node["amenity"="fast_food"](around:${r},${lat},${lng});` +
+      ');out center;';
+  }
+
+  async function fetchCerca(aloj) {
+    const here = { lat: aloj.loc.lat, lng: aloj.loc.lng };
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), CERCA_TIMEOUT_MS);
+    try {
+      const r = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(overpassQuery(here.lat, here.lng)),
+        signal: ctrl.signal
+      });
+      if (!r.ok) throw new Error('overpass ' + r.status);
+      const j = await r.json();
+      const out = { supermercados: [], gasolineras: [], comida: [] };
+      (j.elements || []).forEach(e => {
+        const plat = e.lat != null ? e.lat : (e.center && e.center.lat);
+        const plng = e.lon != null ? e.lon : (e.center && e.center.lon);
+        if (plat == null || plng == null) return;
+        const tags = e.tags || {};
+        const km = haversine(here, { lat: plat, lng: plng });
+        const name = tags.name || tags.brand || '';
+        if (tags.shop === 'supermarket') out.supermercados.push({ name: name || 'Supermercado', brand: tags.brand || '', km });
+        else if (tags.amenity === 'fuel') out.gasolineras.push({ name: name || 'Gasolinera', brand: tags.brand || '', km });
+        else if (tags.shop === 'bakery') out.comida.push({ name: name || 'Panadería', brand: tags.brand || '', km, tipo: 'panaderia' });
+        else if (tags.amenity === 'fast_food') out.comida.push({ name: name || 'Comida rápida', brand: tags.brand || '', km, tipo: 'rapida' });
+      });
+      ['supermercados', 'gasolineras', 'comida'].forEach(k => {
+        out[k].sort((a, b) => a.km - b.km);
+        out[k] = out[k].slice(0, 6);
+      });
+      out.lat = here.lat;
+      out.lng = here.lng;
+      out.ts = Date.now();
+      return out;
+    } finally {
+      clearTimeout(to);
+    }
+  }
+
+  // Islandia no tiene precios en vivo por sitio (ni Overpass los trae), así
+  // que el precio es orientativo por cadena/categoría: Bónus y Krónan son las
+  // baratas (ver Datos "Supermercados baratos"), Costco/Orkan suelen tener el
+  // litro más barato, y bollería/comida rápida llevan un rango típico.
+  function precioSuper(item) {
+    const n = normTxt(item.name + ' ' + item.brand);
+    if (n.indexOf('bonus') > -1 || n.indexOf('kronan') > -1) return { txt: 'cesta pequeña ≈ 12–18 €', tag: 'barato' };
+    return { txt: 'cesta pequeña ≈ 18–25 €', tag: '' };
+  }
+  function precioGasolinera(item) {
+    const eurL = toEUR(precioLitro(), 'ISK');
+    const litroTxt = eurL.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €/L';
+    const n = normTxt(item.name + ' ' + item.brand);
+    const barato = n.indexOf('costco') > -1 || n.indexOf('orkan') > -1;
+    return { txt: `≈ ${litroTxt}${barato ? ' · de las más baratas' : ''}`, tag: barato ? 'barato' : '' };
+  }
+  function precioComida(item) {
+    return item.tipo === 'panaderia'
+      ? { txt: 'bollería ≈ 3–5 €', tag: '' }
+      : { txt: 'menú rápido ≈ 12–18 €', tag: '' };
+  }
+
+  function cercaSection(title, items, priceFn, extraTips) {
+    const sec = el('div', 'cerca-section');
+    const h = el('h4');
+    h.textContent = title;
+    sec.appendChild(h);
+    if (items.length) {
+      const list = el('ul', 'cerca-list');
+      items.forEach(it => {
+        const price = priceFn(it);
+        const li = el('li', 'cerca-item' + (price.tag ? ' cerca-item--' + price.tag : ''));
+        li.innerHTML =
+          `<span class="cerca-item__name">${esc(it.name)}</span>` +
+          `<span class="cerca-item__km">${it.km.toFixed(it.km < 10 ? 1 : 0)} km</span>` +
+          `<span class="cerca-item__price">${esc(price.txt)}</span>`;
+        list.appendChild(li);
+      });
+      sec.appendChild(list);
+    } else {
+      const p = el('p', 'muted');
+      p.textContent = 'No se ha encontrado ninguno cerca.';
+      sec.appendChild(p);
+    }
+    if (extraTips) {
+      extraTips.forEach(t => {
+        const tip = el('p', 'cerca-tip');
+        tip.textContent = '💡 ' + t;
+        sec.appendChild(tip);
+      });
+    }
+    return sec;
+  }
+
+  function renderCercaData(box, data, stale) {
+    box.innerHTML = '';
+    if (stale) {
+      const p = el('p', 'muted cerca-stale');
+      const fecha = new Date(data.ts).toLocaleDateString('es-ES');
+      p.textContent = navigator.onLine ? `Datos del ${fecha} · actualizando…` : `Datos del ${fecha} · sin conexión, no se puede actualizar ahora`;
+      box.appendChild(p);
+    }
+    box.appendChild(cercaSection('🛒 Supermercados', data.supermercados, precioSuper));
+    box.appendChild(cercaSection('⛽ Gasolineras', data.gasolineras, precioGasolinera));
+    box.appendChild(cercaSection('🍴 Comida barata', data.comida, precioComida, [
+      'Pylsa (perrito caliente) en cualquier gasolinera ≈ 3,50 €',
+      'Mostrador caliente de Bónus/Krónan grande (sopa, guiso del día) ≈ 9–12 €'
+    ]));
+  }
+
+  function cercaResultBlock(aloj) {
+    const box = el('div', 'cerca-result');
+    const cached = cercaCache[aloj.id];
+    const sameSpot = cached && cached.lat === aloj.loc.lat && cached.lng === aloj.loc.lng;
+    const isFresh = sameSpot && (Date.now() - cached.ts < CERCA_FRESH_MS);
+
+    if (sameSpot) renderCercaData(box, cached, !isFresh);
+    else box.appendChild(notice('Buscando cerca de ' + (aloj.nombre || 'este alojamiento') + '…'));
+
+    // Con caché reciente no hace falta volver a consultar Overpass cada vez
+    // que se abre la pestaña — solo si es la primera vez o los datos son viejos.
+    if (isFresh) return box;
+
+    if (navigator.onLine) {
+      fetchCerca(aloj).then(data => {
+        cercaCache[aloj.id] = data;
+        saveCercaCache(cercaCache);
+        if (selectedAloj === aloj.id) renderCercaData(box, data, false);
+      }).catch(() => {
+        if (selectedAloj !== aloj.id) return;
+        if (sameSpot) {
+          const staleP = box.querySelector('.cerca-stale');
+          if (staleP) staleP.textContent = `Datos del ${new Date(cached.ts).toLocaleDateString('es-ES')} · no se ha podido actualizar ahora mismo`;
+        } else {
+          box.innerHTML = '';
+          box.appendChild(notice('No se ha podido buscar ahora mismo. Se reintentará la próxima vez que abras esta pestaña con conexión.'));
+        }
+      });
+    } else if (!sameSpot) {
+      box.innerHTML = '';
+      box.appendChild(notice('Sin conexión: abre esta pestaña con wifi cerca de este alojamiento para buscar lo que tienes alrededor. Se guarda para consultarlo después sin conexión.'));
+    }
+    return box;
+  }
+
+  function renderCerca() {
+    const chipsEl = $('#cerca-chips');
+    const bodyEl = $('#cerca-body');
+    if (!chipsEl || !bodyEl) return;
+    chipsEl.innerHTML = '';
+    bodyEl.innerHTML = '';
+
+    const alojs = state.alojamientos.filter(a => a.loc && a.loc.lat != null).slice().sort((a, b) => (a.checkin || '').localeCompare(b.checkin || ''));
+    if (!alojs.length) {
+      bodyEl.appendChild(notice('Añade un alojamiento con ubicación en Datos para ver lo que tienes cerca.'));
+      return;
+    }
+    if (!selectedAloj || !alojs.some(a => a.id === selectedAloj)) selectedAloj = alojs[0].id;
+
+    alojs.forEach(a => {
+      const b = el('button', 'chip');
+      b.type = 'button';
+      b.textContent = a.nombre || a.zona || 'Alojamiento';
+      b.setAttribute('aria-pressed', String(a.id === selectedAloj));
+      b.addEventListener('click', () => { selectedAloj = a.id; renderCerca(); });
+      chipsEl.appendChild(b);
+    });
+
+    const aloj = alojs.find(a => a.id === selectedAloj);
+    bodyEl.appendChild(cercaResultBlock(aloj));
+  }
+
   function renderMapas() {
+    renderCerca();
     const chips = $('#map-days');
     const mapEl = $('#map');
     chips.innerHTML = '';

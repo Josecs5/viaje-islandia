@@ -30,7 +30,7 @@
   <!-- Leaflet (local) -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 
-  <link rel="stylesheet" href="style.css?v=24">
+  <link rel="stylesheet" href="style.css?v=25">
 </head>
 <body>
 
@@ -60,12 +60,22 @@
       <div id="itin-body"></div>
     </section>
 
-    <!-- ============ MAPAS ============ -->
+    <!-- ============ CERCA DE TI (antes "Mapas") ============ -->
     <section class="screen" id="screen-mapas" data-screen="mapas" hidden>
       <div class="screen-head">
-        <h2>Mapas</h2>
-        <p class="muted">Elige un día para ver su recorrido en orden.</p>
+        <h2>Cerca de ti</h2>
+        <p class="muted">Supermercados, gasolineras y comida barata cerca de cada alojamiento, y el recorrido de cada día.</p>
       </div>
+
+      <div class="cerca-block">
+        <h3>Cerca de tu alojamiento</h3>
+        <p class="muted">Elige un alojamiento para ver lo más cercano, con distancia y precio orientativo en euros.</p>
+        <div id="cerca-chips" class="chips"></div>
+        <div id="cerca-body"></div>
+      </div>
+
+      <h3 class="map-route-h">Recorrido del día</h3>
+      <p class="muted">Elige un día para ver su recorrido en orden.</p>
       <div id="map-days" class="chips"></div>
       <div id="map" class="map"></div>
       <div id="map-actions" class="row-actions"></div>
@@ -130,7 +140,7 @@
     </button>
     <button class="tab" data-tab="mapas" type="button" aria-current="false">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
-      <span>Mapas</span>
+      <span>Cerca de ti</span>
     </button>
     <button class="tab" data-tab="reco" type="button" aria-current="false">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.4c.7.8 1 1.6 1 2.6h6c0-1 .3-1.8 1-2.6A6 6 0 0 0 12 3Z"/></svg>
@@ -181,6 +191,6 @@
 
   <script src="vendor/leaflet/leaflet.js" defer></script>
   <script src="vendor/suncalc/suncalc.js" defer></script>
-  <script src="app.js?v=24" defer></script>
+  <script src="app.js?v=25" defer></script>
 </body>
 </html>

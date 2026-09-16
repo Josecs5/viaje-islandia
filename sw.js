@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const SHELL_CACHE = 'shell-v24';
+const SHELL_CACHE = 'shell-v25';
 // v2: los tiles pasaron de petición no-cors (opaca) a cors; empezar limpio.
 const TILE_CACHE  = 'tiles-v2';
 const TILE_MAX = 300;
@@ -54,8 +54,8 @@ async function tileFetch(request) {
 const SHELL_ASSETS = [
   './',                       // redundante a propósito (red de seguridad);
   './index.html',             // la navegación resuelve contra './index.html'.
-  './style.css?v=24',
-  './app.js?v=24',
+  './style.css?v=25',
+  './app.js?v=25',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -138,5 +138,5 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cross-origin no-tile (Nominatim, Wikimedia): sin interceptar.
+  // Cross-origin no-tile (Nominatim, Wikimedia, Overpass): sin interceptar.
 });
