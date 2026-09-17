@@ -296,7 +296,7 @@
       fecha: '2026-10-11',
       hora: '08:30',
       duracion: '180',
-      encuentro: { texto: 'Jökulsárlón, Laguna Glaciar', lat: 64.0784, lng: -16.2306 },
+      encuentro: { texto: 'Jökulsárlón Glacier Lagoon Parking', lat: 64.04805, lng: -16.17975 },
       proveedor: '',
       reserva: '',
       notas: 'Llegar antes de las 8:15 para conservar la plaza. Sé puntual. Duración 3 h. 2 adultos. Idioma: inglés. Confirmar la noche antes el punto de encuentro exacto (aparcamiento de Jökulsárlón).'
@@ -338,38 +338,51 @@
   // Qué ver: paradas del itinerario hora por hora. Las lugares no tienen
   // hora propia en el modelo de datos (sortT fijo en buildItinerary) — se
   // ordenan dentro de un mismo día por el orden en que aparecen aquí, así
-  // que el orden de este array importa y sigue el plan real. Las comidas de
-  // en medio de una tanda de lugares (que sí tienen hora propia y se
-  // colarían fuera de sitio si fueran items aparte) se anotan como texto en
-  // el lugar más cercano en vez de crear un item de comida independiente.
+  // que el orden de este array importa y sigue el plan real. Si una comida
+  // (que sí ordena por horario real) tiene que colarse en medio de una tanda
+  // de lugares, dale a esa comida y a los lugares posteriores del día un
+  // `orden` explícito (número comparable al sortT de los demás) para forzar
+  // la posición exacta; el resto de lugares/comidas no lo necesita.
   const LUGAR_SEED = [
     { id: 'seed-l1', nombre: 'Þingvellir', loc: { texto: 'Þingvellir, parque nacional', lat: 64.2559, lng: -21.1298 },
       fecha: '2026-10-09', visita: '75', prioridad: 'Alta',
       notas: 'Parque nacional, falla entre placas tectónicas. Salida de Reikiavik a las 08:00.' },
+    { id: 'seed-l17', nombre: 'Brúarfoss', loc: { texto: 'Brúarfoss Parking', lat: 64.2643, lng: -20.5151 },
+      fecha: '2026-10-09', visita: '40', prioridad: 'Alta',
+      notas: 'La cascada de azul más intenso de Islandia, alimentada por el deshielo del glaciar Langjökull. Está de camino entre Þingvellir y Geysir, por la misma carretera 365 → 37, así que no supone apenas rodeo. Aparca en el "Brúarfoss Parking" (pago con sistema de honestidad, ~750 ISK): desde ahí son solo 5 min a pie hasta el mirador.' },
     { id: 'seed-l2', nombre: 'Geysir', loc: { texto: 'Geysir, Haukadalur', lat: 64.3108, lng: -20.3024 },
       fecha: '2026-10-09', visita: '45', prioridad: 'Alta',
       notas: 'Strokkur erupciona cada 5–10 min.' },
     { id: 'seed-l3', nombre: 'Gullfoss', loc: { texto: 'Gullfoss', lat: 64.3271, lng: -20.1199 },
       fecha: '2026-10-09', visita: '50', prioridad: 'Alta',
-      notas: 'Después, comida rápida en la zona (Gullfoss/Selfoss) hacia las 13:15 antes de seguir hacia la costa sur.' },
+      notas: 'El río Hvítá cae en dos saltos escalonados dentro de un cañón.' },
     { id: 'seed-l4', nombre: 'Seljalandsfoss', loc: { texto: 'Seljalandsfoss', lat: 63.6156, lng: -19.9886 },
-      fecha: '2026-10-09', visita: '45', prioridad: 'Alta',
+      fecha: '2026-10-09', visita: '45', prioridad: 'Alta', orden: 670,
       notas: 'Incluye Gljúfrabúi, cascada escondida 400 m al lado.' },
     { id: 'seed-l5', nombre: 'Skógafoss', loc: { texto: 'Skógafoss', lat: 63.5321, lng: -19.5116 },
-      fecha: '2026-10-09', visita: '30', prioridad: 'Alta',
+      fecha: '2026-10-09', visita: '30', prioridad: 'Alta', orden: 675,
       notas: 'Última parada antes de Vík (~30 km).' },
-    { id: 'seed-l6', nombre: 'Pecio del DC-3 — Sólheimasandur', loc: { texto: 'Sólheimasandur, aparcamiento junto a la Ruta 1', lat: 63.4598, lng: -19.3644 },
+    { id: 'seed-l16', nombre: 'Kvernufoss', loc: { texto: 'Kvernufoss, aparcamiento del Museo de Skógar', lat: 63.5251353, lng: -19.4900013 },
+      fecha: '2026-10-10', visita: '60', prioridad: 'Alta',
+      notas: 'Cascada de unos 40 m escondida en un cañón musgoso junto al Museo de Skógar, con un camino que la rodea por detrás hasta una cueva — como Seljalandsfoss, pero mucho menos concurrida. El sendero sale del aparcamiento del museo, 15-20 min de caminata (ida) por el cañón.' },
+    { id: 'seed-l6', nombre: 'Pecio del DC-3 — Sólheimasandur', loc: { texto: 'Sólheimasandur, aparcamiento junto a la Ruta 1', lat: 63.4912, lng: -19.3634 },
       fecha: '2026-10-10', visita: '120', prioridad: 'Alta',
-      notas: 'Parada imprescindible del viaje: la hacemos sí o sí, aunque el resto del día 3 haya que ajustarlo. No se puede reservar entrada. Caminar ~3,5 km cada trayecto por arena negra llana (~45 min, ~1h30 ida y vuelta) o shuttle de pago desde el aparcamiento, 10:00–17:00 (~15 min cada trayecto). Decidir esa misma mañana según el tiempo disponible cuál de las dos opciones usar.' },
-    { id: 'seed-l7', nombre: 'Reynisfjara', loc: { texto: 'Reynisfjara', lat: 63.4039, lng: -19.0432 },
+      notas: 'Fuselaje abandonado de un avión de la marina de EE. UU., varado en la playa negra desde 1973. Ya no se puede conducir hasta el avión (el propio wreck está a 63.4598, -19.3644): se va andando desde este aparcamiento junto a la Ruta 1, unos 3,5 km (≈45 min) cada trayecto por terreno llano y bien señalizado — o en el shuttle de pago que sale del mismo aparcamiento (10:00-17:00, ≈15 min cada trayecto, ~3.000-4.000 ISK ida y vuelta). Aparcamiento 750 ISK, se paga con la app o la web de Parka.' },
+    { id: 'seed-l7', nombre: 'Reynisfjara', loc: { texto: 'Reynisfjara, aparcamiento de la playa', lat: 63.4041838, lng: -19.0447323 },
       fecha: '2026-10-10', visita: '45', prioridad: 'Alta',
       notas: 'Playa de basalto; respetar las vallas, hay olas sorpresa (sneaker waves). Después, comida en Vík hacia las 13:00 antes de seguir hacia Fjaðrárgljúfur.' },
-    { id: 'seed-l8', nombre: 'Fjaðrárgljúfur', loc: { texto: 'Fjaðrárgljúfur', lat: 63.7718, lng: -18.1719 },
+    { id: 'seed-l8', nombre: 'Fjaðrárgljúfur', loc: { texto: 'Fjaðrárgljúfur parking', lat: 63.7702851, lng: -18.1716719 },
       fecha: '2026-10-10', visita: '60', prioridad: 'Media',
       notas: 'Cañón; mirador principal a 10 min a pie.' },
-    { id: 'seed-l9', nombre: 'Diamond Beach', loc: { texto: 'Diamond Beach, junto a Jökulsárlón', lat: 64.0466, lng: -16.1779 },
+    { id: 'seed-l9', nombre: 'Diamond Beach', loc: { texto: 'Diamond Beach Parking North', lat: 64.0427984, lng: -16.1828417 },
       fecha: '2026-10-10', visita: '90', prioridad: 'Alta',
-      notas: 'Témpanos de hielo varados en la arena, frente a la laguna. Llegada hacia las 16:15; el atardecer (~18:15) es el mejor momento.' },
+      notas: 'Témpanos de hielo varados en la arena, frente a la laguna. Llegada hacia las 16:15; el atardecer (~18:15) es el mejor momento. Si no llegamos con luz de día, verlo sí o sí al día siguiente antes de salir hacia Vestrahorn/Egilsstaðir.' },
+    { id: 'seed-l18', nombre: 'Laguna glaciar de Jökulsárlón', loc: { texto: 'Jökulsárlón Glacier Lagoon Parking', lat: 64.04805, lng: -16.17975 },
+      fecha: '2026-10-11', visita: '30', prioridad: 'Alta',
+      notas: 'Paseo tranquilo junto a la laguna glaciar, con los icebergs flotando hacia el mar, tras el tour de las cuevas de hielo.' },
+    { id: 'seed-l19', nombre: 'Vestrahorn · Stokksnes · Viking Village', loc: { texto: 'Viking Cafe, Stokksnes (aparcamiento)', lat: 64.255, lng: -14.993331 }, orden: 725,
+      fecha: '2026-10-11', visita: '90', prioridad: 'Alta',
+      notas: 'Montaña de picos afilados sobre playa de arena negra (buen reflejo con marea baja). Incluye el Viking Village (casas de turba y réplica de barco vikingo, a 10 min andando desde el mismo aparcamiento, mismo ticket) y el sendero de la playa. Entrada ~1.000 ISK/adulto, niños gratis, se paga en el Viking Cafe. Desvío corto de pista de grava justo antes del túnel de Almannaskarð, saliendo de Höfn hacia el este.' },
     { id: 'seed-l10', nombre: 'Hverir', loc: { texto: 'Hverir, Námafjall', lat: 65.6386, lng: -16.8053 },
       fecha: '2026-10-12', visita: '45', prioridad: 'Media',
       notas: 'Campo geotérmico. Elegir 2 de los 3 sitios de Mývatn (junto con los pseudocráteres y Hverfjall) según el tiempo disponible, ventana 11:30–14:00. Mývatn es de las mejores zonas del viaje para auroras — revisar la previsión en en.vedur.is antes de acostarse.' },
@@ -387,16 +400,20 @@
       notas: 'Hallgrímskirkja, puerto viejo, Harpa, compras de última hora — a ritmo tranquilo.' }
   ];
 
-  // Dónde comer: solo las comidas que quedan al principio o al final del
-  // plan de cada día (no en medio de una tanda de lugares — ver nota de
-  // LUGAR_SEED de por qué esas se anotan como texto en vez de item aparte).
+  // Dónde comer: normalmente solo las comidas que quedan al principio o al
+  // final del plan de cada día. Si una comida cae en medio de una tanda de
+  // lugares (como seed-c5), lleva `orden` explícito — ver nota de LUGAR_SEED.
   const COMIDA_SEED = [
     { id: 'seed-c1', nombre: 'Cena en el centro de Reikiavik', tipo: 'Cena',
       loc: { texto: 'Laugavegur / Skólavörðustígur, Reikiavik', lat: 64.1436, lng: -21.9271 },
       fecha: '2026-10-08', horario: '21:00', notas: 'Algo ligero tras el vuelo.' },
+    { id: 'seed-c5', nombre: 'Comida en Selfoss', tipo: 'Almuerzo',
+      loc: { texto: 'Selfoss', lat: 63.9331, lng: -20.9971 },
+      fecha: '2026-10-09', horario: '13:15', orden: 665,
+      notas: 'New Old Town (Gamla Þorpið): cafés y restaurantes en casas históricas junto al río · Pylsuvagninn (el clásico puesto de perritos desde 1984) · helado en Ísbúð Huppu.\n\nSelfoss — el pueblo más grande del sur de Islandia, a orillas del río Ölfusá.\n\nNo está de camino directo entre Gullfoss y Seljalandsfoss — supone un rodeo hacia el oeste de unos 35-40 min extra sobre la ruta directa. Se hace porque el día no tenía ninguna comida programada y aquí hay mejores opciones que una gasolinera.' },
     { id: 'seed-c2', nombre: 'Comida junto a Jökulsárlón', tipo: 'Casual / rápido',
-      loc: { texto: 'Jökulsárlón, Laguna Glaciar', lat: 64.0784, lng: -16.2306 },
-      fecha: '2026-10-11', horario: '12:00', notas: 'Comida ligera tras el tour de la cueva de hielo, con paseo tranquilo por la laguna antes de salir hacia Egilsstaðir.' },
+      loc: { texto: 'Jökulsárlón Glacier Lagoon Parking', lat: 64.04805, lng: -16.17975 },
+      fecha: '2026-10-11', horario: '12:00', notas: 'Comida ligera tras el tour de la cueva de hielo, antes de seguir hacia Vestrahorn y Egilsstaðir.' },
     { id: 'seed-c3', nombre: 'Comida en el centro de Reikiavik', tipo: 'Almuerzo',
       loc: { texto: 'Centro de Reikiavik', lat: 64.1466, lng: -21.9426 },
       fecha: '2026-10-15', horario: '13:00', notas: '' },
@@ -1754,7 +1771,7 @@
       const item = {
         t: 'comida',
         hora: ht,
-        sortT: ht ? toMin(ht) : 780,
+        sortT: c.orden != null ? c.orden : (ht ? toMin(ht) : 780),
         titulo: c.nombre || 'Comida',
         sub: [c.tipo, c.horario].filter(Boolean).join(' · '),
         notas: c.notas || '',
@@ -1771,7 +1788,7 @@
       const item = {
         t: 'lugar',
         hora: '',
-        sortT: 660,
+        sortT: l.orden != null ? l.orden : 660,
         titulo: l.nombre || 'Lugar',
         sub: [
           l.prioridad ? 'Prioridad ' + l.prioridad : '',
@@ -2571,9 +2588,8 @@
     if (pts.length) {
       const row = el('div', 'day__actions');
       const g = mapsLink('g', pts); g.textContent = 'Google Maps';
-      const a = mapsLink('a', pts); a.textContent = 'Apple Maps';
       const w = mapsLink('w', pts); w.textContent = 'Waze';
-      row.append(g, a, w);
+      row.append(g, w);
       wrap.appendChild(row);
     }
 
@@ -2624,9 +2640,8 @@
     if (it.loc && it.loc.lat != null) {
       const nav = el('div', 'slot__nav');
       const g = mapsLink('g', [it.loc]); g.className = 'slot__go'; g.textContent = 'Google Maps ›';
-      const a = mapsLink('a', [it.loc]); a.className = 'slot__go'; a.textContent = 'Apple Maps ›';
       const w = mapsLink('w', [it.loc]); w.className = 'slot__go'; w.textContent = 'Waze ›';
-      nav.append(g, a, w);
+      nav.append(g, w);
       body.appendChild(nav);
     }
     r.append(time, body);
@@ -3079,13 +3094,10 @@
     const g = mapsLink('g', locs);
     g.classList.remove('btn--sm');
     g.textContent = selectedDay === 'all' ? 'Google Maps (viaje)' : 'Google Maps';
-    const a = mapsLink('a', locs);
-    a.classList.remove('btn--sm');
-    a.textContent = 'Apple Maps';
     const w = mapsLink('w', locs);
     w.classList.remove('btn--sm');
     w.textContent = 'Waze';
-    actions.append(g, a, w);
+    actions.append(g, w);
 
     pts.forEach(p => {
       const li = el('li', 'legend__item');
