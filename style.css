@@ -402,6 +402,7 @@ main {
   margin-top: 2px;
   overflow-wrap: anywhere;
 }
+.item__link { display: inline-flex; margin-top: var(--space-8); }
 
 /* Foto + descripción bajo "qué ver"/excursiones/dónde comer, en Datos y
    en Itinerario (slot__body reutiliza la misma clase). */

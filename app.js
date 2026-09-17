@@ -264,28 +264,36 @@
   const ALOJ_SEED = [
     { id: 'seed-a1', nombre: '100 Iceland Hotel', checkin: '2026-10-08', checkout: '2026-10-09', zona: 'Reikiavik',
       loc: { texto: 'Laugavegur 100, 101 Reikiavik', lat: 64.14317, lng: -21.91687 },
-      reserva: '', notas: 'Check-in desde 15:00 · check-out hasta 11:00. 2 adultos, 1 habitación.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/100-iceland.es.html',
+      notas: 'Check-in desde 15:00 · check-out hasta 11:00. 2 adultos, 1 habitación.' },
     { id: 'seed-a2', nombre: 'Vík Cottages', checkin: '2026-10-09', checkout: '2026-10-10', zona: 'Vík í Mýrdal',
       loc: { texto: 'Klettsvegur 3, 870 Vík í Mýrdal', lat: 63.41958, lng: -18.99941 },
-      reserva: '', notas: 'Check-in desde 16:00 · check-out hasta 11:00.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/vik-cottages.es.html',
+      notas: 'Check-in desde 16:00 · check-out hasta 11:00.' },
     { id: 'seed-a3', nombre: 'Gerdi Guesthouse', checkin: '2026-10-10', checkout: '2026-10-11', zona: 'Suðursveit (Jökulsárlón)',
       loc: { texto: 'Gerði, 781 Suðursveit (cerca de Jökulsárlón)', lat: 64.0353, lng: -15.8862 },
-      reserva: '', notas: 'Check-in 16:00–21:00 · check-out 07:30–11:00. Concretar hora con el anfitrión. Coordenada aproximada.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/gerdi.es.html',
+      notas: 'Check-in 16:00–21:00 · check-out 07:30–11:00. Concretar hora con el anfitrión. Coordenada aproximada.' },
     { id: 'seed-a4', nombre: 'Hótel Eyvindará', checkin: '2026-10-11', checkout: '2026-10-12', zona: 'Egilsstaðir',
       loc: { texto: 'Eyvindará 2, 700 Egilsstaðir', lat: 65.27595, lng: -14.3788 },
-      reserva: '', notas: 'Check-in 16:00–20:00 · check-out 07:00–11:00.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/hotel-eyvindara.es.html',
+      notas: 'Check-in 16:00–20:00 · check-out 07:00–11:00.' },
     { id: 'seed-a5', nombre: 'Fosshotel Húsavík', checkin: '2026-10-12', checkout: '2026-10-13', zona: 'Húsavík',
       loc: { texto: 'Ketilsbraut 22, 640 Húsavík', lat: 66.04595, lng: -17.33886 },
-      reserva: '', notas: 'Check-in 15:00–00:00 · check-out hasta 12:00.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/husavik.es.html',
+      notas: 'Check-in 15:00–00:00 · check-out hasta 12:00.' },
     { id: 'seed-a6', nombre: 'Torg Guesthouse', checkin: '2026-10-13', checkout: '2026-10-14', zona: 'Akureyri',
       loc: { texto: 'Brekkugata 1b, 600 Akureyri', lat: 65.6824, lng: -18.09193 },
-      reserva: '', notas: 'Check-in 15:00–00:00 · check-out hasta 11:00. Concretar hora con el anfitrión. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/cityhall-apartment.es.html',
+      notas: 'Check-in 15:00–00:00 · check-out hasta 11:00. Concretar hora con el anfitrión. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
     { id: 'seed-a7', nombre: 'Travel Inn', checkin: '2026-10-14', checkout: '2026-10-15', zona: 'Reikiavik',
       loc: { texto: 'Sóleyjargata 31, 101 Reikiavik', lat: 64.13938, lng: -21.93638 },
-      reserva: '', notas: 'Check-in desde 14:00 · check-out hasta 10:00. Concretar hora con el anfitrión.' },
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/travel-inn.es.html',
+      notas: 'Check-in desde 14:00 · check-out hasta 10:00. Concretar hora con el anfitrión.' },
     { id: 'seed-a8', nombre: 'A. Bernhard Guest House', checkin: '2026-10-15', checkout: '2026-10-16', zona: 'Keflavík',
       loc: { texto: 'Vallargata 6, 230 Keflavík', lat: 64.00343, lng: -22.55746 },
-      reserva: '', notas: 'Check-in 15:00–23:00 · check-out hasta 11:00. Concretar hora con el anfitrión.' }
+      reserva: '', enlace: 'https://www.booking.com/hotel/is/a-bernhard-bed-and-breakfast.es.html',
+      notas: 'Check-in 15:00–23:00 · check-out hasta 11:00. Concretar hora con el anfitrión.' }
   ];
 
   // Excursiones contratadas.
@@ -1557,7 +1565,8 @@
       <div class="item__meta">${a.checkin ? fmtFecha(a.checkin, true) : '—'} → ${a.checkout ? fmtFecha(a.checkout, true) : '—'}${noches ? ' · ' + noches + ' noche' + (noches !== 1 ? 's' : '') : ''}</div>
       <div class="item__meta">${locLine(a.loc)}${a.zona ? ' · ' + esc(a.zona) : ''}</div>
       ${a.notas ? `<div class="item__meta">${escLines(a.notas)}</div>` : ''}
-      ${a.reserva ? `<div class="item__meta">Reserva: ${esc(a.reserva)}</div>` : ''}`;
+      ${a.reserva ? `<div class="item__meta">Reserva: ${esc(a.reserva)}</div>` : ''}
+      ${a.enlace ? `<a class="btn btn--ghost btn--sm item__link" href="${esc(a.enlace)}" target="_blank" rel="noopener">Ver alojamiento ›</a>` : ''}`;
   }
 
   function cocheSummary(v) {
