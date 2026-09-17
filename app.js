@@ -626,6 +626,15 @@
   ];
   const GAZ_BY_NAME = k => GAZ.find(g => g.n.toLowerCase() === String(k).trim().toLowerCase());
 
+  // Enlaces de ruta completa del día en Google Maps, preparados a mano fuera
+  // de la app (con todas las paradas ya en orden) para los días en los que
+  // conviene tener un único enlace de referencia. No todos los días lo tienen.
+  const RUTA_DIA = {
+    '2026-10-09': 'https://maps.app.goo.gl/3NeKbumBbfeMnYLh6',
+    '2026-10-10': 'https://maps.app.goo.gl/ufBiHtm92j2CfpFt5',
+    '2026-10-11': 'https://maps.app.goo.gl/USxXrb8wg8Kp7BgN9'
+  };
+
   /* ==========================================================
      Esquemas de formulario
      ========================================================== */
@@ -2598,6 +2607,18 @@
 
     const rl = recsBlock(day);
     if (rl) wrap.appendChild(rl);
+
+    const ruta = RUTA_DIA[day.date];
+    if (ruta) {
+      const rutaWrap = el('div', 'day__ruta');
+      const a = el('a', 'btn btn--accent btn--block');
+      a.href = ruta;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = `🗺️ Ruta completa del día ${day.idx} en Google Maps`;
+      rutaWrap.appendChild(a);
+      wrap.appendChild(rutaWrap);
+    }
 
     wrap.appendChild(diarioBlock(day));
     return wrap;

@@ -730,6 +730,8 @@ input[type="date"], input[type="time"], input[type="datetime-local"] {
 .day__actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-12); }
 .day__actions .btn { flex: 1 1 auto; }
 
+.day__ruta { margin-top: var(--space-12); }
+
 .day__now {
   font-family: var(--font-display);
   font-weight: 700;
