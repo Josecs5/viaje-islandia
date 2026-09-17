@@ -1566,7 +1566,7 @@
       <div class="item__meta">${locLine(a.loc)}${a.zona ? ' · ' + esc(a.zona) : ''}</div>
       ${a.notas ? `<div class="item__meta">${escLines(a.notas)}</div>` : ''}
       ${a.reserva ? `<div class="item__meta">Reserva: ${esc(a.reserva)}</div>` : ''}
-      ${a.enlace ? `<a class="btn btn--ghost btn--sm item__link" href="${esc(a.enlace)}" target="_blank" rel="noopener">Ver alojamiento ›</a>` : ''}`;
+      ${a.enlace ? `<a class="btn btn--info btn--sm item__link" href="${esc(a.enlace)}" target="_blank" rel="noopener">🏨 Ver alojamiento ›</a>` : ''}`;
   }
 
   function cocheSummary(v) {

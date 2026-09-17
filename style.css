@@ -252,6 +252,7 @@ main {
 }
 .btn--accent { --_bg: var(--c-accent); --_fg: var(--c-accent-ink); }
 .btn--ghost  { --_bg: var(--c-surface); --_fg: var(--c-text-1); --_bd: var(--c-border); }
+.btn--info   { --_bg: var(--c-info); --_fg: oklch(0.19 0.03 232); }
 .btn--danger { --_bg: var(--c-danger-soft); --_fg: var(--c-danger); --_bd: color-mix(in oklab, var(--c-danger) 45%, transparent); }
 .btn--block  { width: 100%; }
 .btn--sm     { min-height: 34px; padding: 7px 12px; font-size: var(--step-0); border-radius: var(--radius-s); }
@@ -263,6 +264,7 @@ main {
 @media (hover: hover) {
   .btn--accent:hover { --_bg: var(--c-accent-press); }
   .btn--ghost:hover  { --_bg: var(--c-surface-2); }
+  .btn--info:hover   { --_bg: color-mix(in oklab, var(--c-info) 88%, black); }
   .btn--danger:hover { --_bg: color-mix(in oklab, var(--c-danger) 24%, var(--c-bg)); }
 }
 
