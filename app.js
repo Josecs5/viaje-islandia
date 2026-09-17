@@ -2509,15 +2509,22 @@
     if (plan.veredicto) {
       const label = verdictLabel(plan);
       const bits = [];
-      // "Sal sobre las …" salvo que salga > 2 h antes del inicio (ahí el badge ya dice "no llegas").
-      if (plan.salirMin != null && plan.salirMin >= plan.inicioMin - 120) {
-        bits.push('Sal sobre las <span class="mono">' + hhmmFromMin(plan.salirMin) + '</span>');
+      // "Sal sobre las …": la hora real de salida si hay un ancla (excursión,
+      // check-in…) que la fuerza, o si no la hay, la hora de inicio asumida
+      // para el día (amanecer civil o el suelo de las 07:30). Se omite solo
+      // si el ancla exige salir > 2 h antes de esa hora de inicio (ahí el
+      // badge ya dice "no llegas" y mostrar una hora tan temprana confundiría).
+      const startMin = (plan.salirMin != null && plan.salirMin < plan.inicioMin - 120) ? null
+        : (plan.salirMin != null ? plan.salirMin : plan.inicioMin);
+      if (startMin != null) {
+        bits.push('Sal sobre las <span class="mono">' + hhmmFromMin(startMin) + '</span>');
       }
       if (plan.endMin != null && plan.endMin !== plan.inicioMin) {
         bits.push('fin ~<span class="mono">' + hhmmFromMin(plan.endMin) + '</span>');
       }
       // Las horas al volante solo si la etiqueta no lo dice ya.
       if (plan.drivingMin > 0 && plan.volante === 'ok') bits.push(fmtDur(plan.drivingMin) + ' al volante');
+      if (day.km >= 1) bits.push(Math.round(day.km) + ' km');
       const aria = label || (plan.veredicto === 'verde' ? 'Día holgado' : 'Día ' + plan.veredicto);
       const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}" role="img" aria-label="${esc(aria)}"${plan.veredicto === 'verde' ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
       const p = el('p', 'day-plan');
