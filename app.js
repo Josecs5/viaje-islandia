@@ -1888,6 +1888,11 @@
     { k: ['seydisfjordur', 'egilsstadir', 'eyvindara'], f: 'Seyðisfjörður Sept 2019 1.jpg', c: 'Seyðisfjörður (junto a Egilsstaðir)', d: 'Pueblo de fiordo con casas de madera de colores, conocido por su calle arcoíris y su ambiente artístico.' },
     { k: ['husavik', 'ballenas', 'avistamiento'], f: 'Husavik Iceland 2005 1.JPG', c: 'Húsavík', d: 'Pueblo pesquero del norte, considerado la capital europea del avistamiento de ballenas.' },
     { k: ['akureyri', 'brekkugata'], f: 'Overlooking Eyjafjörður from Hamrar (close).jpeg', c: 'Akureyri y el fiordo Eyjafjörður', d: 'La "capital del norte", a orillas del fiordo más largo de Islandia, con buena oferta de restaurantes y tiendas.' },
+    // Van antes que la entrada genérica de Reikiavik: son sitios concretos
+    // del puerto (Harpa/Grandi) y deben ganar cuando el texto menciona ambos.
+    { k: ['harpa'], f: 'Harpa (38859105685).jpg', c: 'Harpa', d: 'Sala de conciertos y centro de congresos con una fachada de vidrio geométrico inspirada en las columnas de basalto, junto al puerto de Reikiavik.' },
+    { k: ['sun voyager', 'solfar'], f: 'Skulptur Sonnenfahrt.jpg', c: 'Sun Voyager (Sólfar)', d: 'Escultura de acero en forma de barco vikingo estilizado, en el paseo marítimo de Reikiavik: un homenaje a la luz y a la promesa de nuevos horizontes.' },
+    { k: ['grandi', 'mathöll'], f: "Boats in Reykjavik's Old Harbour.JPG", c: 'Grandi (puerto viejo de Reikiavik)', d: 'Antiguo barrio pesquero reconvertido en tiendas de diseño, estudios y mercados gastronómicos como Grandi Mathöll.' },
     { k: ['reikiavik', 'reykjavik', 'hallgrim', 'laugavegur', 'soleyjargata'], f: 'Hallgrímskirkja.jpeg', c: 'Reikiavik', d: 'La capital, con la iglesia de Hallgrímskirkja como referencia visual y la calle Laugavegur como eje comercial.' },
     { k: ['keflavik', 'reykjanes', 'grindavik', 'bernhard', 'vallargata'], f: 'Reykjanesviti, Reykjanes, Iceland, 20230430 1330 3606.jpg', c: 'Península de Reykjanes (Keflavík)', d: 'Península volcánica junto al aeropuerto, con campos de lava, faros y actividad geotérmica.' },
     { k: ['thingvellir', 'pingvellir'], f: 'Þingvellir from the information centre.JPG', c: 'Parque Nacional Þingvellir', d: 'Valle de rift entre las placas tectónicas de América y Eurasia; cuna del primer parlamento vikingo, en el año 930.' },
