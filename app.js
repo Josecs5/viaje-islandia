@@ -285,11 +285,11 @@
     { id: 'seed-a6', nombre: 'Torg Guesthouse', checkin: '2026-10-13', checkout: '2026-10-14', zona: 'Akureyri',
       loc: { texto: 'Brekkugata 1b, 600 Akureyri', lat: 65.6824, lng: -18.09193 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/cityhall-apartment.es.html',
-      notas: 'Check-in 15:00–00:00 · check-out hasta 11:00. Concretar hora con el anfitrión. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
+      notas: 'Check-in a las 15:00 (el coche se queda aparcado aquí) · check-out hasta 11:00. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
     { id: 'seed-a7', nombre: 'Travel Inn', checkin: '2026-10-14', checkout: '2026-10-15', zona: 'Reikiavik',
       loc: { texto: 'Sóleyjargata 31, 101 Reikiavik', lat: 64.13938, lng: -21.93638 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/travel-inn.es.html',
-      notas: 'Check-in desde 14:00 · check-out hasta 10:00. Concretar hora con el anfitrión.' },
+      notas: 'Check-in a las 14:00 · check-out hasta 10:00. Primero visita a Hallgrímskirkja (aparcando junto a la iglesia), después check-in.' },
     { id: 'seed-a8', nombre: 'A. Bernhard Guest House', checkin: '2026-10-15', checkout: '2026-10-16', zona: 'Keflavík',
       loc: { texto: 'Vallargata 6, 230 Keflavík', lat: 64.00343, lng: -22.55746 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/a-bernhard-bed-and-breakfast.es.html',
@@ -400,12 +400,18 @@
     { id: 'seed-l12', nombre: 'Cráter Hverfjall', loc: { texto: 'Hverfjall', lat: 65.6027, lng: -16.8637 },
       fecha: '2026-10-12', visita: '40', prioridad: 'Media',
       notas: 'Elegir 2 de los 3 sitios de Mývatn según el tiempo disponible.' },
+    { id: 'seed-l20', nombre: 'Goðafoss', loc: { texto: 'Goðafoss West Bank Parking', lat: 65.68553, lng: -17.54576 },
+      fecha: '2026-10-13', visita: '40', prioridad: 'Alta',
+      notas: 'La "cascada de los dioses": según la leyenda, aquí se lanzaron al río las estatuillas de los dioses paganos en el año 1000, cuando Islandia adoptó el cristianismo. Está justo de camino entre Húsavík y Akureyri, así que apenas supone desvío sobre la ruta directa.' },
     { id: 'seed-l13', nombre: 'Akureyri: paseo por el centro', loc: { texto: 'Akureyrarkirkja / puerto de Akureyri', lat: 65.6835, lng: -18.0910 },
-      fecha: '2026-10-13', visita: '180', prioridad: 'Media',
-      notas: 'Iglesia Akureyrarkirkja, puerto, cafeterías del centro. Antes, comida en Húsavík hacia las 12:30, tras el avistamiento de ballenas.' },
-    { id: 'seed-l14', nombre: 'Reikiavik: centro histórico', loc: { texto: 'Hallgrímskirkja, Reikiavik', lat: 64.1419, lng: -21.9266 },
-      fecha: '2026-10-15', visita: '180', prioridad: 'Media',
-      notas: 'Hallgrímskirkja, puerto viejo, Harpa, compras de última hora — a ritmo tranquilo.' }
+      fecha: '2026-10-13', visita: '180', prioridad: 'Media', orden: 1420,
+      notas: 'Iglesia Akureyrarkirkja, puerto, cafeterías del centro. Se hace después del check-in en Torg Guesthouse (el coche se queda aparcado ahí): paseo a pie desde el alojamiento, sin mover el coche. Antes, comida en Húsavík hacia las 12:30, tras el avistamiento de ballenas.' },
+    { id: 'seed-l21', nombre: 'Hallgrímskirkja', loc: { texto: 'Parking lot, Eiríksgata 3', lat: 64.14135, lng: -21.92741 },
+      fecha: '2026-10-14', visita: '75', prioridad: 'Alta',
+      notas: 'Iglesia luterana cuyo diseño imita las columnas de basalto de la costa islandesa. La torre (73 m) da la mejor panorámica de Reikiavik: 1.400 ISK/adulto, última entrada 16:30; la iglesia en sí es gratis. Como el check-in en Travel Inn es a las 14:00, si llegáis sobre esa hora es mejor dejar el coche directamente en el hotel y venir andando (10 min) en vez de aparcar aquí.' },
+    { id: 'seed-l14', nombre: 'Harpa, Sun Voyager y el puerto viejo', loc: { texto: 'Harpa, Austurbakki 2, Reikiavik', lat: 64.15003, lng: -21.93122 },
+      fecha: '2026-10-15', visita: '150', prioridad: 'Media',
+      notas: 'Sala de conciertos Harpa, con su fachada de vidrio geométrico junto al mar; la escultura del Sun Voyager paseando por el malecón; y el barrio de Grandi, puerto viejo reconvertido con tiendas de diseño en antiguos almacenes.' }
   ];
 
   // Dónde comer: normalmente solo las comidas que quedan al principio o al
@@ -422,9 +428,10 @@
     { id: 'seed-c2', nombre: 'Comida junto a Jökulsárlón', tipo: 'Casual / rápido',
       loc: { texto: 'Jökulsárlón Glacier Lagoon Parking', lat: 64.04805, lng: -16.17975 },
       fecha: '2026-10-11', horario: '12:00', notas: 'Comida ligera tras el tour de la cueva de hielo, antes de seguir hacia Vestrahorn y Egilsstaðir.' },
-    { id: 'seed-c3', nombre: 'Comida en el centro de Reikiavik', tipo: 'Almuerzo',
-      loc: { texto: 'Centro de Reikiavik', lat: 64.1466, lng: -21.9426 },
-      fecha: '2026-10-15', horario: '13:00', notas: '' },
+    { id: 'seed-c3', nombre: 'Comida en Grandi Mathöll', tipo: 'Casual / rápido',
+      loc: { texto: 'Grandagarður 16, Reikiavik', lat: 64.15505, lng: -21.94612 },
+      fecha: '2026-10-15', horario: '13:00',
+      notas: 'Mercado gastronómico en el puerto viejo (Grandi), con opciones islandesas e internacionales, incluidas veganas y sin gluten.' },
     { id: 'seed-c4', nombre: 'Cena de despedida', tipo: 'Cena',
       loc: { texto: 'Grindavík o Keflavík', lat: 63.9166, lng: -22.4408 },
       fecha: '2026-10-15', horario: '21:00', notas: 'En Grindavík o ya en Keflavík (~20 min hasta el aeropuerto), después de la Laguna Azul.' }
@@ -640,7 +647,11 @@
   const RUTA_DIA = {
     '2026-10-09': 'https://maps.app.goo.gl/3NeKbumBbfeMnYLh6',
     '2026-10-10': 'https://maps.app.goo.gl/ufBiHtm92j2CfpFt5',
-    '2026-10-11': 'https://maps.app.goo.gl/USxXrb8wg8Kp7BgN9'
+    '2026-10-11': 'https://maps.app.goo.gl/USxXrb8wg8Kp7BgN9',
+    '2026-10-12': 'https://maps.app.goo.gl/vzA6v9ifXJPjmMBN8',
+    '2026-10-13': 'https://maps.app.goo.gl/65X8g8Hj4oHSBTKt6',
+    '2026-10-14': 'https://maps.app.goo.gl/bfhzJUjD2K5gAJpG9',
+    '2026-10-15': 'https://maps.app.goo.gl/bQJ9Rrtdh6KdNWDK9'
   };
 
   /* ==========================================================
