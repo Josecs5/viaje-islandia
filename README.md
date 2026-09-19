@@ -94,6 +94,17 @@ recarga la activa; las demás se actualizan al navegar. Si algo se queda raro,
 cierra la app del todo y vuelve a abrirla, o borra los datos del sitio en el
 navegador (se borran caché y datos).
 
+## Diseño
+
+Identidad «Basalto y aurora»: fondo basalto casi negro con un resplandor de
+aurora, titulares en serif (Fraunces), interfaz en Inter, verde aurora como
+acento y hielo / violeta / azufre de apoyo. Los tokens están en `style.css`
+(`tokens.css` es un export para reutilizarlos). Los iconos son SVG de trazo:
+`icons.js` sustituye automáticamente los emojis que escribe `app.js` por el
+icono equivalente, así que basta con seguir usando el emoji en el texto (los
+que no estén en su tabla se quedan como emoji). Las fuentes van en local
+(`vendor/fonts`) para que la app funcione sin conexión.
+
 ## Aviso
 
 App personal sin ánimo de lucro. No está afiliada a ninguna aerolínea,

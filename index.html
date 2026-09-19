@@ -9,7 +9,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#0e0e17">
   <meta name="color-scheme" content="dark">
 
   <!-- iOS / Safari -->
@@ -30,11 +30,12 @@
   <!-- Leaflet (local) -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 
-  <link rel="stylesheet" href="style.css?v=25">
+  <link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
 
   <header class="appbar">
+    <img class="appbar__mark" src="icons/icon.svg" width="38" height="38" alt="">
     <div class="appbar__text">
       <h1 class="appbar__title" id="appbar-title">Viaje a Islandia</h1>
       <p class="appbar__sub" id="appbar-sub">Sin fechas · añádelas en Datos</p>
@@ -45,7 +46,7 @@
   <main>
     <!-- ============ DATOS ============ -->
     <section class="screen" id="screen-datos" data-screen="datos">
-      <div class="screen-head">
+      <div class="screen-head sr-only">
         <h2>Datos del viaje</h2>
       </div>
       <div id="datos-body"></div>
@@ -191,6 +192,7 @@
 
   <script src="vendor/leaflet/leaflet.js" defer></script>
   <script src="vendor/suncalc/suncalc.js" defer></script>
-  <script src="app.js?v=25" defer></script>
+  <script src="icons.js?v=26" defer></script>
+  <script src="app.js?v=26" defer></script>
 </body>
 </html>

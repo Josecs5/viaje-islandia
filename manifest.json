@@ -9,8 +9,8 @@
   "id": "/viaje-islandia/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0d1117",
-  "theme_color": "#0d1117",
+  "background_color": "#0e0e17",
+  "theme_color": "#0e0e17",
   "categories": ["travel", "productivity", "lifestyle"],
   "icons": [
     {

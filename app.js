@@ -1262,6 +1262,7 @@
   // Itinerario/Mapas/Ideas/Clima.
   function equipajeBlock() {
     const g = el('div', 'group');
+    g.style.setProperty('--gh', GROUP_HUE.equipaje);
     const openKey = 'open_equipaje';
     const isOpen = localStorage.getItem(openKey) !== '0';
     const total = state.equipaje.length;
@@ -1271,8 +1272,8 @@
     head.type = 'button';
     head.setAttribute('aria-expanded', String(isOpen));
     head.innerHTML =
-      `<span class="group__label">🎒 Equipaje</span>` +
-      `<span class="group__right"><span class="count">${packed}/${total}</span><span class="chev">⌄</span></span>`;
+      `<span class="group__label"><span class="group__ico">🎒</span>Equipaje</span>` +
+      `<span class="group__right"><span class="count">${packed}/${total}</span><span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></span>`;
 
     const bodyWrap = el('div', 'group__body');
     bodyWrap.hidden = !isOpen;
@@ -1351,6 +1352,7 @@
   // límite calculada para las tareas con anchor (ver anteFechaTxt).
   function antesDeViajarBlock() {
     const g = el('div', 'group');
+    g.style.setProperty('--gh', GROUP_HUE.antes);
     const openKey = 'open_antes';
     const isOpen = localStorage.getItem(openKey) !== '0';
     const total = state.antesDeViajar.length;
@@ -1360,8 +1362,8 @@
     head.type = 'button';
     head.setAttribute('aria-expanded', String(isOpen));
     head.innerHTML =
-      `<span class="group__label">✅ Antes de viajar</span>` +
-      `<span class="group__right"><span class="count">${hechas}/${total}</span><span class="chev">⌄</span></span>`;
+      `<span class="group__label"><span class="group__ico">✅</span>Antes de viajar</span>` +
+      `<span class="group__right"><span class="count">${hechas}/${total}</span><span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></span>`;
 
     const bodyWrap = el('div', 'group__body');
     bodyWrap.hidden = !isOpen;
@@ -1440,15 +1442,55 @@
   const EDITABLE_COLS = ['comidas', 'lugares', 'recomendaciones', 'gastos'];
   const isSeed = it => String(it && it.id || '').startsWith('seed-');
 
+  // Tono (oklch hue) del icono de cada grupo de Datos, para que no sean todos iguales.
+  const GROUP_HUE = { vuelos: 235, coches: 215, alojamientos: 300, excursiones: 158, comidas: 78, lugares: 340, gastos: 100, antes: 158, equipaje: 40 };
+
+  const HERO_ART =
+    '<svg class="hero__art" viewBox="0 0 400 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true">' +
+    '<defs>' +
+    '<linearGradient id="heroAur1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3ee79f" stop-opacity="0"/><stop offset=".35" stop-color="#3ee79f" stop-opacity=".75"/><stop offset=".7" stop-color="#4fc3e8" stop-opacity=".55"/><stop offset="1" stop-color="#9a6cf2" stop-opacity="0"/></linearGradient>' +
+    '<linearGradient id="heroAur2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9a6cf2" stop-opacity="0"/><stop offset=".5" stop-color="#9a6cf2" stop-opacity=".5"/><stop offset="1" stop-color="#3ee79f" stop-opacity="0"/></linearGradient>' +
+    '<filter id="heroBlur"><feGaussianBlur stdDeviation="9"/></filter>' +
+    '</defs>' +
+    '<g class="hero__stars" fill="#fff"><circle cx="40" cy="26" r="1.1"/><circle cx="96" cy="58" r=".8"/><circle cx="160" cy="18" r="1"/><circle cx="238" cy="44" r=".9"/><circle cx="322" cy="22" r="1.2"/><circle cx="372" cy="64" r=".8"/><circle cx="286" cy="82" r=".7"/><circle cx="20" cy="88" r=".7"/></g>' +
+    '<g filter="url(#heroBlur)"><path class="hero__aur1" d="M-20 120C40 40 90 110 160 60S280 20 330 70s70 10 110-40v70C380 120 330 100 270 120S130 150 60 130 0 140-20 150Z" fill="url(#heroAur1)"/>' +
+    '<path class="hero__aur2" d="M-20 150C50 90 120 150 200 100s150-20 240 20v40H-20Z" fill="url(#heroAur2)"/></g>' +
+    '<path d="M-10 220V150l46-40 40 42 34-28 46 52 44-70 52 76 38-44 50 56 40-30 34 40v56Z" fill="#171626"/>' +
+    '<path d="M-10 220v-42l58-24 50 30 62-38 60 42 54-32 74 46 52-22v40Z" fill="#100f1b"/>' +
+    '</svg>';
+
   function metaCard() {
-    const c = el('div', 'card meta-card meta-card--ro');
     const m = state.meta;
+    const c = el('section', 'hero');
+    const st = tripStatus();
+    const dias = (m.fechaInicio && m.fechaFin) ? eachDay(m.fechaInicio, m.fechaFin).length : 0;
     const rango = (m.fechaInicio && m.fechaFin)
       ? `${fmtFecha(m.fechaInicio, true)} – ${fmtFecha(m.fechaFin, true)}`
-      : 'Sin fechas';
-    c.innerHTML =
-      `<div class="ro-line"><span class="ro-k">Viaje</span><span class="ro-v">${esc(m.titulo || 'Viaje a Islandia')}</span></div>` +
-      `<div class="ro-line"><span class="ro-k">Fechas</span><span class="ro-v">${esc(rango)}</span></div>`;
+      : 'Sin fechas · añádelas en Datos';
+
+    let badge = '';
+    if (st === 'curso') badge = `<span class="hero__badge is-live">🟢 En curso · día ${diaActual()} de ${dias}</span>`;
+    else if (st === 'fin') badge = `<span class="hero__badge">Viaje completado</span>`;
+    else {
+      const cd = countdownStr(firstDeparture());
+      if (cd) badge = `<span class="hero__badge">✈️ Salida en ${esc(cd)}</span>`;
+    }
+
+    const stat = (n, lbl) => `<div class="hero__stat"><dt>${lbl}</dt><dd>${n}</dd></div>`;
+    const noches = Math.max(0, dias - 1);
+    c.innerHTML = HERO_ART +
+      `<div class="hero__body">` +
+      `<p class="hero__kicker">Islandia · Ring Road</p>` +
+      `<h2 class="hero__title">${esc(m.titulo || 'Viaje a Islandia')}</h2>` +
+      `<p class="hero__dates">${esc(rango)}</p>` +
+      badge +
+      `</div>` +
+      `<dl class="hero__stats">` +
+      stat(dias || '—', dias === 1 ? 'día' : 'días') +
+      stat(noches || '—', noches === 1 ? 'noche' : 'noches') +
+      stat(state.alojamientos.length, 'alojamientos') +
+      stat(state.excursiones.length + state.lugares.length, 'planes') +
+      `</dl>`;
     return c;
   }
 
@@ -1456,6 +1498,7 @@
     const items = state[col];
     const kind = KIND_OF[col];
     const g = el('div', 'group');
+    g.style.setProperty('--gh', GROUP_HUE[col] || 158);
 
     const openKey = 'open_' + col;
     const isOpen = localStorage.getItem(openKey) !== '0';
@@ -1464,8 +1507,8 @@
     head.type = 'button';
     head.setAttribute('aria-expanded', String(isOpen));
     head.innerHTML =
-      `<span class="group__label">${SCHEMAS[kind].icon} ${esc(label)}</span>` +
-      `<span class="group__right"><span class="count">${items.length}</span><span class="chev">⌄</span></span>`;
+      `<span class="group__label"><span class="group__ico">${SCHEMAS[kind].icon}</span>${esc(label)}</span>` +
+      `<span class="group__right"><span class="count">${items.length}</span><span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></span>`;
 
     const bodyWrap = el('div', 'group__body');
     bodyWrap.hidden = !isOpen;
@@ -1589,7 +1632,11 @@
       const ts = dtParts(t.salida), ta = dtParts(t.llegada);
       html += `<div class="fly-leg">` +
         `<div class="fly-leg__head"><span class="mono">${esc(t.numero || '')}</span> · ${esc(t.aerolinea || '')}${t.operadoPor ? ' · op. ' + esc(t.operadoPor) : ''}${t.clase ? ' · ' + esc(t.clase) : ''}</div>` +
-        `<div class="fly-leg__route"><span>${esc(t.origen || '')}${t.origenTerminal ? ' <em>T' + esc(t.origenTerminal) + '</em>' : ''} ${ts.time || ''}</span><span class="fly-leg__arrow">→</span><span>${esc(t.destino || '')}${t.destinoTerminal ? ' <em>T' + esc(t.destinoTerminal) + '</em>' : ''} ${ta.time || ''}</span></div>` +
+        `<div class="fly-leg__route">` +
+        `<div class="fly-pt"><b class="fly-pt__code">${esc(t.origen || '')}</b><span class="fly-pt__time">${ts.time || ''}</span>${t.origenTerminal ? `<em>T${esc(t.origenTerminal)}</em>` : ''}</div>` +
+        `<div class="fly-track" aria-hidden="true"><i></i>${window.ICONS ? window.ICONS.svg('plane') : ''}<i></i></div>` +
+        `<div class="fly-pt fly-pt--to"><b class="fly-pt__code">${esc(t.destino || '')}</b><span class="fly-pt__time">${ta.time || ''}</span>${t.destinoTerminal ? `<em>T${esc(t.destinoTerminal)}</em>` : ''}</div>` +
+        `</div>` +
         (t.duracion ? `<div class="fly-leg__dur">${esc(t.duracion)}</div>` : '') +
         `</div>`;
       if (i < tr.length - 1) {
@@ -2095,10 +2142,13 @@
     return (hoy >= fechaInicio && hoy <= fechaFin) ? hoy : null;
   }
 
-  function itinChip(key, label) {
+  function itinChip(key, label, sub) {
     const b = el('button', 'chip');
     b.type = 'button';
-    b.textContent = label;
+    if (sub) {
+      b.classList.add('chip--day');
+      b.innerHTML = `<span class="chip__k">${esc(label)}</span><span class="chip__s">${esc(sub)}</span>`;
+    } else b.textContent = label;
     b.setAttribute('aria-pressed', String(selectedItinDay === key));
     b.addEventListener('click', () => {
       if (selectedItinDay === key) return;
@@ -2163,8 +2213,8 @@
     body.appendChild(outdoorRankBlock(it));
 
     const chips = el('div', 'chips chips--itin');
-    chips.appendChild(itinChip('all', 'Todos'));
-    it.days.forEach(d => chips.appendChild(itinChip(d.date, 'Día ' + d.idx)));
+    chips.appendChild(itinChip('all', 'Todos', it.count + ' días'));
+    it.days.forEach(d => chips.appendChild(itinChip(d.date, 'Día ' + d.idx, cap(fmtDiaSemana(d.date).slice(0, 3)) + ' ' + parseDate(d.date).getDate())));
     body.appendChild(chips);
 
     const dias = selectedItinDay === 'all' ? it.days : it.days.filter(d => d.date === selectedItinDay);
@@ -2558,9 +2608,12 @@
 
     const head = el('div', 'day__head');
     head.innerHTML =
-      `<h3 class="day__date">${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3>` +
-      `<span class="day__idx">${esHoy ? '<b class="day__now">EN CURSO</b> · ' : ''}Día ${day.idx}</span>`;
+      `<div class="day__num" aria-hidden="true"><small>Día</small><b>${day.idx}</b></div>` +
+      `<div class="day__titles"><h3 class="day__date"><span class="sr-only">Día ${day.idx}: </span>${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3></div>` +
+      (esHoy ? '<b class="day__now">EN CURSO</b>' : '');
+    const titles = head.querySelector('.day__titles');
     wrap.appendChild(head);
+    const facts = el('div', 'day__facts');
 
     if (plan.veredicto) {
       const label = verdictLabel(plan);
@@ -2585,14 +2638,14 @@
       const verdict = `<span class="day-verdict day-verdict--${plan.veredicto}" role="img" aria-label="${esc(aria)}"${plan.veredicto === 'verde' ? ' title="Día holgado"' : ''}>${esc(label)}</span>`;
       const p = el('p', 'day-plan');
       p.innerHTML = verdict + (bits.length ? ' ' + bits.join(' · ') : '');
-      wrap.appendChild(p);
+      titles.appendChild(p);
     }
 
     const od = outdoorFor(day);
     if (od && od.level !== 'bueno') {
       const po = el('p', 'day-out day-out--' + od.level);
       po.innerHTML = `${od.level === 'malo' ? '🌧️' : '⛅'} ${esc(od.txt)}`;
-      wrap.appendChild(po);
+      facts.appendChild(po);
     }
 
     const km = day.km || 0;
@@ -2601,7 +2654,7 @@
       const pf = el('p', 'day-fuel');
       const litTxt = fe.litros.toLocaleString('es-ES', { maximumFractionDigits: fe.litros < 10 ? 1 : 0 });
       pf.innerHTML = `⛽ ~<span>${litTxt} L</span> · ${fmtISK(fe.isk)} <span class="muted">· ≈ ${fmtEUR(fe.eur)}</span>`;
-      wrap.appendChild(pf);
+      facts.appendChild(pf);
     }
 
     const fs = km >= 40 ? fuelStopsFor(day) : null;
@@ -2610,7 +2663,7 @@
       const lista = fs.nombres.length ? fs.nombres.join(' · ') : 'ninguna fiable en ruta';
       const gap = (fs.maxGap >= 60 || fs.level) ? ' · tramo más largo sin repostar: ~' + fs.maxGap + ' km' : '';
       pfs.innerHTML = `⛽ gasolineras hoy: ${esc(lista + gap)}`;
-      wrap.appendChild(pfs);
+      facts.appendChild(pfs);
     }
 
     const w = windFor(day);
@@ -2622,7 +2675,7 @@
       else if (w.level === 'fuerte') pw.classList.add('day-wind--fuerte');
       pw.title = 'Viento de Open-Meteo en la celda de la pernocta, máximo entre las 07:00 y las 23:00 UTC';
       pw.innerHTML = `💨 ${esc(w.txt)}`;
-      wrap.appendChild(pw);
+      facts.appendChild(pw);
     }
 
     const fotos = fotosDelDia(day);
@@ -2648,6 +2701,7 @@
       });
       wrap.appendChild(strip);
     }
+    if (facts.children.length) wrap.appendChild(facts);
 
     if (!day.items.length) {
       wrap.appendChild(notice('Día libre — sin actividades planificadas.'));
@@ -2718,12 +2772,19 @@
     return wrap;
   }
 
+  const SLOT_ICO = {
+    vuelo: 'plane', coche: 'car', comida: 'utensils', lugar: 'pin', excursion: 'mountain',
+    checkin: 'bed', checkout: 'bed', noche: 'moon'
+  };
+
   function slotRow(it) {
     const r = el('div', 'slot slot--' + it.t + (it.quiet ? ' slot--quiet' : ''));
     const time = el('div', 'slot__time');
     time.textContent = it.hora || '';
     const body = el('div', 'slot__body');
+    const nodeIco = SLOT_ICO[it.t];
     body.innerHTML =
+      (nodeIco && window.ICONS ? `<span class="slot__node" aria-hidden="true">${window.ICONS.svg(nodeIco)}</span>` : '') +
       `<div class="slot__tag">${esc(it.tag)}${it.nota ? ' · ' + esc(it.nota) : ''}</div>` +
       `<div class="slot__title">${esc(it.titulo)}</div>` +
       (it.sub ? `<div class="slot__sub">${esc(it.sub)}</div>` : '') +
@@ -2754,7 +2815,7 @@
   function unassignedBlock(items) {
     const w = el('section', 'day');
     w.innerHTML =
-      `<div class="day__head"><h3 class="day__date">Por planificar</h3><span class="day__idx">${items.length}</span></div>`;
+      `<div class="day__head"><div class="day__num" aria-hidden="true"><small>Sin día</small><b>${items.length}</b></div><div class="day__titles"><h3 class="day__date">Por planificar</h3></div></div>`;
     w.appendChild(notice('Sin día asignado. Edita cada elemento y ponle una fecha dentro del viaje para colocarlo en el itinerario.'));
     const tl = el('div', 'timeline');
     items.forEach(it => tl.appendChild(slotRow(Object.assign({}, it, { hora: '' }))));
@@ -4107,6 +4168,33 @@
     return p;
   }
 
+  // Arco del día: de la salida a la puesta del sol; si es hoy y es de día,
+  // marca dónde está el sol ahora.
+  function sunArc(s) {
+    if (!isDate(s.sunrise) || !isDate(s.sunset)) return null;
+    const w = el('div', 'sun-arc');
+    let frac = null;
+    if (s.date === hoyYMD()) {
+      const f = (Date.now() - s.sunrise.getTime()) / (s.sunset.getTime() - s.sunrise.getTime());
+      if (f >= 0 && f <= 1) frac = f;
+    }
+    // Semicírculo r=90 centrado en (110,100): x = 110 - 90cosθ, y = 100 - 90sinθ
+    let sun = '';
+    if (frac != null) {
+      const th = Math.PI * frac;
+      sun = `<circle class="sun-arc__sun" cx="${(110 - 90 * Math.cos(th)).toFixed(1)}" cy="${(100 - 90 * Math.sin(th)).toFixed(1)}" r="6"/>`;
+    }
+    w.innerHTML =
+      `<svg viewBox="0 0 220 112" aria-hidden="true" preserveAspectRatio="xMidYMid meet">` +
+      `<path class="sun-arc__track" d="M20 100A90 90 0 0 1 200 100"/>` +
+      `<path class="sun-arc__ground" d="M4 100H216"/>` + sun +
+      `</svg>` +
+      `<span class="sun-arc__t sun-arc__t--l">${hhmm(s.sunrise)}</span>` +
+      `<span class="sun-arc__mid">${s.dayLengthMin != null ? fmtDur(s.dayLengthMin) : ''}<small>de luz</small></span>` +
+      `<span class="sun-arc__t sun-arc__t--r">${hhmm(s.sunset)}</span>`;
+    return w;
+  }
+
   function climaCard(s) {
     const c = el('section', 'card sky-card');
     if (s.date === hoyYMD()) c.classList.add('day--hoy');
@@ -4115,16 +4203,29 @@
     head.textContent = `${cap(fmtDiaSemana(s.date))}, ${fmtFecha(s.date)} · ${s.locLabel}`;
     c.appendChild(head);
 
-    // Sol
-    let sol = `${hhmm(s.sunrise)} – ${hhmm(s.sunset)}`;
-    if (s.dayLengthMin != null) sol += `  ·  ${fmtDur(s.dayLengthMin)}`;
-    if (s.deltaVsPrevMin != null) {
-      const d = s.deltaVsPrevMin;
-      const cls = d > 0 ? 'sky-delta sky-delta--up' : 'sky-delta';
-      const sign = d > 0 ? '+' : d < 0 ? '−' : '±';
-      sol += `  ·  <span class="${cls}">${sign}${Math.abs(d)} min</span>`;
+    const arc = sunArc(s);
+    if (arc) c.appendChild(arc);
+
+    // Sol: con el arco ya se ven horas y duración; la fila solo añade el cambio
+    // respecto al día anterior. Sin arco (sin datos de sol) se pinta como antes.
+    if (arc) {
+      if (s.deltaVsPrevMin != null) {
+        const d = s.deltaVsPrevMin;
+        const cls = d > 0 ? 'sky-delta sky-delta--up' : 'sky-delta';
+        const sign = d > 0 ? '+' : d < 0 ? '−' : '±';
+        c.appendChild(skyLine('☀️', `<span class="${cls}">${sign}${Math.abs(d)} min de luz</span> respecto al día anterior`));
+      }
+    } else {
+      let sol = `${hhmm(s.sunrise)} – ${hhmm(s.sunset)}`;
+      if (s.dayLengthMin != null) sol += `  ·  ${fmtDur(s.dayLengthMin)}`;
+      if (s.deltaVsPrevMin != null) {
+        const d = s.deltaVsPrevMin;
+        const cls = d > 0 ? 'sky-delta sky-delta--up' : 'sky-delta';
+        const sign = d > 0 ? '+' : d < 0 ? '−' : '±';
+        sol += `  ·  <span class="${cls}">${sign}${Math.abs(d)} min</span>`;
+      }
+      c.appendChild(skyLine('☀️', sol));
     }
-    c.appendChild(skyLine('☀️', sol));
 
     // Hora dorada
     if (isDate(s.goldenAM.start) && isDate(s.goldenAM.end) && isDate(s.goldenPM.start) && isDate(s.goldenPM.end)) {
