@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const SHELL_CACHE = 'shell-v26';
+const SHELL_CACHE = 'shell-v27';
 // v2: los tiles pasaron de petición no-cors (opaca) a cors; empezar limpio.
 const TILE_CACHE  = 'tiles-v2';
 const TILE_MAX = 300;
@@ -54,9 +54,9 @@ async function tileFetch(request) {
 const SHELL_ASSETS = [
   './',                       // redundante a propósito (red de seguridad);
   './index.html',             // la navegación resuelve contra './index.html'.
-  './style.css?v=26',
-  './icons.js?v=26',
-  './app.js?v=26',
+  './style.css?v=27',
+  './icons.js?v=27',
+  './app.js?v=27',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -74,10 +74,10 @@ const SHELL_ASSETS = [
   './vendor/fonts/fonts.css',
   './vendor/fonts/fraunces-600.woff2',
   './vendor/fonts/fraunces-700.woff2',
-  './vendor/fonts/inter-400.woff2',
-  './vendor/fonts/inter-500.woff2',
-  './vendor/fonts/inter-600.woff2',
-  './vendor/fonts/inter-700.woff2',
+  './vendor/fonts/schibsted-400.woff2',
+  './vendor/fonts/schibsted-500.woff2',
+  './vendor/fonts/schibsted-600.woff2',
+  './vendor/fonts/schibsted-700.woff2',
   './vendor/fonts/ibm-plex-mono-400.woff2',
   './vendor/fonts/ibm-plex-mono-500.woff2'
 ];

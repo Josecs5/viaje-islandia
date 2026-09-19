@@ -1219,14 +1219,14 @@
       ['gastos', 'Gastos', gastoSummary]
     ];
 
+    body.appendChild(metaCard());
+
     const chips = el('div', 'chips chips--itin');
     chips.appendChild(datosChip('all', 'Todo'));
     groups.forEach(([col, label]) => chips.appendChild(datosChip(col, SCHEMAS[KIND_OF[col]].icon + ' ' + label)));
     chips.appendChild(datosChip('antes', '✅ Antes de viajar'));
     chips.appendChild(datosChip('equipaje', '🎒 Equipaje'));
     body.appendChild(chips);
-
-    body.appendChild(metaCard());
 
     groups.forEach(([col, label, sum]) => {
       if (selectedDatosTopic === 'all' || selectedDatosTopic === col) body.appendChild(groupEl(col, label, sum));
@@ -1445,52 +1445,170 @@
   // Tono (oklch hue) del icono de cada grupo de Datos, para que no sean todos iguales.
   const GROUP_HUE = { vuelos: 235, coches: 215, alojamientos: 300, excursiones: 158, comidas: 78, lugares: 340, gastos: 100, antes: 158, equipaje: 40 };
 
-  const HERO_ART =
-    '<svg class="hero__art" viewBox="0 0 400 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true">' +
-    '<defs>' +
-    '<linearGradient id="heroAur1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3ee79f" stop-opacity="0"/><stop offset=".35" stop-color="#3ee79f" stop-opacity=".75"/><stop offset=".7" stop-color="#4fc3e8" stop-opacity=".55"/><stop offset="1" stop-color="#9a6cf2" stop-opacity="0"/></linearGradient>' +
-    '<linearGradient id="heroAur2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9a6cf2" stop-opacity="0"/><stop offset=".5" stop-color="#9a6cf2" stop-opacity=".5"/><stop offset="1" stop-color="#3ee79f" stop-opacity="0"/></linearGradient>' +
-    '<filter id="heroBlur"><feGaussianBlur stdDeviation="9"/></filter>' +
-    '</defs>' +
-    '<g class="hero__stars" fill="#fff"><circle cx="40" cy="26" r="1.1"/><circle cx="96" cy="58" r=".8"/><circle cx="160" cy="18" r="1"/><circle cx="238" cy="44" r=".9"/><circle cx="322" cy="22" r="1.2"/><circle cx="372" cy="64" r=".8"/><circle cx="286" cy="82" r=".7"/><circle cx="20" cy="88" r=".7"/></g>' +
-    '<g filter="url(#heroBlur)"><path class="hero__aur1" d="M-20 120C40 40 90 110 160 60S280 20 330 70s70 10 110-40v70C380 120 330 100 270 120S130 150 60 130 0 140-20 150Z" fill="url(#heroAur1)"/>' +
-    '<path class="hero__aur2" d="M-20 150C50 90 120 150 200 100s150-20 240 20v40H-20Z" fill="url(#heroAur2)"/></g>' +
-    '<path d="M-10 220V150l46-40 40 42 34-28 46 52 44-70 52 76 38-44 50 56 40-30 34 40v56Z" fill="#171626"/>' +
-    '<path d="M-10 220v-42l58-24 50 30 62-38 60 42 54-32 74 46 52-22v40Z" fill="#100f1b"/>' +
-    '</svg>';
+  /* ==========================================================
+     Mapa de la ruta (cabecera de Datos)
+     Silueta de Islandia dibujada a mano con lat/lng, no un mapa exacto:
+     sirve para ver de un vistazo por dónde pasa el viaje, sin conexión.
+     ========================================================== */
+  // Costa en sentido horario desde Reykjanes (suavizada con Catmull-Rom).
+  const COAST = [
+    [63.82, -22.72], [63.86, -22.42], [63.83, -21.95], [63.86, -21.40], [63.82, -20.90], [63.74, -20.30],
+    [63.56, -19.90], [63.45, -19.40], [63.40, -19.13], [63.45, -18.50], [63.55, -17.90], [63.70, -17.20],
+    [63.80, -16.65], [63.98, -16.30], [64.10, -15.85], [64.22, -15.25], [64.25, -14.90], [64.50, -14.40],
+    [64.66, -14.28], [64.85, -13.90], [65.05, -13.60], [65.30, -13.65], [65.53, -13.72], [65.62, -14.20],
+    [65.75, -14.80], [66.05, -14.95], [66.37, -14.53], [66.15, -15.25], [66.45, -15.95], [66.53, -16.20],
+    [66.28, -16.40], [66.20, -17.10], [66.05, -17.35], [66.15, -17.90], [66.10, -18.20], [65.68, -18.08],
+    [66.08, -18.60], [66.17, -18.88], [65.90, -19.42], [65.75, -19.65], [66.05, -20.20], [65.83, -20.35],
+    [65.66, -20.28], [65.63, -20.75], [65.40, -20.95], [65.15, -21.05], [65.45, -21.45], [65.70, -21.65],
+    [66.02, -21.55], [66.28, -22.15], [66.42, -22.55], [66.45, -23.05], [66.16, -23.40], [65.95, -23.60],
+    [65.75, -23.85], [65.60, -24.05], [65.50, -24.53], [65.55, -23.60], [65.53, -23.00], [65.50, -22.40],
+    [65.45, -22.05], [65.20, -22.30], [65.08, -22.75], [64.95, -23.20], [64.90, -23.75], [64.86, -24.05],
+    [64.82, -23.50], [64.76, -22.70], [64.58, -22.15], [64.35, -22.05], [64.15, -21.95], [64.08, -22.70],
+    [63.90, -22.70]
+  ];
+  // [lat, lng, radio lat, radio lng, nombre]
+  const GLACIERES = [
+    [64.42, -16.75, 0.42, 1.55, 'Vatnajökull'], [64.68, -20.15, 0.17, 0.55, 'Langjökull'],
+    [64.80, -18.85, 0.20, 0.50, ''], [63.65, -19.10, 0.14, 0.42, ''], [66.15, -22.30, 0.09, 0.30, ''],
+    [64.80, -23.78, 0.05, 0.18, ''], [63.63, -19.62, 0.07, 0.22, '']
+  ];
+  const KEF = { lat: 63.985, lng: -22.605 };
+  const MAP_K = 76;                                  // px por grado de latitud
+  const mapXY = (lat, lng) => [20 + (lng + 24.7) * 0.4226 * MAP_K, 16 + (66.65 - lat) * MAP_K];
+
+  // Catmull-Rom → curva de Bézier cúbica a través de todos los puntos.
+  function smoothPath(pts, closed, T = 6) {
+    const n = pts.length;
+    const at = i => pts[closed ? (i + n) % n : Math.max(0, Math.min(n - 1, i))];
+    let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < (closed ? n : n - 1); i++) {
+      const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+      const c1 = [p1[0] + (p2[0] - p0[0]) / T, p1[1] + (p2[1] - p0[1]) / T];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / T, p2[1] - (p3[1] - p1[1]) / T];
+      d += `C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    return d + (closed ? 'Z' : '');
+  }
+
+  // Una parada por alojamiento con coordenadas, con el número de día en que se llega.
+  function routeStops() {
+    const ini = state.meta.fechaInicio;
+    if (!ini) return [];
+    return state.alojamientos
+      .filter(a => a.checkin && a.loc && a.loc.lat != null && a.loc.lng != null)
+      .sort((x, y) => (x.checkin < y.checkin ? -1 : x.checkin > y.checkin ? 1 : 0))
+      .map(a => ({ a, date: a.checkin, day: eachDay(ini, a.checkin).length }))
+      .filter(st => st.day >= 1);
+  }
+
+  let routeSel = null;      // fecha de la parada seleccionada
+  let routeDrawn = false;   // la ruta se dibuja una sola vez por visita
+
+  // Posiciones en el mapa; si dos paradas caen casi en el mismo punto (p. ej. la
+  // primera y la última noche en Reikiavik) se separan para que ambas se vean.
+  function stopPositions(stops) {
+    const pos = stops.map(st => mapXY(st.a.loc.lat, st.a.loc.lng));
+    for (let j = 1; j < pos.length; j++) {
+      for (let i = 0; i < j; i++) {
+        let dx = pos[j][0] - pos[i][0], dy = pos[j][1] - pos[i][1];
+        const d = Math.hypot(dx, dy);
+        if (d < 21) {
+          if (d < 0.5) { dx = -1; dy = 0.6; } else { dx /= d; dy /= d; }
+          const push = 21 - d;
+          pos[j] = [pos[j][0] + dx * push, pos[j][1] + dy * push];
+        }
+      }
+    }
+    return pos;
+  }
+
+  function routeSvg(stops, hoy) {
+    const coast = smoothPath(COAST.map(([la, lo]) => mapXY(la, lo)), true, 7);
+    const pos = stopPositions(stops);
+    let out = `<svg class="route__svg" viewBox="0 0 410 290" role="group" aria-label="Mapa de la ruta por Islandia">` +
+      `<defs><clipPath id="routeLand"><path d="${coast}"/></clipPath></defs>`;
+    [0, 1, 2].forEach(i => { out += `<path d="${coast}" class="route__shore route__shore--${i}"/>`; });
+    out += `<path d="${coast}" class="route__land"/>` +
+      `<g clip-path="url(#routeLand)"><path d="${coast}" class="route__low route__low--0"/><path d="${coast}" class="route__low route__low--1"/></g>` +
+      `<path d="${coast}" class="route__coast"/>`;
+    GLACIERES.forEach(([la, lo, rla, rlo, nombre]) => {
+      const [x, y] = mapXY(la, lo);
+      out += `<ellipse class="route__ice" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${(rlo * 0.4226 * MAP_K).toFixed(1)}" ry="${(rla * MAP_K).toFixed(1)}"/>`;
+      if (nombre) out += `<text class="route__place" x="${x.toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="middle">${nombre}</text>`;
+    });
+
+    const kefXY = mapXY(KEF.lat, KEF.lng);
+    const pts = [kefXY].concat(pos, [kefXY]);
+    if (pts.length > 2) out += `<path class="route__line${routeDrawn ? ' is-drawn' : ''}" pathLength="1" d="${smoothPath(pts, false)}"/>`;
+
+
+    stops.forEach((st, i) => {
+      const [x, y] = pos[i];
+      const cls = 'route__stop' + (st.date === hoy ? ' is-today' : '') + (hoy && st.date < hoy ? ' is-past' : '') + (st.date === routeSel ? ' is-sel' : '');
+      out += `<g class="${cls}" data-i="${i}" tabindex="0" role="button" aria-pressed="${st.date === routeSel}" aria-label="Día ${st.day}: ${esc(st.a.nombre || 'Alojamiento')}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">` +
+        `<circle class="route__hit" r="19"/><circle class="route__halo" r="13"/><circle class="route__dot" r="9"/>` +
+        `<text class="route__n" y="3.6" text-anchor="middle">${st.day}</text></g>`;
+    });
+    return out + '</svg>';
+  }
 
   function metaCard() {
     const m = state.meta;
-    const c = el('section', 'hero');
+    const c = el('section', 'route');
     const st = tripStatus();
     const dias = (m.fechaInicio && m.fechaFin) ? eachDay(m.fechaInicio, m.fechaFin).length : 0;
     const rango = (m.fechaInicio && m.fechaFin)
-      ? `${fmtFecha(m.fechaInicio, true)} – ${fmtFecha(m.fechaFin, true)}`
+      ? `${fmtFecha(m.fechaInicio)} – ${fmtFecha(m.fechaFin, true)}`
       : 'Sin fechas · añádelas en Datos';
 
-    let badge = '';
-    if (st === 'curso') badge = `<span class="hero__badge is-live">🟢 En curso · día ${diaActual()} de ${dias}</span>`;
-    else if (st === 'fin') badge = `<span class="hero__badge">Viaje completado</span>`;
-    else {
-      const cd = countdownStr(firstDeparture());
-      if (cd) badge = `<span class="hero__badge">✈️ Salida en ${esc(cd)}</span>`;
+    let estado = '';
+    if (st === 'curso') estado = `En curso: día ${diaActual()} de ${dias}`;
+    else if (st === 'fin') estado = 'Viaje completado';
+    else { const cd = countdownStr(firstDeparture()); if (cd) estado = `Salida en ${cd}`; }
+
+    c.innerHTML =
+      `<h2 class="route__title">${esc(m.titulo || 'Viaje a Islandia')}</h2>` +
+      `<p class="route__when">${esc(rango)}${estado ? `<span class="route__state${st === 'curso' ? ' is-live' : ''}">${esc(estado)}</span>` : ''}</p>`;
+
+    const stops = routeStops();
+    if (!stops.length) return c;
+
+    const hoy = diaHoyYMD();
+    if (!stops.some(x => x.date === routeSel)) {
+      routeSel = (stops.find(x => x.date === hoy) || stops[0]).date;
     }
 
-    const stat = (n, lbl) => `<div class="hero__stat"><dt>${lbl}</dt><dd>${n}</dd></div>`;
-    const noches = Math.max(0, dias - 1);
-    c.innerHTML = HERO_ART +
-      `<div class="hero__body">` +
-      `<p class="hero__kicker">Islandia · Ring Road</p>` +
-      `<h2 class="hero__title">${esc(m.titulo || 'Viaje a Islandia')}</h2>` +
-      `<p class="hero__dates">${esc(rango)}</p>` +
-      badge +
-      `</div>` +
-      `<dl class="hero__stats">` +
-      stat(dias || '—', dias === 1 ? 'día' : 'días') +
-      stat(noches || '—', noches === 1 ? 'noche' : 'noches') +
-      stat(state.alojamientos.length, 'alojamientos') +
-      stat(state.excursiones.length + state.lugares.length, 'planes') +
-      `</dl>`;
+    const fig = el('figure', 'route__map');
+    fig.innerHTML = routeSvg(stops, hoy);
+    const cap = el('div', 'route__cap');
+    cap.setAttribute('aria-live', 'polite');
+    c.append(fig, cap);
+    routeDrawn = true;
+
+    const paintCap = () => {
+      const st = stops.find(x => x.date === routeSel);
+      const noches = st.a.checkout ? Math.max(0, eachDay(st.a.checkin, st.a.checkout).length - 1) : 0;
+      cap.innerHTML =
+        `<div class="route__cap-txt"><p class="route__cap-name">Día ${st.day}. ${esc(st.a.nombre || 'Alojamiento')}</p>` +
+        `<p class="route__cap-sub">${esc(st.a.zona || (st.a.loc && st.a.loc.texto) || '')}${noches ? ` · ${noches} noche${noches !== 1 ? 's' : ''}` : ''}</p></div>` +
+        `<button class="btn btn--ghost btn--sm" type="button">Ver el día</button>`;
+      cap.querySelector('button').addEventListener('click', () => {
+        selectedItinDay = st.date;
+        renderItinerario();
+        showScreen('itinerario');
+      });
+      fig.querySelectorAll('.route__stop').forEach((g, i) => {
+        const on = stops[i].date === routeSel;
+        g.classList.toggle('is-sel', on);
+        g.setAttribute('aria-pressed', String(on));
+      });
+    };
+    const pick = g => { routeSel = stops[+g.dataset.i].date; paintCap(); };
+    fig.querySelectorAll('.route__stop').forEach(g => {
+      g.addEventListener('click', () => pick(g));
+      g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(g); } });
+    });
+    paintCap();
     return c;
   }
 
@@ -1664,7 +1782,7 @@
       <div class="item__meta">${locLine(a.loc)}${a.zona ? ' · ' + esc(a.zona) : ''}</div>
       ${a.notas ? `<div class="item__meta">${escLines(a.notas)}</div>` : ''}
       ${a.reserva ? `<div class="item__meta">Reserva: ${esc(a.reserva)}</div>` : ''}
-      ${a.enlace ? `<a class="btn btn--accent btn--sm item__link" href="${esc(a.enlace)}" target="_blank" rel="noopener">Ver alojamiento ›</a>` : ''}`;
+      ${a.enlace ? `<a class="btn btn--accent btn--sm item__link" href="${esc(a.enlace)}" target="_blank" rel="noopener">Ver alojamiento</a>` : ''}`;
   }
 
   function cocheSummary(v) {
@@ -2607,10 +2725,13 @@
     const plan = dayPlan(day);
 
     const head = el('div', 'day__head');
+    const totalDias = eachDay(state.meta.fechaInicio, state.meta.fechaFin).length;
+    let ticks = '';
+    for (let i = 1; i <= totalDias; i++) ticks += `<i class="${i === day.idx ? 'is-on' : i < day.idx ? 'is-past' : ''}"></i>`;
     head.innerHTML =
-      `<div class="day__num" aria-hidden="true"><small>Día</small><b>${day.idx}</b></div>` +
-      `<div class="day__titles"><h3 class="day__date"><span class="sr-only">Día ${day.idx}: </span>${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3></div>` +
-      (esHoy ? '<b class="day__now">EN CURSO</b>' : '');
+      `<div class="day__titles"><h3 class="day__date"><span class="sr-only">Día ${day.idx}: </span>${cap(fmtDiaSemana(day.date))}, ${fmtFecha(day.date)}</h3>` +
+      `<div class="day__prog" role="img" aria-label="Día ${day.idx} de ${totalDias}"><span class="day__prog-txt">Día ${day.idx} de ${totalDias}</span><span class="day__ticks" aria-hidden="true">${ticks}</span></div></div>` +
+      (esHoy ? '<b class="day__now">En curso</b>' : '');
     const titles = head.querySelector('.day__titles');
     wrap.appendChild(head);
     const facts = el('div', 'day__facts');
@@ -2796,8 +2917,8 @@
     }
     if (it.loc && it.loc.lat != null) {
       const nav = el('div', 'slot__nav');
-      const g = mapsLink('g', [it.loc]); g.className = 'slot__go'; g.textContent = 'Google Maps ›';
-      const w = mapsLink('w', [it.loc]); w.className = 'slot__go'; w.textContent = 'Waze ›';
+      const g = mapsLink('g', [it.loc]); g.className = 'slot__go'; g.textContent = 'Google Maps';
+      const w = mapsLink('w', [it.loc]); w.className = 'slot__go'; w.textContent = 'Waze';
       nav.append(g, w);
       body.appendChild(nav);
     }
@@ -2815,7 +2936,7 @@
   function unassignedBlock(items) {
     const w = el('section', 'day');
     w.innerHTML =
-      `<div class="day__head"><div class="day__num" aria-hidden="true"><small>Sin día</small><b>${items.length}</b></div><div class="day__titles"><h3 class="day__date">Por planificar</h3></div></div>`;
+      `<div class="day__head"><div class="day__titles"><h3 class="day__date">Por planificar</h3><p class="day__prog-txt">${items.length} sin día asignado</p></div></div>`;
     w.appendChild(notice('Sin día asignado. Edita cada elemento y ponle una fecha dentro del viaje para colocarlo en el itinerario.'));
     const tl = el('div', 'timeline');
     items.forEach(it => tl.appendChild(slotRow(Object.assign({}, it, { hora: '' }))));
@@ -3672,7 +3793,7 @@
       ? `<span class="reco-chip">${esc(RECO_CAT_ICO[it.categoria] || '')} ${esc(it.categoria)}</span>`
       : '';
     const link = it.link
-      ? `<a class="reco-link" href="${esc(it.link)}" target="_blank" rel="noopener">Abrir enlace ›</a>`
+      ? `<a class="reco-link" href="${esc(it.link)}" target="_blank" rel="noopener">Abrir enlace</a>`
       : '';
     return `<div class="item__title">${esc(it.texto || '')}</div>` +
       ((chip || link) ? `<div class="reco-foot">${chip}${link}</div>` : '');

@@ -96,14 +96,15 @@ navegador (se borran caché y datos).
 
 ## Diseño
 
-Identidad «Basalto y aurora»: fondo basalto casi negro con un resplandor de
-aurora, titulares en serif (Fraunces), interfaz en Inter, verde aurora como
-acento y hielo / violeta / azufre de apoyo. Los tokens están en `style.css`
-(`tokens.css` es un export para reutilizarlos). Los iconos son SVG de trazo:
-`icons.js` sustituye automáticamente los emojis que escribe `app.js` por el
-icono equivalente, así que basta con seguir usando el emoji en el texto (los
-que no estén en su tabla se quedan como emoji). Las fuentes van en local
-(`vendor/fonts`) para que la app funcione sin conexión.
+Identidad «Basalto y aurora», con los materiales de la isla como paleta: basalto,
+hielo, azufre (la ruta) y musgo (acción y «hoy»). Titulares en Fraunces e
+interfaz en Schibsted Grotesk, ambas en local (`vendor/fonts`) para que la app
+funcione sin conexión. La cabecera de Datos es un **mapa de la ruta** dibujado
+en SVG con tus alojamientos (una parada por noche, pulsable); la silueta de la
+costa está en `COAST`, en `app.js`, y es aproximada. Los tokens están en
+`style.css` (`tokens.css` es un export para reutilizarlos). Los iconos son SVG
+de trazo: `icons.js` sustituye automáticamente los emojis que escribe `app.js`
+por el icono equivalente (los que no estén en su tabla se quedan como emoji).
 
 ## Aviso
 
