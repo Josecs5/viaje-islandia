@@ -12,11 +12,11 @@
 
   --c-bg:         oklch(0.15 0.022 280);
   --c-bg-1:       oklch(0.185 0.024 280);
-  --c-surface:    oklch(0.225 0.026 280);
-  --c-surface-2:  oklch(0.265 0.028 280);
-  --c-surface-3:  oklch(0.315 0.030 280);
-  --c-border:     oklch(0.36 0.030 280);
-  --c-border-soft:oklch(0.29 0.026 280);
+  --c-surface:    oklch(0.25 0.028 280);
+  --c-surface-2:  oklch(0.29 0.03 280);
+  --c-surface-3:  oklch(0.335 0.032 280);
+  --c-border:     oklch(0.38 0.032 280);
+  --c-border-soft:oklch(0.31 0.028 280);
 
   --c-text:   oklch(0.97 0.006 280);
   --c-text-1: oklch(0.83 0.014 280);
@@ -67,7 +67,26 @@
   --radius-l: 14px;
   --radius-pill: 999px;
 
-  --shadow-1: none;
+  /* Tarjetas: un brillo de 1px arriba las despega del fondo */
+  --shadow-1: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  --sh-bar:    0 14px 40px -10px rgba(0, 0, 0, 0.75), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  --sh-pop:    0 6px 24px rgba(0, 0, 0, 0.55);
+  --sh-marker: 0 2px 10px rgba(0, 0, 0, 0.6);
+  --sh-sheet:  0 -20px 60px -20px rgba(0, 0, 0, 0.8);
+  --sh-modal:  0 30px 70px -20px rgba(0, 0, 0, 0.85);
+  --sh-toast:  0 12px 36px rgba(0, 0, 0, 0.55);
+  --scrim-sheet:   rgba(6, 6, 12, 0.62);
+  --scrim-confirm: rgba(6, 6, 12, 0.68);
+
+  /* Luminosidad de los colores por matiz (iconos de sección, categorías de Ideas) */
+  --hue-l: 0.82;
+  --hue-soft-l: 0.30;
+
+  /* Mapa de la ruta (SVG) */
+  --route-low:      oklch(0.34 0.035 235);
+  --route-coast:    oklch(0.72 0.05 230 / 0.75);
+  --route-ice-fill: oklch(0.93 0.02 230 / 0.15);
+  --route-ice-line: oklch(0.93 0.02 230 / 0.38);
 
   --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in:     cubic-bezier(0.55, 0, 1, 0.45);
@@ -80,6 +99,63 @@
   --tabbar-gap: 10px;
   --appbar-h: 62px;
   --maxw: 640px;
+}
+
+/* ============================================================
+   TEMA CLARO «Glaciar» — nieve fría, tinta de basalto.
+   Se activa con data-theme="light" en <html> (botón de la barra superior).
+   Los colores de acento bajan de luminosidad para leerse sobre claro.
+   ============================================================ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg:         oklch(0.965 0.008 250);
+  --c-bg-1:       oklch(0.94 0.011 250);
+  --c-surface:    oklch(0.995 0.004 250);
+  --c-surface-2:  oklch(0.955 0.011 250);
+  --c-surface-3:  oklch(0.92 0.015 250);
+  --c-border:     oklch(0.80 0.02 255);
+  --c-border-soft:oklch(0.88 0.015 255);
+
+  --c-text:   oklch(0.22 0.03 280);
+  --c-text-1: oklch(0.35 0.03 280);
+  --c-text-2: oklch(0.47 0.025 280);
+
+  --c-accent:      oklch(0.52 0.15 158);
+  --c-accent-press:oklch(0.45 0.14 158);
+  --c-accent-ink:  oklch(0.99 0.01 158);
+  --c-accent-soft: oklch(0.93 0.05 160);
+  --c-ice:     oklch(0.50 0.11 230);
+  --c-violet:  oklch(0.50 0.16 300);
+  --c-sulfur:  oklch(0.56 0.13 70);
+  --c-sea:     oklch(0.88 0.03 235);
+  --c-land:    oklch(0.975 0.006 250);
+
+  --c-info:    oklch(0.50 0.12 240);
+  --c-warning: oklch(0.56 0.13 70);
+  --c-danger:  oklch(0.52 0.19 28);
+  --c-danger-soft: oklch(0.94 0.04 28);
+  --c-focus:   oklch(0.50 0.15 240);
+
+  --grad-aurora: linear-gradient(120deg, oklch(0.56 0.15 158), oklch(0.52 0.12 215) 55%, oklch(0.48 0.15 300));
+
+  --shadow-1: 0 1px 2px oklch(0.3 0.05 260 / 0.08), 0 1px 0 oklch(1 0 0) inset;
+  --sh-bar:    0 10px 30px -8px oklch(0.3 0.05 260 / 0.28), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  --sh-pop:    0 6px 20px oklch(0.3 0.05 260 / 0.25);
+  --sh-marker: 0 2px 8px oklch(0.3 0.05 260 / 0.35);
+  --sh-sheet:  0 -16px 50px -20px oklch(0.3 0.05 260 / 0.35);
+  --sh-modal:  0 24px 60px -20px oklch(0.3 0.05 260 / 0.4);
+  --sh-toast:  0 10px 30px oklch(0.3 0.05 260 / 0.25);
+  --scrim-sheet:   oklch(0.25 0.03 260 / 0.45);
+  --scrim-confirm: oklch(0.25 0.03 260 / 0.5);
+
+  --hue-l: 0.48;
+  --hue-soft-l: 0.94;
+
+  --route-low:      oklch(0.80 0.04 235);
+  --route-coast:    oklch(0.45 0.06 235 / 0.8);
+  --route-ice-fill: oklch(0.80 0.06 225 / 0.35);
+  --route-ice-line: oklch(0.52 0.08 230 / 0.5);
 }
 
 /* ============================================================
@@ -201,6 +277,30 @@ flex-shrink: 0; border-radius: 10px;
   border: 1px solid color-mix(in oklab, var(--c-accent) 45%, transparent);
 }
 .appbar__count[hidden] { display: none; }
+.appbar__theme {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  font-size: 19px;
+  border-radius: var(--radius-pill);
+}
+.appbar__theme .ico { width: 1em; height: 1em; }
+/* En tema claro la barra sigue siendo basalto: la barra de estado de iOS
+   (texto blanco, black-translucent) queda legible y la marca no cambia. */
+:root[data-theme="light"] .appbar {
+  --c-bg:          oklch(0.15 0.022 280);
+  --c-surface-2:   oklch(0.29 0.03 280);
+  --c-surface-3:   oklch(0.335 0.032 280);
+  --c-border-soft: oklch(0.31 0.028 280);
+  --c-text:        oklch(0.97 0.006 280);
+  --c-text-1:      oklch(0.83 0.014 280);
+  --c-text-2:      oklch(0.72 0.02 280);
+  --c-accent:      oklch(0.86 0.17 158);
+  --c-accent-ink:  oklch(0.20 0.05 160);
+  --c-accent-soft: oklch(0.31 0.07 160);
+  --c-focus:       oklch(0.88 0.12 210);
+  color: var(--c-text);
+  background: color-mix(in oklab, var(--c-bg) 94%, transparent);
+}
 .appbar__count.is-live {
   color: var(--c-accent-ink);
   background: var(--c-accent);
@@ -253,7 +353,7 @@ main {
   -webkit-backdrop-filter: blur(20px) saturate(1.5);
   border: 1px solid color-mix(in oklab, var(--c-border) 80%, transparent);
   border-radius: 24px;
-  box-shadow: 0 14px 40px -10px rgba(0, 0, 0, 0.75), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  box-shadow: var(--sh-bar);
 }
 .tab {
   appearance: none;
@@ -403,18 +503,18 @@ main {
 .route__shore--1 { stroke-width: 17; opacity: 0.05; }
 .route__shore--2 { stroke-width: 7; opacity: 0.09; }
 .route__land { fill: var(--c-land); }
-.route__low { fill: none; stroke: oklch(0.34 0.035 235); stroke-linejoin: round; }
+.route__low { fill: none; stroke: var(--route-low); stroke-linejoin: round; }
 .route__low--0 { stroke-width: 46; opacity: 0.32; }
 .route__low--1 { stroke-width: 18; opacity: 0.5; }
 .route__coast {
   fill: none;
-  stroke: oklch(0.72 0.05 230 / 0.75);
+  stroke: var(--route-coast);
   stroke-width: 1.2;
   stroke-linejoin: round;
 }
 .route__ice {
-  fill: oklch(0.93 0.02 230 / 0.15);
-  stroke: oklch(0.93 0.02 230 / 0.38);
+  fill: var(--route-ice-fill);
+  stroke: var(--route-ice-line);
   stroke-width: 0.8;
 }
 .route__place {
@@ -517,7 +617,7 @@ display: inline-flex; align-items: center; gap: var(--space-10); min-width: 0;
   flex-shrink: 0;
   display: inline-flex;
   font-size: 20px;
-  color: oklch(0.82 0.12 var(--gh));
+  color: oklch(var(--hue-l) 0.12 var(--gh));
 }
 .group__right { display: inline-flex; align-items: center; gap: var(--space-10); flex-shrink: 0; }
 .count {
@@ -693,7 +793,7 @@ padding: 0 0 var(--space-16);
   color: var(--c-text-2);
   margin-bottom: var(--space-8);
 }
-.fly-leg__head .mono { color: var(--c-accent); font-weight: 600; }
+.fly-leg__head .mono { color: var(--c-ice); font-weight: 600; }
 .fly-leg__route {
   display: grid;
   grid-template-columns: auto minmax(40px, 1fr) auto;
@@ -708,7 +808,7 @@ padding: 0 0 var(--space-16);
   font-size: 1.65rem;
   letter-spacing: 0.01em;
 }
-.fly-pt__time { font-family: var(--font-mono); font-size: var(--step-1); color: var(--c-accent); margin-top: 3px; }
+.fly-pt__time { font-family: var(--font-mono); font-size: var(--step-1); color: var(--c-ice); margin-top: 3px; }
 .fly-pt em {
   font-style: normal;
   font-family: var(--font-mono);
@@ -733,13 +833,13 @@ padding: 0 0 var(--space-16);
   font-size: var(--step-1);
   line-height: 1.45;
   color: var(--c-text);
-  background: var(--c-accent-soft);
-  border: 1px solid color-mix(in oklab, var(--c-accent) 40%, transparent);
+  background: color-mix(in oklab, var(--c-ice) 13%, var(--c-surface));
+  border: 1px solid color-mix(in oklab, var(--c-ice) 40%, transparent);
   border-radius: var(--radius-m);
   padding: var(--space-12) var(--space-16);
   margin: var(--space-8) 0;
 }
-.fly-alert b { color: var(--c-accent); }
+.fly-alert b { color: var(--c-ice); }
 .fly-bags { margin-top: var(--space-8); font-size: var(--step-1); }
 .fly-bags summary {
   display: flex;
@@ -1043,6 +1143,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   border-radius: var(--radius-m);
   padding: var(--space-16);
   margin-bottom: var(--space-16);
+  box-shadow: var(--shadow-1);
 }
 .hoy-card__head {
   font-family: var(--font-display);
@@ -1070,7 +1171,12 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   margin-bottom: var(--space-12);
 }
 .itin-fuel[hidden], .itin-outlook[hidden] { display: none; }
-.itin-fuel { border-left: 3px solid var(--c-sulfur); }
+/* Combustible: toda la tarjeta en azufre, sin raya lateral */
+.itin-fuel {
+  background: color-mix(in oklab, var(--c-sulfur) 10%, var(--c-surface));
+  border-color: color-mix(in oklab, var(--c-sulfur) 32%, var(--c-border-soft));
+  box-shadow: var(--shadow-1);
+}
 .itin-fuel__tot {
   font-family: var(--font-display);
   font-size: var(--step-1);
@@ -1353,7 +1459,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--c-surface-2);
   color: var(--c-text);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+  box-shadow: var(--sh-pop);
 }
 .leaflet-popup-content { font-size: var(--step-0); }
 .leaflet-popup-content .pop-sub { color: var(--c-text-2); }
@@ -1378,7 +1484,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   line-height: 28px;
   text-align: center;
   border: 2px solid var(--c-bg);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  box-shadow: var(--sh-marker);
 }
 
 .legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-6); }
@@ -1413,8 +1519,8 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
    ============================================================ */
 .reco-cat {
   --rc: 168;
-  --rc-accent: oklch(0.82 0.13 var(--rc));
-  --rc-soft: oklch(0.30 0.055 var(--rc));
+  --rc-accent: oklch(var(--hue-l) 0.13 var(--rc));
+  --rc-soft: oklch(var(--hue-soft-l) 0.055 var(--rc));
   margin-bottom: var(--space-24);
 }
 .reco-cat__head {
@@ -1817,7 +1923,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 .sheet__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(6, 6, 12, 0.62);
+  background: var(--scrim-sheet);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   opacity: 0;
@@ -1836,7 +1942,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   border-bottom: 0;
   border-radius: 20px 20px 0 0;
   padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -20px 60px -20px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--sh-sheet);
   transform: translateY(100%);
   transition: transform var(--dur-3) var(--ease-out);
 }
@@ -1886,7 +1992,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 .confirm[hidden] { display: none; }
 .confirm__backdrop {
   position: absolute; inset: 0;
-  background: rgba(6, 6, 12, 0.68);
+  background: var(--scrim-confirm);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
@@ -1898,7 +2004,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   border: 1px solid var(--c-border);
   border-radius: var(--radius-l);
   padding: var(--space-20);
-  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.85);
+  box-shadow: var(--sh-modal);
 }
 .confirm__box p { margin-bottom: var(--space-16); font-size: var(--step-2); font-family: var(--font-display); font-weight: 600; }
 .confirm__row { display: flex; gap: var(--space-10); }
@@ -1921,12 +2027,24 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   background: var(--c-surface-3);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.55);
+  box-shadow: var(--sh-toast);
   opacity: 0;
   transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
 }
 .toast[hidden] { display: none; }
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ============================================================
+   TEMA CLARO — ajustes de componentes
+   ============================================================ */
+:root[data-theme="light"] body::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='96' viewBox='0 0 240 96'%3E%3Cg fill='none' stroke='%232a3a5c' stroke-width='1' opacity='.06'%3E%3Cpath d='M0 16q60-22 120 0t120 0'/%3E%3Cpath d='M0 48q60 20 120 0t120 0'/%3E%3Cpath d='M0 80q60-14 120 0t120 0'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 240px 96px;
+}
+:root[data-theme="light"] .sheet__panel,
+:root[data-theme="light"] .confirm__box { background: var(--c-surface); }
+:root[data-theme="light"] .tabbar {
+  background: color-mix(in oklab, var(--c-surface) 86%, transparent);
+}
 
 /* ============================================================
    RESPONSIVE / MOTION

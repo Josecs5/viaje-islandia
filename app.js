@@ -4067,6 +4067,44 @@
   }
   setInterval(updateCountdown, 60000);
 
+  /* ==========================================================
+     Tema claro/oscuro — botón de la barra superior.
+     El atributo data-theme lo pone antes de pintar el script de <head>;
+     aquí solo se cambia, se recuerda y se avisa al mapa.
+     ========================================================== */
+  const THEME_KEY = 'islandia_theme';
+
+  function currentTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  }
+
+  function paintThemeBtn() {
+    const btn = $('#theme-toggle');
+    if (!btn) return;
+    const next = currentTheme() === 'light' ? 'oscuro' : 'claro';
+    btn.innerHTML = window.ICONS ? ICONS.svg(currentTheme() === 'light' ? 'moon' : 'sun') : '';
+    btn.setAttribute('aria-label', 'Cambiar a tema ' + next);
+    btn.title = 'Cambiar a tema ' + next;
+  }
+
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) meta.setAttribute('content', t);
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* sin almacenamiento: vale solo para esta sesión */ }
+    paintThemeBtn();
+    // La ruta de Leaflet se dibuja con el color de acento leído al pintar: repintar.
+    mapDirty = true;
+    refreshMap();
+  }
+
+  function initTheme() {
+    const btn = $('#theme-toggle');
+    if (!btn) return;
+    paintThemeBtn();
+    btn.addEventListener('click', () => setTheme(currentTheme() === 'light' ? 'dark' : 'light'));
+  }
+
   function renderAll() {
     paintAppbar();
     renderDatos();
@@ -4609,6 +4647,7 @@
   }
 
   try {
+    initTheme();
     initGazList();
     renderAll();
     showScreen(location.hash.slice(1) || 'datos');

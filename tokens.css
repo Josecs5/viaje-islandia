@@ -8,11 +8,11 @@
   /* Superficies: basalto con un tinte violeta muy leve */
   --c-bg:          oklch(0.15 0.022 280);
   --c-bg-1:        oklch(0.185 0.024 280);
-  --c-surface:     oklch(0.225 0.026 280);
-  --c-surface-2:   oklch(0.265 0.028 280);
-  --c-surface-3:   oklch(0.315 0.030 280);
-  --c-border:      oklch(0.36 0.030 280);
-  --c-border-soft: oklch(0.29 0.026 280);
+  --c-surface:     oklch(0.25 0.028 280);
+  --c-surface-2:   oklch(0.29 0.03 280);
+  --c-surface-3:   oklch(0.335 0.032 280);
+  --c-border:      oklch(0.38 0.032 280);
+  --c-border-soft: oklch(0.31 0.028 280);
 
   /* Texto */
   --c-text:   oklch(0.97 0.006 280);
@@ -56,4 +56,40 @@
   --dur-1: 120ms;
   --dur-2: 200ms;
   --dur-3: 320ms;
+}
+
+/* Tema claro «Glaciar» — se activa con <html data-theme="light">.
+ * Solo los colores; sombras, mapa y ajustes de componentes están en style.css.
+ * Roles: acento = acción y «hoy» · hielo = vuelos e info · azufre = dinero y avisos
+ *        violeta = noche · lava (danger) = alertas graves.
+ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg:          oklch(0.965 0.008 250);
+  --c-bg-1:        oklch(0.94 0.011 250);
+  --c-surface:     oklch(0.995 0.004 250);
+  --c-surface-2:   oklch(0.955 0.011 250);
+  --c-surface-3:   oklch(0.92 0.015 250);
+  --c-border:      oklch(0.80 0.02 255);
+  --c-border-soft: oklch(0.88 0.015 255);
+
+  --c-text:   oklch(0.22 0.03 280);
+  --c-text-1: oklch(0.35 0.03 280);
+  --c-text-2: oklch(0.47 0.025 280);
+
+  --c-accent:       oklch(0.52 0.15 158);
+  --c-accent-press: oklch(0.45 0.14 158);
+  --c-accent-ink:   oklch(0.99 0.01 158);
+  --c-accent-soft:  oklch(0.93 0.05 160);
+  --c-ice:          oklch(0.50 0.11 230);
+  --c-violet:       oklch(0.50 0.16 300);
+  --c-sulfur:       oklch(0.56 0.13 70);
+  --c-sea:          oklch(0.88 0.03 235);
+  --c-land:         oklch(0.975 0.006 250);
+  --c-info:         oklch(0.50 0.12 240);
+  --c-warning:      oklch(0.56 0.13 70);
+  --c-danger:       oklch(0.52 0.19 28);
+  --c-danger-soft:  oklch(0.94 0.04 28);
+  --c-focus:        oklch(0.50 0.15 240);
 }

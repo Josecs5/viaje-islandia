@@ -30,7 +30,18 @@
   <!-- Leaflet (local) -->
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 
-  <link rel="stylesheet" href="style.css?v=27">
+  <link rel="stylesheet" href="style.css?v=28">
+
+  <!-- Tema: se aplica antes de pintar para que no parpadee. Por defecto oscuro. -->
+  <script>
+    (function () {
+      var t = 'dark';
+      try { if (localStorage.getItem('islandia_theme') === 'light') t = 'light'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', t);
+      var m = document.querySelector('meta[name="color-scheme"]');
+      if (m) m.setAttribute('content', t);
+    })();
+  </script>
 </head>
 <body>
 
@@ -41,6 +52,7 @@
       <p class="appbar__sub" id="appbar-sub">Sin fechas · añádelas en Datos</p>
     </div>
     <div class="appbar__count" id="appbar-count" hidden></div>
+    <button class="icon-btn appbar__theme" id="theme-toggle" type="button" aria-label="Cambiar a tema claro" title="Cambiar a tema claro"></button>
   </header>
 
   <main>
@@ -192,7 +204,7 @@
 
   <script src="vendor/leaflet/leaflet.js" defer></script>
   <script src="vendor/suncalc/suncalc.js" defer></script>
-  <script src="icons.js?v=27" defer></script>
-  <script src="app.js?v=27" defer></script>
+  <script src="icons.js?v=28" defer></script>
+  <script src="app.js?v=28" defer></script>
 </body>
 </html>
