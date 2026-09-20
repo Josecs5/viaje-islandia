@@ -17,6 +17,7 @@
   --c-surface-3:  oklch(0.335 0.032 280);
   --c-border:     oklch(0.38 0.032 280);
   --c-border-soft:oklch(0.31 0.028 280);
+  --c-border-strong: oklch(0.54 0.03 280);   /* límite de campos de formulario: ≥3:1 */
 
   --c-text:   oklch(0.97 0.006 280);
   --c-text-1: oklch(0.83 0.014 280);
@@ -116,6 +117,7 @@
   --c-surface-3:  oklch(0.92 0.015 250);
   --c-border:     oklch(0.80 0.02 255);
   --c-border-soft:oklch(0.88 0.015 255);
+  --c-border-strong: oklch(0.62 0.02 255);
 
   --c-text:   oklch(0.22 0.03 280);
   --c-text-1: oklch(0.35 0.03 280);
@@ -277,11 +279,14 @@ flex-shrink: 0; border-radius: 10px;
   border: 1px solid color-mix(in oklab, var(--c-accent) 45%, transparent);
 }
 .appbar__count[hidden] { display: none; }
-.appbar__theme {
+/* .icon-btn.appbar__theme: hace falta la doble clase porque .icon-btn se
+   declara después y, con un solo selector, le pisaba el tamaño. */
+.icon-btn.appbar__theme {
   flex-shrink: 0;
   width: 40px; height: 40px;
   font-size: 19px;
   border-radius: var(--radius-pill);
+  --hit: 2px;
 }
 .appbar__theme .ico { width: 1em; height: 1em; }
 /* En tema claro la barra sigue siendo basalto: la barra de estado de iOS
@@ -334,6 +339,26 @@ main {
 .screen-head .muted { margin-top: var(--space-6); max-width: 42ch; }
 
 /* ============================================================
+   ZONAS TÁCTILES — el aspecto no cambia; el área pulsable llega a 44px
+   con un pseudo-elemento transparente. --hit = píxeles a añadir por arriba y abajo.
+   ============================================================ */
+.icon-btn, .btn--sm, .slot__go,
+.slot__notes summary, .loc__adv summary, .itin-fuel__cfg summary { position: relative; }
+.icon-btn::after, .btn--sm::after, .slot__go::after,
+.slot__notes summary::after, .loc__adv summary::after, .itin-fuel__cfg summary::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--hit, 0px) * -1) 0;
+}
+.icon-btn::after { inset: calc(var(--hit, 0px) * -1); }   /* cuadrados: crecen por los cuatro lados */
+.icon-btn { --hit: 3px; }          /* 38 → 44 */
+.btn--sm { --hit: 4px; }           /* 36 → 44 */
+.slot__go { --hit: 6px; }          /* 32 → 44 */
+.slot__notes summary, .loc__adv summary { --hit: 12px; }   /* ~20 → 44 */
+.itin-fuel__cfg summary { --hit: 9px; }
+.fly-bags summary { min-height: 44px; }
+
+/* ============================================================
    TAB BAR — píldora flotante
    ============================================================ */
 .tabbar {
@@ -368,7 +393,7 @@ main {
   min-height: calc(var(--tabbar-h) - 12px);
   padding: 6px 2px;
   font-family: var(--font-ui);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0;
   white-space: nowrap;
@@ -520,9 +545,9 @@ main {
 .route__place {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 8.5px;
+  font-size: 10px;
   fill: var(--c-ice);
-  opacity: 0.6;
+  opacity: 0.85;
 }
 .route__line {
   fill: none;
@@ -926,7 +951,7 @@ input, select, textarea {
   font-size: 16px; /* evita el zoom automático en iOS */
   color: var(--c-text);
   background: var(--c-surface-2);
-  border: 1px solid var(--c-border);
+  border: 1px solid var(--c-border-strong);
   border-radius: var(--radius-m);
   padding: 11px 13px;
   appearance: none;
@@ -1137,9 +1162,8 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 
 /* Tarjeta "Hoy" */
 .hoy-card {
-  background: var(--c-surface);
-  border: 1px solid var(--c-border-soft);
-  border-left: 3px solid var(--c-accent);
+  background: color-mix(in oklab, var(--c-accent) 9%, var(--c-surface));
+  border: 1px solid color-mix(in oklab, var(--c-accent) 38%, var(--c-border-soft));
   border-radius: var(--radius-m);
   padding: var(--space-16);
   margin-bottom: var(--space-16);
@@ -1336,7 +1360,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 .slot__sub { color: var(--c-text-1); font-size: var(--step-0); line-height: 1.5; margin-top: 3px; }
 .slot__notes { margin-top: var(--space-8); font-size: var(--step-0); }
 .slot__notes summary {
-  color: var(--c-accent);
+  color: var(--c-ice);   /* es información, no una acción: el verde queda para los botones */
   cursor: pointer;
   list-style: none;
   font-weight: 500;
@@ -1406,7 +1430,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 7px 15px;
   font-family: var(--font-ui);
   font-size: var(--step-0);
@@ -1455,6 +1479,11 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   box-shadow: var(--shadow-1);
 }
 .leaflet-container { background: var(--c-bg-1); font-family: var(--font-body); }
+/* Los tiles son de OpenStreetMap (claros). En tema oscuro se invierten solo los
+   tiles —no marcadores, ruta ni controles— para que el mapa no sea un bloque brillante. */
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.92) saturate(0.55);
+}
 .map-err { padding: var(--space-24); color: var(--c-text-2); font-size: var(--step-0); text-align: center; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--c-surface-2);
@@ -1467,6 +1496,12 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   background: var(--c-surface-2);
   color: var(--c-text);
   border-bottom-color: var(--c-border);
+}
+.leaflet-container .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; }
+.leaflet-bar a.leaflet-disabled, .leaflet-bar a.leaflet-disabled:hover {
+  background: var(--c-surface);
+  color: var(--c-text-2);
+  opacity: 0.7;
 }
 .leaflet-control-attribution {
   background: color-mix(in oklab, var(--c-bg) 70%, transparent) !important;
@@ -1604,7 +1639,8 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   border-radius: 0;
   box-shadow: none;
 }
-.reco-usercard { border-left: 3px solid var(--c-accent) !important; }
+/* Notas propias: fondo teñido en vez de raya lateral */
+.reco-cat__list > .reco-usercard { background: color-mix(in oklab, var(--c-accent) 8%, transparent); }
 .reco-foot {
   display: flex;
   flex-wrap: wrap;
@@ -1627,6 +1663,10 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   font-weight: 600;
   color: var(--c-accent);
   text-decoration: none;
+  /* área pulsable de 44px sin mover el texto */
+  display: inline-block;
+  padding: 14px 0;
+  margin: -14px 0;
 }
 
 /* Teléfonos importantes ("Ideas") --------------------------- */
@@ -1663,7 +1703,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
+  min-height: 44px;
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: var(--step-1);
@@ -1693,12 +1733,18 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 .coche-when {
   background: var(--c-bg-1);
   border: 1px solid var(--c-border-soft);
-  border-left: 3px solid var(--c-border);
   border-radius: var(--radius-s);
   padding: var(--space-10) var(--space-12);
 }
-.coche-when.is-in { border-left-color: var(--c-accent); }
-.coche-when.is-out { border-left-color: var(--c-ice); }
+/* Recogida en acento, devolución en hielo: se distinguen por el tinte, no por una raya */
+.coche-when.is-in {
+  background: color-mix(in oklab, var(--c-accent) 9%, var(--c-bg-1));
+  border-color: color-mix(in oklab, var(--c-accent) 35%, var(--c-border-soft));
+}
+.coche-when.is-out {
+  background: color-mix(in oklab, var(--c-ice) 10%, var(--c-bg-1));
+  border-color: color-mix(in oklab, var(--c-ice) 35%, var(--c-border-soft));
+}
 .coche-when__lbl {
   font-family: var(--font-ui);
   font-size: var(--step--1);
@@ -2040,6 +2086,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
 :root[data-theme="light"] body::before {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='96' viewBox='0 0 240 96'%3E%3Cg fill='none' stroke='%232a3a5c' stroke-width='1' opacity='.06'%3E%3Cpath d='M0 16q60-22 120 0t120 0'/%3E%3Cpath d='M0 48q60 20 120 0t120 0'/%3E%3Cpath d='M0 80q60-14 120 0t120 0'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 240px 96px;
 }
+:root[data-theme="light"] ::-webkit-calendar-picker-indicator { filter: none; }
 :root[data-theme="light"] .sheet__panel,
 :root[data-theme="light"] .confirm__box { background: var(--c-surface); }
 :root[data-theme="light"] .tabbar {

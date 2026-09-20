@@ -1205,6 +1205,13 @@
     return b;
   }
 
+  // Secciones de Datos: en «Todo» vienen cerradas (la pantalla es larguísima) y
+  // solo se abren si el usuario las dejó abiertas (open_* = '1'). Si eligió el
+  // chip de una sección, se abre siempre: es lo que ha venido a ver.
+  function groupOpen(openKey, topic) {
+    return selectedDatosTopic === topic || localStorage.getItem(openKey) === '1';
+  }
+
   function renderDatos() {
     const body = $('#datos-body');
     body.innerHTML = '';
@@ -1264,7 +1271,7 @@
     const g = el('div', 'group');
     g.style.setProperty('--gh', GROUP_HUE.equipaje);
     const openKey = 'open_equipaje';
-    const isOpen = localStorage.getItem(openKey) !== '0';
+    const isOpen = groupOpen(openKey, 'equipaje');
     const total = state.equipaje.length;
     const packed = state.equipaje.filter(x => x.packed).length;
 
@@ -1354,7 +1361,7 @@
     const g = el('div', 'group');
     g.style.setProperty('--gh', GROUP_HUE.antes);
     const openKey = 'open_antes';
-    const isOpen = localStorage.getItem(openKey) !== '0';
+    const isOpen = groupOpen(openKey, 'antes');
     const total = state.antesDeViajar.length;
     const hechas = state.antesDeViajar.filter(x => x.hecho).length;
 
@@ -1619,7 +1626,7 @@
     g.style.setProperty('--gh', GROUP_HUE[col] || 158);
 
     const openKey = 'open_' + col;
-    const isOpen = localStorage.getItem(openKey) !== '0';
+    const isOpen = groupOpen(openKey, col);
 
     const head = el('button', 'group__head');
     head.type = 'button';

@@ -13,6 +13,7 @@
   --c-surface-3:   oklch(0.335 0.032 280);
   --c-border:      oklch(0.38 0.032 280);
   --c-border-soft: oklch(0.31 0.028 280);
+  --c-border-strong: oklch(0.54 0.03 280);   /* campos de formulario: >=3:1 */
 
   /* Texto */
   --c-text:   oklch(0.97 0.006 280);
@@ -73,6 +74,7 @@
   --c-surface-3:   oklch(0.92 0.015 250);
   --c-border:      oklch(0.80 0.02 255);
   --c-border-soft: oklch(0.88 0.015 255);
+  --c-border-strong: oklch(0.62 0.02 255);
 
   --c-text:   oklch(0.22 0.03 280);
   --c-text-1: oklch(0.35 0.03 280);
