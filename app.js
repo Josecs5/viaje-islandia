@@ -261,39 +261,49 @@
   };
 
   // Alojamientos reservados (8 noches). Coordenadas geocodificadas; Gerði es aproximada.
+  // checkin/checkoutDesde–Hasta: franja de la reserva ('' = sin ese extremo);
+  // se enseñan en Datos y junto al check-in/check-out del Itinerario.
   const ALOJ_SEED = [
     { id: 'seed-a1', nombre: '100 Iceland Hotel', checkin: '2026-10-08', checkout: '2026-10-09', zona: 'Reikiavik',
       loc: { texto: 'Laugavegur 100, 101 Reikiavik', lat: 64.14317, lng: -21.91687 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/100-iceland.es.html',
-      notas: 'Check-in desde 15:00 · check-out hasta 11:00. 2 adultos, 1 habitación.' },
+      checkinDesde: '15:00', checkinHasta: '', checkoutDesde: '', checkoutHasta: '11:00',
+      notas: '2 adultos, 1 habitación.' },
     { id: 'seed-a2', nombre: 'Vík Cottages', checkin: '2026-10-09', checkout: '2026-10-10', zona: 'Vík í Mýrdal',
       loc: { texto: 'Klettsvegur 3, 870 Vík í Mýrdal', lat: 63.41958, lng: -18.99941 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/vik-cottages.es.html',
-      notas: 'Check-in desde 16:00 · check-out hasta 11:00.' },
+      checkinDesde: '16:00', checkinHasta: '', checkoutDesde: '', checkoutHasta: '11:00',
+      notas: '' },
     { id: 'seed-a3', nombre: 'Gerdi Guesthouse', checkin: '2026-10-10', checkout: '2026-10-11', zona: 'Suðursveit (Jökulsárlón)',
       loc: { texto: 'Gerði, 781 Suðursveit (cerca de Jökulsárlón)', lat: 64.0353, lng: -15.8862 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/gerdi.es.html',
-      notas: 'Check-in 16:00–21:00 · check-out 07:30–11:00. Concretar hora con el anfitrión. Coordenada aproximada.' },
+      checkinDesde: '16:00', checkinHasta: '21:00', checkoutDesde: '07:30', checkoutHasta: '11:00',
+      notas: 'Concretar hora con el anfitrión. Coordenada aproximada.' },
     { id: 'seed-a4', nombre: 'Hótel Eyvindará', checkin: '2026-10-11', checkout: '2026-10-12', zona: 'Egilsstaðir',
       loc: { texto: 'Eyvindará 2, 700 Egilsstaðir', lat: 65.27595, lng: -14.3788 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/hotel-eyvindara.es.html',
-      notas: 'Desayuno incluido (la mañana del 12, antes del check-out). Check-in 16:00–20:00 · check-out 07:00–11:00.' },
+      checkinDesde: '16:00', checkinHasta: '20:00', checkoutDesde: '07:00', checkoutHasta: '11:00',
+      notas: 'Desayuno incluido (la mañana del 12, antes del check-out).' },
     { id: 'seed-a5', nombre: 'Fosshotel Húsavík', checkin: '2026-10-12', checkout: '2026-10-13', zona: 'Húsavík',
       loc: { texto: 'Ketilsbraut 22, 640 Húsavík', lat: 66.04595, lng: -17.33886 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/husavik.es.html',
-      notas: 'Desayuno incluido (la mañana del 13, antes del check-out). Check-in 15:00–00:00 · check-out hasta 12:00.' },
+      checkinDesde: '15:00', checkinHasta: '00:00', checkoutDesde: '', checkoutHasta: '12:00',
+      notas: 'Desayuno incluido (la mañana del 13, antes del check-out).' },
     { id: 'seed-a6', nombre: 'Torg Guesthouse', checkin: '2026-10-13', checkout: '2026-10-14', zona: 'Akureyri',
       loc: { texto: 'Brekkugata 1b, 600 Akureyri', lat: 65.6824, lng: -18.09193 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/cityhall-apartment.es.html',
-      notas: 'Check-in a las 15:00 (el coche se queda aparcado aquí) · check-out hasta 11:00. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
+      checkinDesde: '15:00', checkinHasta: '', checkoutDesde: '', checkoutHasta: '11:00',
+      notas: 'El coche se queda aparcado aquí. Salida hacia Reikiavik a las 08:00 en punto — son ~390 km (~5 h) y anochece sobre las 18:15, sin margen para imprevistos.' },
     { id: 'seed-a7', nombre: 'Travel Inn', checkin: '2026-10-14', checkout: '2026-10-15', zona: 'Reikiavik',
       loc: { texto: 'Sóleyjargata 31, 101 Reikiavik', lat: 64.13938, lng: -21.93638 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/travel-inn.es.html',
-      notas: 'Check-in a las 14:00 · check-out hasta 10:00. Primero visita a Hallgrímskirkja (aparcando junto a la iglesia), después check-in.' },
+      checkinDesde: '14:00', checkinHasta: '', checkoutDesde: '', checkoutHasta: '10:00',
+      notas: 'Primero visita a Hallgrímskirkja (aparcando junto a la iglesia), después check-in.' },
     { id: 'seed-a8', nombre: 'A. Bernhard Guest House', checkin: '2026-10-15', checkout: '2026-10-16', zona: 'Keflavík',
       loc: { texto: 'Vallargata 6, 230 Keflavík', lat: 64.00343, lng: -22.55746 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/a-bernhard-bed-and-breakfast.es.html',
-      notas: 'Check-in 15:00–23:00 · check-out hasta 11:00. Concretar hora con el anfitrión.' }
+      checkinDesde: '15:00', checkinHasta: '23:00', checkoutDesde: '', checkoutHasta: '11:00',
+      notas: 'Concretar hora con el anfitrión.' }
   ];
 
   // Excursiones contratadas.
@@ -1827,11 +1837,22 @@
     return html;
   }
 
+  // "16:00–20:00", "desde 15:00" o "hasta 11:00"; '' si no hay horario.
+  function franjaTxt(desde, hasta) {
+    if (desde && hasta) return desde + '–' + hasta;
+    if (desde) return 'desde ' + desde;
+    if (hasta) return 'hasta ' + hasta;
+    return '';
+  }
+  const checkinTxt = a => franjaTxt(a.checkinDesde, a.checkinHasta);
+  const checkoutTxt = a => franjaTxt(a.checkoutDesde, a.checkoutHasta);
+
   function alojSummary(a) {
     const noches = Math.max(0, eachDay(a.checkin, a.checkout).length - 1);
     return `<div class="item__title">${esc(a.nombre || 'Alojamiento')}</div>
       <div class="item__meta">${a.checkin ? fmtFecha(a.checkin, true) : '—'} → ${a.checkout ? fmtFecha(a.checkout, true) : '—'}${noches ? ' · ' + noches + ' noche' + (noches !== 1 ? 's' : '') : ''}</div>
       <div class="item__meta">${locLine(a.loc)}${a.zona ? ' · ' + esc(a.zona) : ''}</div>
+      ${checkinTxt(a) || checkoutTxt(a) ? `<div class="item__meta">${[checkinTxt(a) && 'Check-in ' + checkinTxt(a), checkoutTxt(a) && 'check-out ' + checkoutTxt(a)].filter(Boolean).join(' · ')}</div>` : ''}
       ${a.notas ? `<div class="item__meta">${escLines(a.notas)}</div>` : ''}
       ${a.reserva ? `<div class="item__meta">Reserva: ${esc(a.reserva)}</div>` : ''}
       ${a.enlace ? `<a class="btn btn--accent btn--sm item__link" href="${esc(a.enlace)}" target="_blank" rel="noopener">Ver alojamiento</a>` : ''}`;
@@ -2021,10 +2042,10 @@
     state.alojamientos.forEach(a => {
       const loc = a.loc && a.loc.lat != null ? a.loc : (a.loc || null);
       if (a.checkin && inRange(a.checkin)) {
-        push(a.checkin, { t: 'checkin', hora: '', sortT: 1400, titulo: `Check-in · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', notas: a.notas || '', loc, tag: 'Alojamiento', costMin: 0 });
+        push(a.checkin, { t: 'checkin', hora: '', nota: checkinTxt(a), sortT: 1400, titulo: `Check-in · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', notas: a.notas || '', loc, tag: 'Alojamiento', costMin: 0 });
       }
       if (a.checkout && inRange(a.checkout)) {
-        push(a.checkout, { t: 'checkout', hora: '', sortT: 10, titulo: `Check-out · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento', costMin: 0 });
+        push(a.checkout, { t: 'checkout', hora: '', nota: checkoutTxt(a), sortT: 10, titulo: `Check-out · ${a.nombre || 'Alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento', costMin: 0 });
       }
       eachDay(a.checkin, a.checkout).slice(0, -1).forEach(d => {
         if (inRange(d)) push(d, { t: 'noche', hora: '', sortT: 1460, titulo: `Noche en ${a.nombre || 'alojamiento'}`, sub: a.loc && a.loc.texto || '', loc, tag: 'Alojamiento', quiet: true, costMin: 0 });
