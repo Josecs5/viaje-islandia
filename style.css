@@ -27,6 +27,8 @@
   --c-accent-press:oklch(0.78 0.16 158);
   --c-accent-ink:  oklch(0.20 0.05 160);
   --c-accent-soft: oklch(0.31 0.07 160);
+  /* Tick de las casillas: mismo tono que --c-accent-ink, en hex porque va en un SVG. */
+  --check-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23102a1c' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
   --c-ice:     oklch(0.83 0.10 215);
   --c-violet:  oklch(0.74 0.14 300);
   --c-sulfur:  oklch(0.84 0.15 78);
@@ -127,6 +129,7 @@
   --c-accent-press:oklch(0.45 0.14 158);
   --c-accent-ink:  oklch(0.99 0.01 158);
   --c-accent-soft: oklch(0.93 0.05 160);
+  --check-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
   --c-ice:     oklch(0.50 0.11 230);
   --c-violet:  oklch(0.50 0.16 300);
   --c-sulfur:  oklch(0.56 0.13 70);
@@ -681,11 +684,22 @@ padding: 0 0 var(--space-16);
   padding: var(--space-8) 0;
   cursor: pointer;
 }
+/* El reset global de input (appearance: none) borra el tick nativo, así que
+   la casilla se dibuja aquí: caja vacía, y al marcarla fondo de acento + tick. */
 .equipaje-row input[type="checkbox"] {
   flex-shrink: 0;
-  width: 1.25em;
-  height: 1.25em;
-  accent-color: var(--c-accent);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--c-border-strong);
+  border-radius: var(--radius-s);
+  background: var(--c-surface-2) center / 18px 18px no-repeat;
+  cursor: pointer;
+}
+.equipaje-row input[type="checkbox"]:checked {
+  border-color: var(--c-accent);
+  background-color: var(--c-accent);
+  background-image: var(--check-tick);
 }
 .equipaje-row span { flex: 1; font-size: var(--step-1); }
 .equipaje-row--done span { color: var(--c-text-2); text-decoration: line-through; }
