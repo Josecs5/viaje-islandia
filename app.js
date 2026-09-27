@@ -514,11 +514,11 @@
     { id: 'seed-eq-8',  texto: 'Calcetines de senderismo (varios pares)', cat: 'Ropa', packed: false },
     { id: 'seed-eq-9',  texto: 'Ropa interior para varios días', cat: 'Ropa', packed: false },
     { id: 'seed-eq-10', texto: 'Bañador (piscinas y lagunas geotermales)', cat: 'Ropa', packed: false },
+    { id: 'seed-eq-26', texto: 'Bolsas de plástico para ropa mojada', cat: 'Ropa', packed: false },
     { id: 'seed-eq-11', texto: 'Botas de senderismo impermeables que cubran el tobillo, ya rodadas (en la cueva de hielo ponen crampones)', cat: 'Calzado', packed: false },
     { id: 'seed-eq-12', texto: 'Calzado cómodo de repuesto para el coche/ciudad', cat: 'Calzado', packed: false },
     { id: 'seed-eq-13', texto: 'Chanclas o sandalias para las duchas de las piscinas', cat: 'Calzado', packed: false },
     { id: 'seed-eq-14', texto: 'Gafas de sol', cat: 'Accesorios de frío', packed: false },
-    { id: 'seed-eq-15', texto: 'Crema hidratante y protector labial (el viento reseca)', cat: 'Accesorios de frío', packed: false },
     { id: 'seed-eq-16', texto: 'Toalla de secado rápido, solo si vas a pozas naturales o piscinas municipales (la entrada Comfort del Blue Lagoon ya la incluye)', cat: 'Accesorios de frío', packed: false },
     { id: 'seed-eq-17', texto: 'Pasaporte en vigor (la vuelta hace escala en Heathrow y Reino Unido ya no acepta el DNI, ni en tránsito)', cat: 'Documentos y dinero', packed: false },
     { id: 'seed-eq-18', texto: 'Carné de conducir', cat: 'Documentos y dinero', packed: false },
@@ -530,9 +530,22 @@
     { id: 'seed-eq-23', texto: 'Batería externa', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-24', texto: 'Frontal o linterna pequeña (anochece pronto en octubre)', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-30', texto: 'Funda impermeable para el móvil o la cámara', cat: 'Electrónica', packed: false },
-    { id: 'seed-eq-25', texto: 'Analgésicos y botiquín personal básico', cat: 'Botiquín y aseo', packed: false },
-    { id: 'seed-eq-32', texto: 'Biodramina o similar para el barco de ballenas en Húsavík (en octubre se mueve bastante)', cat: 'Botiquín y aseo', packed: false },
-    { id: 'seed-eq-26', texto: 'Bolsas de plástico para ropa mojada', cat: 'Botiquín y aseo', packed: false },
+    { id: 'seed-eq-25', texto: 'Paracetamol e ibuprofeno', cat: 'Botiquín · Medicamentos', packed: false },
+    { id: 'seed-eq-32', texto: 'Biodramina o similar para el mareo: el barco de Húsavík y quizá las curvas de los fiordos del este (tomarla antes de subir, como indica el prospecto)', cat: 'Botiquín · Medicamentos', packed: false },
+    { id: 'seed-eq-33', texto: 'Antidiarreico (loperamida) y un antiácido', cat: 'Botiquín · Medicamentos', packed: false },
+    { id: 'seed-eq-34', texto: 'Antihistamínico, por si hay alergias o reacciones', cat: 'Botiquín · Medicamentos', packed: false },
+    { id: 'seed-eq-35', texto: 'Pastillas para la garganta y algo para el resfriado (con el frío y los cambios de temperatura es lo más probable)', cat: 'Botiquín · Medicamentos', packed: false },
+    { id: 'seed-eq-36', texto: 'Apósitos para ampollas tipo Compeed (imprescindibles aunque las botas estén rodadas)', cat: 'Botiquín · Pies y senderismo', packed: false },
+    { id: 'seed-eq-37', texto: 'Esparadrapo y unas tijeras pequeñas', cat: 'Botiquín · Pies y senderismo', packed: false },
+    { id: 'seed-eq-38', texto: 'Venda elástica, por si hay torceduras en terreno irregular o con hielo', cat: 'Botiquín · Pies y senderismo', packed: false },
+    { id: 'seed-eq-39', texto: 'Crema o gel antiinflamatorio para golpes y agujetas', cat: 'Botiquín · Pies y senderismo', packed: false },
+    { id: 'seed-eq-40', texto: 'Tiritas de varios tamaños y gasas', cat: 'Botiquín · Heridas', packed: false },
+    { id: 'seed-eq-41', texto: 'Antiséptico (clorhexidina o povidona yodada) en formato pequeño', cat: 'Botiquín · Heridas', packed: false },
+    { id: 'seed-eq-42', texto: 'Pinzas', cat: 'Botiquín · Heridas', packed: false },
+    { id: 'seed-eq-15', texto: 'Protector labial y crema de manos (el viento reseca muchísimo)', cat: 'Botiquín · Frío, viento y sequedad', packed: false },
+    { id: 'seed-eq-43', texto: 'Suero fisiológico o spray nasal (el aire seco de la calefacción irrita)', cat: 'Botiquín · Frío, viento y sequedad', packed: false },
+    { id: 'seed-eq-44', texto: 'Lágrimas artificiales, por el viento en los ojos', cat: 'Botiquín · Frío, viento y sequedad', packed: false },
+    { id: 'seed-eq-45', texto: 'Protector solar pequeño para el día del glaciar (el hielo refleja mucho aunque el sol esté bajo)', cat: 'Botiquín · Frío, viento y sequedad', packed: false },
     { id: 'seed-eq-27', texto: 'Snacks para tramos largos sin gasolinera y una botella reutilizable (el agua del grifo es excelente)', cat: 'Coche y carretera', packed: false },
     { id: 'seed-eq-28', texto: 'Cargador de coche / adaptador de mechero', cat: 'Coche y carretera', packed: false }
   ];
@@ -606,27 +619,25 @@
   //  - un ítem seed que sigue toma el texto/categoría actuales;
   //  - un ítem seed nuevo se añade, salvo que el usuario ya lo hubiera tenido
   //    y borrado (por eso `vistos` apunta todos los ids seed ya ofrecidos).
-  // El nuevo se inserta tras el último de su categoría, no al final.
+  // Los ítems seed quedan en el orden del seed (así las categorías salen igual
+  // que en una instalación nueva) y los propios del usuario, detrás.
   function syncSeedList(existing, seed, prefix, vistos) {
+    const saved = Array.isArray(existing) ? existing : [];
     const byId = {};
-    seed.forEach(it => { byId[it.id] = it; });
-    const list = (Array.isArray(existing) ? existing : []).filter(it =>
-      !(String(it.id).startsWith(prefix) && !byId[it.id]));
-    list.forEach(it => {
-      const s = byId[it.id];
-      if (!s) return;
-      it.texto = s.texto;
-      it.cat = s.cat;
-      if ('anchor' in s) it.anchor = s.anchor;
-    });
-    const have = new Set(list.map(it => it.id));
+    saved.forEach(it => { byId[it.id] = it; });
+    const list = [];
     seed.forEach(s => {
-      if (have.has(s.id) || vistos.has(s.id)) return;
-      let at = -1;
-      list.forEach((it, i) => { if (it.cat === s.cat) at = i; });
-      list.splice(at > -1 ? at + 1 : list.length, 0, JSON.parse(JSON.stringify(s)));
-      have.add(s.id);
+      const it = byId[s.id];
+      if (it) {
+        it.texto = s.texto;
+        it.cat = s.cat;
+        if ('anchor' in s) it.anchor = s.anchor;
+        list.push(it);
+      } else if (!vistos.has(s.id)) {
+        list.push(JSON.parse(JSON.stringify(s)));
+      }
     });
+    saved.forEach(it => { if (!String(it.id).startsWith(prefix)) list.push(it); });
     return list;
   }
 
