@@ -588,6 +588,9 @@
     { id: 'seed-cl-1', texto: 'Embutido envasado al vacío: jamón o lomo loncheado, chorizo, fuet', cat: '', hecho: false },
     { id: 'seed-cl-2', texto: 'Queso curado envasado', cat: '', hecho: false },
     { id: 'seed-cl-3', texto: 'Latas con abre fácil: atún, mejillones, sardinas, pimientos', cat: '', hecho: false },
+    { id: 'seed-cl-7', texto: 'Magro en lata', cat: '', hecho: false },
+    { id: 'seed-cl-8', texto: 'Paté', cat: '', hecho: false },
+    { id: 'seed-cl-9', texto: 'Ensalada en lata', cat: '', hecho: false },
     { id: 'seed-cl-4', texto: 'Picos, tostas o pan de molde (el pan allí es especialmente caro)', cat: '', hecho: false },
     { id: 'seed-cl-5', texto: 'Frutos secos, barritas y fruta deshidratada', cat: '', hecho: false },
     { id: 'seed-cl-6', texto: 'Café soluble, té y sobres de sopa o fideos instantáneos, por si algún alojamiento tiene hervidor', cat: '', hecho: false }
