@@ -151,7 +151,7 @@
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: []
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: [], seedVistos: []
   });
 
   /* ==========================================================
@@ -499,7 +499,10 @@
   }];
 
   // Lista de equipaje curada para este viaje (Islandia, octubre, coche de
-  // alquiler) — Experiencia E3.
+  // alquiler) — Experiencia E3. Los ids son estables: syncSeedList() los usa
+  // para llevar a quien ya tiene la app los textos nuevos, los ítems añadidos
+  // y la retirada de los que se quitan de aquí (p. ej. seed-eq-29, el
+  // adaptador de enchufe: España e Islandia usan los mismos, C/F a 230 V).
   const EQUIPAJE_SEED = [
     { id: 'seed-eq-1',  texto: 'Capa base térmica (arriba y abajo)', cat: 'Ropa', packed: false },
     { id: 'seed-eq-2',  texto: 'Forro polar o jersey de abrigo', cat: 'Ropa', packed: false },
@@ -511,41 +514,49 @@
     { id: 'seed-eq-8',  texto: 'Calcetines de senderismo (varios pares)', cat: 'Ropa', packed: false },
     { id: 'seed-eq-9',  texto: 'Ropa interior para varios días', cat: 'Ropa', packed: false },
     { id: 'seed-eq-10', texto: 'Bañador (piscinas y lagunas geotermales)', cat: 'Ropa', packed: false },
-    { id: 'seed-eq-11', texto: 'Botas de senderismo impermeables, ya rodadas', cat: 'Calzado', packed: false },
+    { id: 'seed-eq-11', texto: 'Botas de senderismo impermeables que cubran el tobillo, ya rodadas (en la cueva de hielo ponen crampones)', cat: 'Calzado', packed: false },
     { id: 'seed-eq-12', texto: 'Calzado cómodo de repuesto para el coche/ciudad', cat: 'Calzado', packed: false },
     { id: 'seed-eq-13', texto: 'Chanclas o sandalias para las duchas de las piscinas', cat: 'Calzado', packed: false },
     { id: 'seed-eq-14', texto: 'Gafas de sol', cat: 'Accesorios de frío', packed: false },
     { id: 'seed-eq-15', texto: 'Crema hidratante y protector labial (el viento reseca)', cat: 'Accesorios de frío', packed: false },
-    { id: 'seed-eq-16', texto: 'Toalla de secado rápido para piscinas/lagunas', cat: 'Accesorios de frío', packed: false },
-    { id: 'seed-eq-17', texto: 'DNI o pasaporte', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-16', texto: 'Toalla de secado rápido, solo si vas a pozas naturales o piscinas municipales (la entrada Comfort del Blue Lagoon ya la incluye)', cat: 'Accesorios de frío', packed: false },
+    { id: 'seed-eq-17', texto: 'Pasaporte en vigor (la vuelta hace escala en Heathrow y Reino Unido ya no acepta el DNI, ni en tránsito)', cat: 'Documentos y dinero', packed: false },
     { id: 'seed-eq-18', texto: 'Carné de conducir', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-31', texto: 'Tarjeta Sanitaria Europea (vale en Islandia)', cat: 'Documentos y dinero', packed: false },
     { id: 'seed-eq-19', texto: 'Reservas descargadas (vuelos, coche, alojamientos) por si falla la conexión', cat: 'Documentos y dinero', packed: false },
-    { id: 'seed-eq-20', texto: 'Tarjeta con chip y PIN (imprescindible en gasolineras automáticas)', cat: 'Documentos y dinero', packed: false },
+    { id: 'seed-eq-20', texto: 'Dos tarjetas con chip y PIN de bancos distintos, por si una falla (las gasolineras automáticas piden PIN)', cat: 'Documentos y dinero', packed: false },
     { id: 'seed-eq-21', texto: 'Seguro de viaje', cat: 'Documentos y dinero', packed: false },
     { id: 'seed-eq-22', texto: 'Cargador y cable de móvil', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-23', texto: 'Batería externa', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-24', texto: 'Frontal o linterna pequeña (anochece pronto en octubre)', cat: 'Electrónica', packed: false },
-    { id: 'seed-eq-29', texto: 'Adaptador de enchufe tipo F (Islandia, 230V)', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-30', texto: 'Funda impermeable para el móvil o la cámara', cat: 'Electrónica', packed: false },
     { id: 'seed-eq-25', texto: 'Analgésicos y botiquín personal básico', cat: 'Botiquín y aseo', packed: false },
+    { id: 'seed-eq-32', texto: 'Biodramina o similar para el barco de ballenas en Húsavík (en octubre se mueve bastante)', cat: 'Botiquín y aseo', packed: false },
     { id: 'seed-eq-26', texto: 'Bolsas de plástico para ropa mojada', cat: 'Botiquín y aseo', packed: false },
-    { id: 'seed-eq-27', texto: 'Snacks y agua para tramos largos sin gasolinera', cat: 'Coche y carretera', packed: false },
+    { id: 'seed-eq-27', texto: 'Snacks para tramos largos sin gasolinera y una botella reutilizable (el agua del grifo es excelente)', cat: 'Coche y carretera', packed: false },
     { id: 'seed-eq-28', texto: 'Cargador de coche / adaptador de mechero', cat: 'Coche y carretera', packed: false }
   ];
 
   // Checklist de tareas antes de salir (no objetos que llevar, eso es
   // EQUIPAJE_SEED). "anchor" liga una tarea a un vuelo real de state.vuelos
-  // ('vuelo-ida'/'vuelo-vuelta') para calcular su fecha límite (24 h antes de
-  // la salida del primer tramo) en vez de escribirla a mano — ver
-  // anteDeadline()/anteFechaTxt(). null = sin fecha calculada, solo texto.
+  // ('vuelo-ida'/'vuelo-vuelta') para calcular cuándo se abre la facturación
+  // online (24 h antes de la salida del primer tramo) en vez de escribirlo a
+  // mano — ver anteDeadline()/anteFechaTxt(). null = sin fecha, solo texto.
   const ANTES_SEED = [
-    { id: 'seed-an-1', texto: 'Facturar el vuelo de ida (TAP)', cat: 'Vuelos', anchor: 'vuelo-ida', hecho: false },
-    { id: 'seed-an-2', texto: 'Facturar el vuelo de vuelta (British Airways)', cat: 'Vuelos', anchor: 'vuelo-vuelta', hecho: false },
-    { id: 'seed-an-3', texto: 'Avisar al banco de que vas a usar la tarjeta en Islandia', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-1', texto: 'Facturar online el vuelo de ida (TAP)', cat: 'Vuelos', anchor: 'vuelo-ida', hecho: false },
+    { id: 'seed-an-2', texto: 'Facturar online el vuelo de vuelta (British Airways)', cat: 'Vuelos', anchor: 'vuelo-vuelta', hecho: false },
+    { id: 'seed-an-8', texto: 'La semana antes de volver: comprobar que el tránsito en Heathrow sin salir del aeropuerto sigue sin pedir ETA (la exención es temporal y está en revisión)', cat: 'Vuelos', anchor: null, hecho: false },
+    { id: 'seed-an-3', texto: 'Mirar en la app del banco que los pagos en el extranjero no están bloqueados', cat: 'General', anchor: null, hecho: false },
     { id: 'seed-an-4', texto: 'Confirmar que el seguro de viaje está contratado', cat: 'General', anchor: null, hecho: false },
-    { id: 'seed-an-5', texto: 'Comprobar que el DNI o pasaporte no caduca durante el viaje', cat: 'General', anchor: null, hecho: false },
-    { id: 'seed-an-6', texto: 'Activar roaming de datos o comprar una eSIM', cat: 'General', anchor: null, hecho: false },
-    { id: 'seed-an-7', texto: 'Probar la app sin conexión: abrir Mapas de cada día con wifi antes de salir', cat: 'General', anchor: null, hecho: false }
+    { id: 'seed-an-5', texto: 'Comprobar que el pasaporte no caduca durante el viaje (el DNI no vale para la escala en Reino Unido)', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-6', texto: 'Comprobar que el roaming de datos está activado (Islandia está en el EEE: sin coste extra, como en la UE)', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-7', texto: 'Probar la app sin conexión: abrir Mapas de cada día con wifi antes de salir', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-9', texto: 'Tener a mano umferdin.is (estado de las carreteras) y vedur.is (tiempo y previsión de auroras): entre Egilsstaðir y Mývatn puede haber nieve', cat: 'General', anchor: null, hecho: false },
+    { id: 'seed-an-10', texto: 'Si llevas zapatillas bajas: confirmar con el operador de la cueva de hielo que valen con crampones (si no, suelen alquilar botas)', cat: 'Excursiones', anchor: null, hecho: false },
+    { id: 'seed-an-11', texto: 'Al recoger el Duster: grabar un vídeo del coche por fuera', cat: 'Coche', anchor: null, hecho: false },
+    { id: 'seed-an-12', texto: 'Revisar qué cubre el seguro del coche (grava y arena)', cat: 'Coche', anchor: null, hecho: false },
+    { id: 'seed-an-13', texto: 'Con viento, abrir las puertas sujetándolas bien: los daños por viento en las puertas casi nunca los cubre el seguro', cat: 'Coche', anchor: null, hecho: false },
+    { id: 'seed-an-14', texto: 'En la primera gasolinera, comprar una tarjeta prepago de N1 u Orkan como plan B (algunas tarjetas extranjeras fallan en los surtidores)', cat: 'Coche', anchor: null, hecho: false }
   ];
 
   function seedState() {
@@ -561,6 +572,7 @@
     s.lugares = JSON.parse(JSON.stringify(LUGAR_SEED));
     s.comidas = JSON.parse(JSON.stringify(COMIDA_SEED));
     s.antesDeViajar = JSON.parse(JSON.stringify(ANTES_SEED));
+    s.seedVistos = EQUIPAJE_SEED.concat(ANTES_SEED).map(it => it.id);
     return s;
   }
 
@@ -588,17 +600,47 @@
     };
   }
 
-  // Añade a una lista de equipaje ya guardada los ítems nuevos del seed que
-  // falten (por id), sin tocar los existentes ni su estado 'packed'. Así,
-  // cuando se añade un ítem nuevo al seed en el código, quien ya tenía la
-  // app instalada lo recibe sin perder su checklist.
-  function mergeEquipajeSeed(existing) {
-    const list = Array.isArray(existing) ? existing.slice() : [];
-    const ids = new Set(list.map(i => i.id));
-    EQUIPAJE_SEED.forEach(item => {
-      if (!ids.has(item.id)) list.push(JSON.parse(JSON.stringify(item)));
+  // Pone al día una checklist ya guardada (equipaje o antes de viajar) con su
+  // seed, sin tocar lo marcado ni los ítems propios del usuario:
+  //  - un ítem seed que ya no está en el seed se retira;
+  //  - un ítem seed que sigue toma el texto/categoría actuales;
+  //  - un ítem seed nuevo se añade, salvo que el usuario ya lo hubiera tenido
+  //    y borrado (por eso `vistos` apunta todos los ids seed ya ofrecidos).
+  // El nuevo se inserta tras el último de su categoría, no al final.
+  function syncSeedList(existing, seed, prefix, vistos) {
+    const byId = {};
+    seed.forEach(it => { byId[it.id] = it; });
+    const list = (Array.isArray(existing) ? existing : []).filter(it =>
+      !(String(it.id).startsWith(prefix) && !byId[it.id]));
+    list.forEach(it => {
+      const s = byId[it.id];
+      if (!s) return;
+      it.texto = s.texto;
+      it.cat = s.cat;
+      if ('anchor' in s) it.anchor = s.anchor;
+    });
+    const have = new Set(list.map(it => it.id));
+    seed.forEach(s => {
+      if (have.has(s.id) || vistos.has(s.id)) return;
+      let at = -1;
+      list.forEach((it, i) => { if (it.cat === s.cat) at = i; });
+      list.splice(at > -1 ? at + 1 : list.length, 0, JSON.parse(JSON.stringify(s)));
+      have.add(s.id);
     });
     return list;
+  }
+
+  // Ids seed que el usuario ya ha tenido en sus listas. Sin registro (estado
+  // anterior a este campo) se deduce: lo que ya tiene, más los 7 originales de
+  // "antes de viajar" y los 30 de equipaje, que ya se le sembraron — si falta
+  // alguno es porque lo borró a mano y no hay que resucitarlo.
+  function seedVistosFrom(p) {
+    if (Array.isArray(p.seedVistos)) return new Set(p.seedVistos);
+    const v = new Set();
+    (p.equipaje || []).concat(p.antesDeViajar || []).forEach(it => v.add(it.id));
+    for (let i = 1; i <= 7; i++) v.add('seed-an-' + i);
+    for (let i = 1; i <= 30; i++) v.add('seed-eq-' + i);
+    return v;
   }
 
   function load() {
@@ -607,6 +649,10 @@
       if (!raw) return seedState();
       const p = JSON.parse(raw);
       const b = blankState();
+      const vistos = seedVistosFrom(p);
+      const equipaje = p.equipaje !== undefined ? syncSeedList(p.equipaje, EQUIPAJE_SEED, 'seed-eq-', vistos) : JSON.parse(JSON.stringify(EQUIPAJE_SEED));
+      const antesDeViajar = p.antesDeViajar !== undefined ? syncSeedList(p.antesDeViajar, ANTES_SEED, 'seed-an-', vistos) : JSON.parse(JSON.stringify(ANTES_SEED));
+      EQUIPAJE_SEED.concat(ANTES_SEED).forEach(it => vistos.add(it.id));
       return {
         meta: Object.assign(b.meta, p.meta || {}),
         vuelos: (p.vuelos || []).map(migrateVuelo),
@@ -620,9 +666,10 @@
         fx: Object.assign(blankFx(), p.fx || {}),
         combustible: Object.assign(blankFuel(), p.combustible || {}),
         meteo: Object.assign(blankMeteo(), p.meteo || p.aurora || {}),
-        equipaje: p.equipaje !== undefined ? mergeEquipajeSeed(p.equipaje) : JSON.parse(JSON.stringify(EQUIPAJE_SEED)),
+        equipaje,
         diario: p.diario || {},
-        antesDeViajar: p.antesDeViajar !== undefined ? p.antesDeViajar : JSON.parse(JSON.stringify(ANTES_SEED))
+        antesDeViajar,
+        seedVistos: Array.from(vistos)
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -1242,8 +1289,8 @@
     if (selectedDatosTopic === 'all' || selectedDatosTopic === 'equipaje') body.appendChild(equipajeBlock());
   }
 
-  // Fecha límite real de una tarea "antes de viajar" ligada a un vuelo (24 h
-  // antes de la salida del primer tramo). null si no hay anchor o no se
+  // Cuándo se abre la facturación online de un vuelo (24 h antes de la
+  // salida del primer tramo) para la tarea "antes de viajar" que lo ancla. null si no hay anchor o no se
   // encuentra el vuelo — la tarea se pinta entonces sin fecha, como texto
   // plano igual que las que no tienen anchor.
   function anteDeadline(anchor) {
@@ -1356,7 +1403,7 @@
   // Checklist de tareas antes de salir (no objetos que llevar, eso es
   // equipajeBlock). Mismo patrón exacto: sin SCHEMAS/openSheet, tap-to-marcar,
   // solo renderDatos() tras cada cambio. La única diferencia es la fecha
-  // límite calculada para las tareas con anchor (ver anteFechaTxt).
+  // de apertura de la facturación para las tareas con anchor (ver anteFechaTxt).
   function antesDeViajarBlock() {
     const g = el('div', 'group');
     g.style.setProperty('--gh', GROUP_HUE.antes);
