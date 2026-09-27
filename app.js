@@ -592,6 +592,7 @@
     { id: 'seed-cl-8', texto: 'Paté', cat: '', hecho: false },
     { id: 'seed-cl-9', texto: 'Ensalada en lata', cat: '', hecho: false },
     { id: 'seed-cl-4', texto: 'Picos, tostas o pan de molde (el pan allí es especialmente caro)', cat: '', hecho: false },
+    { id: 'seed-cl-11', texto: 'Bolsitas para meter los bocatas', cat: '', hecho: false },
     { id: 'seed-cl-5', texto: 'Frutos secos, barritas y fruta deshidratada', cat: '', hecho: false },
     { id: 'seed-cl-6', texto: 'Café soluble, té y sobres de sopa o fideos instantáneos, por si algún alojamiento tiene hervidor', cat: '', hecho: false },
     { id: 'seed-cl-10', texto: 'Sobres de Cola Cao', cat: '', hecho: false }
