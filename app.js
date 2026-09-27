@@ -277,7 +277,7 @@
     { id: 'seed-a4', nombre: 'Hótel Eyvindará', checkin: '2026-10-11', checkout: '2026-10-12', zona: 'Egilsstaðir',
       loc: { texto: 'Eyvindará 2, 700 Egilsstaðir', lat: 65.27595, lng: -14.3788 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/hotel-eyvindara.es.html',
-      notas: 'Check-in 16:00–20:00 · check-out 07:00–11:00.' },
+      notas: 'Desayuno incluido (la mañana del 12, antes del check-out). Check-in 16:00–20:00 · check-out 07:00–11:00.' },
     { id: 'seed-a5', nombre: 'Fosshotel Húsavík', checkin: '2026-10-12', checkout: '2026-10-13', zona: 'Húsavík',
       loc: { texto: 'Ketilsbraut 22, 640 Húsavík', lat: 66.04595, lng: -17.33886 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/husavik.es.html',
@@ -654,6 +654,17 @@
     return v;
   }
 
+  // Los alojamientos son de solo lectura (ver EDITABLE_COLS), así que un
+  // alojamiento seed guardado no puede tener cambios del usuario: se sustituye
+  // por la versión actual del código, para que las notas nuevas (p. ej. el
+  // desayuno de Eyvindará) lleguen también a quien ya tiene la app.
+  function syncReadOnlySeed(existing, seed) {
+    const byId = {};
+    seed.forEach(it => { byId[it.id] = it; });
+    return (Array.isArray(existing) ? existing : []).map(it =>
+      byId[it.id] ? JSON.parse(JSON.stringify(byId[it.id])) : it);
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -668,7 +679,7 @@
         meta: Object.assign(b.meta, p.meta || {}),
         vuelos: (p.vuelos || []).map(migrateVuelo),
         coches: p.coches || [],
-        alojamientos: p.alojamientos || [],
+        alojamientos: syncReadOnlySeed(p.alojamientos, ALOJ_SEED),
         excursiones: p.excursiones || [],
         comidas: p.comidas || [],
         lugares: p.lugares || [],
