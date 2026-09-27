@@ -689,7 +689,6 @@ padding: 0 0 var(--space-16);
 }
 .equipaje-row span { flex: 1; font-size: var(--step-1); }
 .equipaje-row--done span { color: var(--c-text-2); text-decoration: line-through; }
-.equipaje-row__del { margin-left: auto; flex-shrink: 0; }
 .equipaje-add { display: flex; gap: var(--space-8); margin-top: var(--space-12); }
 .equipaje-add input { flex: 1; }
 .ante-fecha { font-size: var(--step--1); color: var(--c-text-2); }

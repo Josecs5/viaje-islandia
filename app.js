@@ -1358,18 +1358,6 @@
             save();
             renderDatos();
           });
-          const del = el('button', 'icon-btn icon-btn--danger equipaje-row__del');
-          del.type = 'button';
-          del.setAttribute('aria-label', 'Eliminar');
-          del.textContent = '🗑';
-          del.addEventListener('click', async ev => {
-            ev.preventDefault();
-            const ok = await confirmAsk('¿Eliminar «' + it.texto + '» de la lista?');
-            if (!ok) return;
-            const i = state.equipaje.findIndex(x => x.id === it.id);
-            if (i > -1) { state.equipaje.splice(i, 1); save(); renderDatos(); }
-          });
-          row.appendChild(del);
           list.appendChild(row);
         });
         bodyWrap.appendChild(list);
@@ -1449,18 +1437,6 @@
             save();
             renderDatos();
           });
-          const del = el('button', 'icon-btn icon-btn--danger equipaje-row__del');
-          del.type = 'button';
-          del.setAttribute('aria-label', 'Eliminar');
-          del.textContent = '🗑';
-          del.addEventListener('click', async ev => {
-            ev.preventDefault();
-            const ok = await confirmAsk('¿Eliminar «' + it.texto + '» de la lista?');
-            if (!ok) return;
-            const i = state.antesDeViajar.findIndex(x => x.id === it.id);
-            if (i > -1) { state.antesDeViajar.splice(i, 1); save(); renderDatos(); }
-          });
-          row.appendChild(del);
           list.appendChild(row);
         });
         bodyWrap.appendChild(list);
