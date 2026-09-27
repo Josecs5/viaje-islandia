@@ -26,7 +26,7 @@ no) en esas fechas, más allá del tiempo del día a día. Datos incluye una
 checklist de **tareas antes de viajar** (facturar los vuelos con la hora a
 la que se abre la facturación, pasaporte para la escala en Heathrow, ETA,
 seguro, carreteras y auroras, recogida del coche...) y una
-**lista de equipaje** curada para el viaje, con checklist e ítems propios. Cada día del Itinerario tiene un campo de **diario de viaje** para
+**lista de equipaje** curada para el viaje y otra de **comida para llevar** desde casa, con checklist e ítems propios. Cada día del Itinerario tiene un campo de **diario de viaje** para
 anotar cómo fue esa jornada. Itinerario muestra una tarjeta **Hoy** con
 el resumen del día en curso — plan y viabilidad, viento, exteriores y
 previsión de auroras de esta noche — cuando la fecha actual cae dentro

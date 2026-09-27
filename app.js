@@ -151,7 +151,7 @@
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: [], seedVistos: []
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: [], comidaLlevar: [], seedVistos: []
   });
 
   /* ==========================================================
@@ -582,6 +582,17 @@
     { id: 'seed-an-14', texto: 'En la primera gasolinera, comprar una tarjeta prepago de N1 u Orkan como plan B (algunas tarjetas extranjeras fallan en los surtidores)', cat: 'Coche', anchor: null, hecho: false }
   ];
 
+  // Comida que llevar desde casa (la de Islandia es cara). Sin categorías:
+  // cat '' = la lista se pinta sin encabezado.
+  const LLEVAR_SEED = [
+    { id: 'seed-cl-1', texto: 'Embutido envasado al vacío: jamón o lomo loncheado, chorizo, fuet', cat: '', hecho: false },
+    { id: 'seed-cl-2', texto: 'Queso curado envasado', cat: '', hecho: false },
+    { id: 'seed-cl-3', texto: 'Latas con abre fácil: atún, mejillones, sardinas, pimientos', cat: '', hecho: false },
+    { id: 'seed-cl-4', texto: 'Picos, tostas o pan de molde (el pan allí es especialmente caro)', cat: '', hecho: false },
+    { id: 'seed-cl-5', texto: 'Frutos secos, barritas y fruta deshidratada', cat: '', hecho: false },
+    { id: 'seed-cl-6', texto: 'Café soluble, té y sobres de sopa o fideos instantáneos, por si algún alojamiento tiene hervidor', cat: '', hecho: false }
+  ];
+
   function seedState() {
     const s = blankState();
     s.meta.fechaInicio = '2026-10-08';
@@ -595,7 +606,8 @@
     s.lugares = JSON.parse(JSON.stringify(LUGAR_SEED));
     s.comidas = JSON.parse(JSON.stringify(COMIDA_SEED));
     s.antesDeViajar = JSON.parse(JSON.stringify(ANTES_SEED));
-    s.seedVistos = EQUIPAJE_SEED.concat(ANTES_SEED).map(it => it.id);
+    s.comidaLlevar = JSON.parse(JSON.stringify(LLEVAR_SEED));
+    s.seedVistos = EQUIPAJE_SEED.concat(ANTES_SEED, LLEVAR_SEED).map(it => it.id);
     return s;
   }
 
@@ -684,7 +696,8 @@
       const vistos = seedVistosFrom(p);
       const equipaje = p.equipaje !== undefined ? syncSeedList(p.equipaje, EQUIPAJE_SEED, 'seed-eq-', vistos) : JSON.parse(JSON.stringify(EQUIPAJE_SEED));
       const antesDeViajar = p.antesDeViajar !== undefined ? syncSeedList(p.antesDeViajar, ANTES_SEED, 'seed-an-', vistos) : JSON.parse(JSON.stringify(ANTES_SEED));
-      EQUIPAJE_SEED.concat(ANTES_SEED).forEach(it => vistos.add(it.id));
+      const comidaLlevar = p.comidaLlevar !== undefined ? syncSeedList(p.comidaLlevar, LLEVAR_SEED, 'seed-cl-', vistos) : JSON.parse(JSON.stringify(LLEVAR_SEED));
+      EQUIPAJE_SEED.concat(ANTES_SEED, LLEVAR_SEED).forEach(it => vistos.add(it.id));
       return {
         meta: Object.assign(b.meta, p.meta || {}),
         vuelos: (p.vuelos || []).map(migrateVuelo),
@@ -701,6 +714,7 @@
         equipaje,
         diario: p.diario || {},
         antesDeViajar,
+        comidaLlevar,
         seedVistos: Array.from(vistos)
       };
     } catch (e) {
@@ -1312,6 +1326,7 @@
     groups.forEach(([col, label]) => chips.appendChild(datosChip(col, SCHEMAS[KIND_OF[col]].icon + ' ' + label)));
     chips.appendChild(datosChip('antes', '✅ Antes de viajar'));
     chips.appendChild(datosChip('equipaje', '🎒 Equipaje'));
+    chips.appendChild(datosChip('llevar', '🛒 Comida para llevar'));
     body.appendChild(chips);
 
     groups.forEach(([col, label, sum]) => {
@@ -1319,6 +1334,7 @@
     });
     if (selectedDatosTopic === 'all' || selectedDatosTopic === 'antes') body.appendChild(antesDeViajarBlock());
     if (selectedDatosTopic === 'all' || selectedDatosTopic === 'equipaje') body.appendChild(equipajeBlock());
+    if (selectedDatosTopic === 'all' || selectedDatosTopic === 'llevar') body.appendChild(llevarBlock());
   }
 
   // Cuándo se abre la facturación online de un vuelo (24 h antes de la
@@ -1342,24 +1358,29 @@
     return fmtFecha(ymd(d)) + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
-  // Checklist de equipaje (Experiencia E3). No usa SCHEMAS/openSheet porque
-  // no es una ficha con formulario, sino ítems de tap-to-marcar; solo
-  // renderDatos() hace falta tras cada cambio, el equipaje no afecta a
-  // Itinerario/Mapas/Ideas/Clima.
-  function equipajeBlock() {
+  // Checklist de tap-to-marcar de Datos (equipaje, antes de viajar, comida
+  // para llevar). No usa SCHEMAS/openSheet porque no son fichas con
+  // formulario; tras cada cambio basta renderDatos(), estas listas no afectan
+  // a Itinerario/Mapas/Ideas/Clima. cfg:
+  //   topic  clave del chip, del tono (GROUP_HUE) y de open_<topic>
+  //   list   array de state; done: campo booleano de marcado ('packed'/'hecho')
+  //   extra  html opcional bajo el texto de un ítem
+  //   nuevo  crea el ítem que añade el usuario a partir del texto
+  // Los ítems con cat '' van sin encabezado de categoría.
+  function checklistBlock(cfg) {
     const g = el('div', 'group');
-    g.style.setProperty('--gh', GROUP_HUE.equipaje);
-    const openKey = 'open_equipaje';
-    const isOpen = groupOpen(openKey, 'equipaje');
-    const total = state.equipaje.length;
-    const packed = state.equipaje.filter(x => x.packed).length;
+    g.style.setProperty('--gh', GROUP_HUE[cfg.topic]);
+    const openKey = 'open_' + cfg.topic;
+    const isOpen = groupOpen(openKey, cfg.topic);
+    const total = cfg.list.length;
+    const hechos = cfg.list.filter(x => x[cfg.done]).length;
 
     const head = el('button', 'group__head');
     head.type = 'button';
     head.setAttribute('aria-expanded', String(isOpen));
     head.innerHTML =
-      `<span class="group__label"><span class="group__ico">🎒</span>Equipaje</span>` +
-      `<span class="group__right"><span class="count">${packed}/${total}</span><span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></span>`;
+      `<span class="group__label"><span class="group__ico">${cfg.ico}</span>${esc(cfg.label)}</span>` +
+      `<span class="group__right"><span class="count">${hechos}/${total}</span><span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></span>`;
 
     const bodyWrap = el('div', 'group__body');
     bodyWrap.hidden = !isOpen;
@@ -1371,22 +1392,25 @@
     } else {
       const cats = [];
       const byCat = {};
-      state.equipaje.forEach(it => {
+      cfg.list.forEach(it => {
         if (!byCat[it.cat]) { byCat[it.cat] = []; cats.push(it.cat); }
         byCat[it.cat].push(it);
       });
       cats.forEach(cat => {
-        const catEl = el('p', 'equipaje-cat');
-        catEl.textContent = cat;
-        bodyWrap.appendChild(catEl);
+        if (cat) {
+          const catEl = el('p', 'equipaje-cat');
+          catEl.textContent = cat;
+          bodyWrap.appendChild(catEl);
+        }
         const list = el('div', 'equipaje-list');
         byCat[cat].forEach(it => {
-          const row = el('label', 'equipaje-row' + (it.packed ? ' equipaje-row--done' : ''));
+          const extra = cfg.extra ? cfg.extra(it) : '';
+          const row = el('label', 'equipaje-row' + (it[cfg.done] ? ' equipaje-row--done' : ''));
           row.innerHTML =
-            `<input type="checkbox"${it.packed ? ' checked' : ''}>` +
-            `<span>${esc(it.texto)}</span>`;
+            `<input type="checkbox"${it[cfg.done] ? ' checked' : ''}>` +
+            `<span>${esc(it.texto)}${extra}</span>`;
           row.querySelector('input').addEventListener('change', () => {
-            it.packed = !it.packed;
+            it[cfg.done] = !it[cfg.done];
             save();
             renderDatos();
           });
@@ -1403,7 +1427,7 @@
       const input = addRow.querySelector('input');
       const texto = input.value.trim();
       if (!texto) return;
-      state.equipaje.push({ id: uid(), texto, cat: 'Otros', packed: false });
+      cfg.list.push(Object.assign({ id: uid(), texto }, cfg.nuevo()));
       save();
       renderDatos();
     });
@@ -1420,83 +1444,36 @@
     return g;
   }
 
-  // Checklist de tareas antes de salir (no objetos que llevar, eso es
-  // equipajeBlock). Mismo patrón exacto: sin SCHEMAS/openSheet, tap-to-marcar,
-  // solo renderDatos() tras cada cambio. La única diferencia es la fecha
-  // de apertura de la facturación para las tareas con anchor (ver anteFechaTxt).
+  // Objetos que meter en la maleta (Experiencia E3).
+  function equipajeBlock() {
+    return checklistBlock({
+      topic: 'equipaje', ico: '🎒', label: 'Equipaje',
+      list: state.equipaje, done: 'packed',
+      nuevo: () => ({ cat: 'Otros', packed: false })
+    });
+  }
+
+  // Tareas antes de salir; las ancladas a un vuelo muestran cuándo se abre la
+  // facturación (ver anteFechaTxt).
   function antesDeViajarBlock() {
-    const g = el('div', 'group');
-    g.style.setProperty('--gh', GROUP_HUE.antes);
-    const openKey = 'open_antes';
-    const isOpen = groupOpen(openKey, 'antes');
-    const total = state.antesDeViajar.length;
-    const hechas = state.antesDeViajar.filter(x => x.hecho).length;
-
-    const head = el('button', 'group__head');
-    head.type = 'button';
-    head.setAttribute('aria-expanded', String(isOpen));
-    head.innerHTML =
-      `<span class="group__label"><span class="group__ico">✅</span>Antes de viajar</span>` +
-      `<span class="group__right"><span class="count">${hechas}/${total}</span><span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></span>`;
-
-    const bodyWrap = el('div', 'group__body');
-    bodyWrap.hidden = !isOpen;
-
-    if (!total) {
-      const e = el('div', 'empty');
-      e.textContent = 'Sin elementos.';
-      bodyWrap.appendChild(e);
-    } else {
-      const cats = [];
-      const byCat = {};
-      state.antesDeViajar.forEach(it => {
-        if (!byCat[it.cat]) { byCat[it.cat] = []; cats.push(it.cat); }
-        byCat[it.cat].push(it);
-      });
-      cats.forEach(cat => {
-        const catEl = el('p', 'equipaje-cat');
-        catEl.textContent = cat;
-        bodyWrap.appendChild(catEl);
-        const list = el('div', 'equipaje-list');
-        byCat[cat].forEach(it => {
-          const fechaTxt = it.anchor ? anteFechaTxt(it.anchor) : '';
-          const row = el('label', 'equipaje-row' + (it.hecho ? ' equipaje-row--done' : ''));
-          row.innerHTML =
-            `<input type="checkbox"${it.hecho ? ' checked' : ''}>` +
-            `<span>${esc(it.texto)}${fechaTxt ? '<br><span class="ante-fecha">Disponible desde: ' + esc(fechaTxt) + '</span>' : ''}</span>`;
-          row.querySelector('input').addEventListener('change', () => {
-            it.hecho = !it.hecho;
-            save();
-            renderDatos();
-          });
-          list.appendChild(row);
-        });
-        bodyWrap.appendChild(list);
-      });
-    }
-
-    const addRow = el('form', 'equipaje-add');
-    addRow.innerHTML = `<input type="text" placeholder="Añadir a la lista…" maxlength="60"><button type="submit" class="btn btn--ghost">+ Añadir</button>`;
-    addRow.addEventListener('submit', e => {
-      e.preventDefault();
-      const input = addRow.querySelector('input');
-      const texto = input.value.trim();
-      if (!texto) return;
-      state.antesDeViajar.push({ id: uid(), texto, cat: 'General', anchor: null, hecho: false });
-      save();
-      renderDatos();
+    return checklistBlock({
+      topic: 'antes', ico: '✅', label: 'Antes de viajar',
+      list: state.antesDeViajar, done: 'hecho',
+      extra: it => {
+        const f = it.anchor ? anteFechaTxt(it.anchor) : '';
+        return f ? '<br><span class="ante-fecha">Disponible desde: ' + esc(f) + '</span>' : '';
+      },
+      nuevo: () => ({ cat: 'General', anchor: null, hecho: false })
     });
-    bodyWrap.appendChild(addRow);
+  }
 
-    head.addEventListener('click', () => {
-      const willOpen = bodyWrap.hidden;
-      bodyWrap.hidden = !willOpen;
-      head.setAttribute('aria-expanded', String(willOpen));
-      localStorage.setItem(openKey, willOpen ? '1' : '0');
+  // Comida que llevar desde casa (LLEVAR_SEED).
+  function llevarBlock() {
+    return checklistBlock({
+      topic: 'llevar', ico: '🛒', label: 'Comida para llevar',
+      list: state.comidaLlevar, done: 'hecho',
+      nuevo: () => ({ cat: '', hecho: false })
     });
-
-    g.append(head, bodyWrap);
-    return g;
   }
 
   // Los datos del viaje (fechas, vuelos, coche, alojamientos, excursiones) son de
@@ -1505,7 +1482,7 @@
   const isSeed = it => String(it && it.id || '').startsWith('seed-');
 
   // Tono (oklch hue) del icono de cada grupo de Datos, para que no sean todos iguales.
-  const GROUP_HUE = { vuelos: 235, coches: 215, alojamientos: 300, excursiones: 158, comidas: 78, lugares: 340, gastos: 100, antes: 158, equipaje: 40 };
+  const GROUP_HUE = { vuelos: 235, coches: 215, alojamientos: 300, excursiones: 158, comidas: 78, lugares: 340, gastos: 100, antes: 158, equipaje: 40, llevar: 25 };
 
   /* ==========================================================
      Mapa de la ruta (cabecera de Datos)
