@@ -281,7 +281,7 @@
     { id: 'seed-a5', nombre: 'Fosshotel Húsavík', checkin: '2026-10-12', checkout: '2026-10-13', zona: 'Húsavík',
       loc: { texto: 'Ketilsbraut 22, 640 Húsavík', lat: 66.04595, lng: -17.33886 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/husavik.es.html',
-      notas: 'Check-in 15:00–00:00 · check-out hasta 12:00.' },
+      notas: 'Desayuno incluido (la mañana del 13, antes del check-out). Check-in 15:00–00:00 · check-out hasta 12:00.' },
     { id: 'seed-a6', nombre: 'Torg Guesthouse', checkin: '2026-10-13', checkout: '2026-10-14', zona: 'Akureyri',
       loc: { texto: 'Brekkugata 1b, 600 Akureyri', lat: 65.6824, lng: -18.09193 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/cityhall-apartment.es.html',
