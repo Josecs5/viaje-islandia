@@ -3841,6 +3841,315 @@
     body.appendChild(sec);
   }
 
+  /* ==========================================================
+     Ruta del día (Ideas): estado de las carreteras que se pasan ese día
+     + tiempo previsto. Va arriba del todo, fuera de las secciones plegables.
+     ========================================================== */
+  // Vegagerðin no permite CORS: la GitHub Action carreteras.yml reúne sus
+  // datos cada 2 h en la rama «datos», y raw.githubusercontent.com sí da CORS.
+  const ROADS_URL = 'https://raw.githubusercontent.com/Josecs5/viaje-islandia/datos/carreteras.json';
+  const ROADS_KEY = 'islandia_carreteras_v1';
+  // Estaciones que cuentan como «del recorrido»: a 3 km de la ruta real por
+  // carretera (OSRM); si no hay ruta (sin red / OSRM caído), a 12 km de la
+  // línea recta entre paradas, que puede colar algún puerto de al lado.
+  const ROUTE_BUFFER_KM = 3, LINE_BUFFER_KM = 12;
+  const OSRM_URL = 'https://router.project-osrm.org/route/v1/driving/';
+  const RUTAS_KEY = 'islandia_rutas_v1';
+  let rutasGeo = {};
+  try { rutasGeo = JSON.parse(localStorage.getItem(RUTAS_KEY)) || {}; } catch (e) { rutasGeo = {}; }
+  const rutasPend = {};   // clave → 'cargando' | hora del último fallo (reintenta a los 10 min)
+  const rutaFallo = k => typeof rutasPend[k] === 'number' && Date.now() - rutasPend[k] < 10 * 60e3;
+  let roads = null;
+  try { roads = JSON.parse(localStorage.getItem(ROADS_KEY)); } catch (e) { roads = null; }
+  let roadsFetching = false, roadsChecked = 0;
+  let rutaDiaSel = null;   // fecha elegida con las flechas; null = automático (hoy / primer día)
+
+  function refreshRoads(force) {
+    if (roadsFetching || !navigator.onLine) return;
+    if (!force && Date.now() - roadsChecked < 20 * 60e3) return;
+    roadsFetching = true;
+    roadsChecked = Date.now();
+    fetch(ROADS_URL, { cache: 'no-cache' })
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(j => {
+        if (!j || !Array.isArray(j.estaciones) || !j.tramos) return;
+        roads = j;
+        try { localStorage.setItem(ROADS_KEY, JSON.stringify(j)); } catch (e) { /* cuota: vale en memoria */ }
+        renderRutaDia();
+      })
+      .catch(() => {})
+      .then(() => { roadsFetching = false; });
+  }
+
+  // Trazado real por carretera de los puntos del día (OSRM, CORS abierto).
+  // Se guarda adelgazado (un punto cada ≥ 400 m) y no caduca: las paradas de
+  // un día no cambian salvo que se edite el itinerario, y eso cambia la clave.
+  const rutaKey = pts => pts.map(p => p.lng.toFixed(4) + ',' + p.lat.toFixed(4)).join(';');
+  function pedirRuta(pts) {
+    const k = rutaKey(pts);
+    if (rutasGeo[k] || rutasPend[k] === 'cargando' || rutaFallo(k) || !navigator.onLine) return;
+    rutasPend[k] = 'cargando';
+    fetch(OSRM_URL + k + '?overview=full&geometries=geojson')
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(j => {
+        const co = j && j.routes && j.routes[0] && j.routes[0].geometry && j.routes[0].geometry.coordinates;
+        if (!Array.isArray(co) || co.length < 2) return Promise.reject();
+        const out = [];
+        co.forEach(([lng, lat], i) => {
+          const last = out[out.length - 1];
+          if (!last || i === co.length - 1 || haversine(last, { lat, lng }) >= 0.4) {
+            out.push({ lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5 });
+          }
+        });
+        rutasGeo[k] = out;
+        delete rutasPend[k];
+        try { localStorage.setItem(RUTAS_KEY, JSON.stringify(rutasGeo)); } catch (e) { /* cuota: vale en memoria */ }
+      })
+      .catch(() => { rutasPend[k] = Date.now(); })
+      .then(() => renderRutaDia());
+  }
+
+  // Estado del tramo (texto islandés de Vegagerðin) → español + nivel.
+  // Orden: lo más grave primero, porque un texto puede juntar varios.
+  const TRAMO_ESTADO = [
+    ['lokað', 'Cerrado', 'mal'],
+    ['ófært', 'Intransitable', 'mal'],
+    ['þungfært', 'Muy difícil (nieve)', 'mal'],
+    ['fjallabílum', 'Solo 4x4 de montaña', 'mal'],
+    ['flughálka', 'Hielo muy resbaladizo', 'mal'],
+    ['skafrenningur', 'Ventisca (nieve levantada)', 'ojo'],
+    ['þæfing', 'Nieve, se avanza despacio', 'ojo'],
+    ['snjóþekja', 'Nieve en la calzada', 'ojo'],
+    ['krapi', 'Aguanieve en la calzada', 'ojo'],
+    ['hálkublettir', 'Placas de hielo', 'ojo'],
+    ['hálka', 'Hielo', 'ojo'],
+    ['steinkast', 'Piedras sueltas (grava)', 'ojo'],
+    ['greiðfært', 'Despejado', 'ok'],
+    ['vantar', 'Sin información', 'nd'],
+    ['ekki í þjónustu', 'Sin mantenimiento', 'nd']
+  ];
+  function tramoEstado(t) {
+    const is = String(t.is || '').toLowerCase();
+    const hit = TRAMO_ESTADO.find(([k]) => is.includes(k));
+    if (hit) return { txt: hit[1], lvl: hit[2] };
+    return { txt: t.en || t.is || 'Sin información', lvl: t.is ? 'ojo' : 'nd' };
+  }
+
+  // Códigos WMO de Open-Meteo → icono + texto.
+  function wmo(c) {
+    if (c == null) return ['', ''];
+    if (c === 0) return ['☀️', 'Despejado'];
+    if (c <= 2) return ['🌤️', 'Poco nuboso'];
+    if (c === 3) return ['☁️', 'Nublado'];
+    if (c === 45 || c === 48) return ['🌫️', 'Niebla'];
+    if (c >= 51 && c <= 57) return ['🌦️', 'Llovizna'];
+    if (c === 66 || c === 67) return ['🧊', 'Lluvia helada'];
+    if (c >= 61 && c <= 65) return ['🌧️', 'Lluvia'];
+    if (c >= 71 && c <= 77) return ['🌨️', 'Nieve'];
+    if (c >= 80 && c <= 82) return ['🌦️', 'Chubascos'];
+    if (c === 85 || c === 86) return ['🌨️', 'Chubascos de nieve'];
+    if (c >= 95) return ['⛈️', 'Tormenta'];
+    return ['', ''];
+  }
+
+  // Alojamiento donde se duerme la noche de `d` (sin buscar hacia atrás como
+  // locForDate: el último día no hay noche y no hay que volver al hotel).
+  function nocheLoc(d) {
+    const a = state.alojamientos.find(x =>
+      x.checkin && x.checkout && x.checkin <= d && d < x.checkout &&
+      x.loc && x.loc.lat != null && x.loc.lng != null);
+    return a ? { lat: a.loc.lat, lng: a.loc.lng, label: a.nombre || 'Alojamiento' } : null;
+  }
+
+  // Puntos del recorrido del día: alojamiento de la noche anterior → paradas
+  // con ubicación (en el orden del Itinerario) → alojamiento de esta noche.
+  function rutaPuntos(day) {
+    const pts = [];
+    const add = l => {
+      if (!l || l.lat == null || l.lng == null || isIceCenter(l)) return;
+      const last = pts[pts.length - 1];
+      if (last && haversine(last, l) < 2) return;
+      pts.push({ lat: l.lat, lng: l.lng });
+    };
+    const dt = parseDate(day.date);
+    dt.setDate(dt.getDate() - 1);
+    add(nocheLoc(ymd(dt)));
+    day.items.forEach(it => add(it.loc));
+    add(nocheLoc(day.date));
+    return pts;
+  }
+
+  // Estaciones de carretera a ≤ buffer km de la polilínea, en orden de paso.
+  // Proyección equirectangular local: de sobra para distancias de ~10 km.
+  function estacionesEnRuta(pts, buffer) {
+    if (!roads || !pts.length) return [];
+    const KX = 111.32 * Math.cos(65 * Math.PI / 180), KY = 110.57;
+    const P = pts.map(p => ({ x: p.lng * KX, y: p.lat * KY }));
+    const out = [];
+    roads.estaciones.forEach(s => {
+      const q = { x: s.lng * KX, y: s.lat * KY };
+      let best = Infinity, pos = 0;
+      if (P.length === 1) {
+        best = Math.hypot(q.x - P[0].x, q.y - P[0].y);
+      } else {
+        for (let i = 0; i < P.length - 1; i++) {
+          const a = P[i], b = P[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy;
+          const t = L2 ? Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.y - a.y) * dy) / L2)) : 0;
+          const d = Math.hypot(q.x - (a.x + t * dx), q.y - (a.y + t * dy));
+          if (d < best) { best = d; pos = i + t; }
+        }
+      }
+      if (best <= buffer) out.push(Object.assign({ pos }, s));
+    });
+    return out.sort((a, b) => a.pos - b.pos);
+  }
+
+  // Previsión diaria de Open-Meteo para una ubicación de pernocta.
+  function diaMeteo(loc, date) {
+    const D = (state.meteo && state.meteo.daily) || {};
+    let best = null, bestD = Infinity;
+    Object.keys(D).forEach(k => {
+      const [la, lo] = k.split(',').map(Number);
+      const d = haversine({ lat: la, lng: lo }, loc);
+      if (d < bestD) { bestD = d; best = k; }
+    });
+    if (best == null || bestD > 40) return null;
+    return (D[best] || []).find(x => x.d === date) || null;
+  }
+
+  function meteoLinea(label, m) {
+    if (!m) return `<li><b>${esc(label)}</b> <span class="muted">sin previsión todavía</span></li>`;
+    const [ico, txt] = wmo(m.code);
+    const bits = [`${Math.round(m.tmin)}–${Math.round(m.tmax)} °C`];
+    if (m.mm >= 0.5) bits.push(`${m.mm.toLocaleString('es-ES', { maximumFractionDigits: 1 })} mm`);
+    if (m.snow >= 0.5) bits.push(`nieve ${m.snow.toLocaleString('es-ES', { maximumFractionDigits: 1 })} cm`);
+    if (typeof m.gust === 'number') bits.push(`rachas ${Math.round(m.gust)} km/h`);
+    const warn = (m.gust >= 75 || m.snow >= 1 || m.code === 66 || m.code === 67) ? ' ruta-w--ojo' : '';
+    return `<li class="ruta-w${warn}"><b>${esc(label)}</b> ${ico} ${esc(txt)} · ${esc(bits.join(' · '))}</li>`;
+  }
+
+  const hace = iso => {
+    const min = Math.round((Date.now() - Date.parse(iso)) / 60e3);
+    if (!isFinite(min)) return '';
+    if (min < 60) return `hace ${Math.max(min, 1)} min`;
+    const h = Math.round(min / 60);
+    return h < 48 ? `hace ${h} h` : `hace ${Math.round(h / 24)} días`;
+  };
+  const kmh = ms => Math.round(ms * 3.6);
+
+  function renderRutaDia() {
+    const box = $('#ruta-dia');
+    if (!box) return;
+    box.innerHTML = '';
+    const { fechaInicio, fechaFin } = state.meta;
+    const fechas = eachDay(fechaInicio, fechaFin);
+    const hoy = hoyYMD();
+    if (!fechas.length || hoy > fechaFin) { box.hidden = true; return; }
+    box.hidden = false;
+
+    if (rutaDiaSel && !fechas.includes(rutaDiaSel)) rutaDiaSel = null;
+    const auto = fechas.includes(hoy) ? hoy : fechas[0];
+    const fecha = rutaDiaSel || auto;
+    const day = buildItinerary().days.find(d => d.date === fecha);
+    const idx = fechas.indexOf(fecha);
+
+    const quien = fecha === hoy ? 'Hoy' : `Día ${idx + 1}`;
+    const head = el('div', 'ruta__head');
+    head.innerHTML =
+      `<button type="button" class="ruta__nav" aria-label="Día anterior"${idx === 0 ? ' disabled' : ''}>‹</button>` +
+      `<div class="ruta__titles"><h3>🚗 Ruta del día</h3>` +
+      `<p>${esc(quien)} · ${esc(cap(fmtDiaSemana(fecha)))} ${esc(fmtFecha(fecha))}` +
+      (hoy < fechaInicio ? ` <span class="muted">· faltan ${eachDay(hoy, fechaInicio).length - 1} días</span>` : '') + `</p></div>` +
+      `<button type="button" class="ruta__nav" aria-label="Día siguiente"${idx === fechas.length - 1 ? ' disabled' : ''}>›</button>`;
+    const [prevB, nextB] = head.querySelectorAll('.ruta__nav');
+    prevB.addEventListener('click', () => { rutaDiaSel = fechas[idx - 1]; renderRutaDia(); });
+    nextB.addEventListener('click', () => { rutaDiaSel = fechas[idx + 1]; renderRutaDia(); });
+    box.appendChild(head);
+
+    // Tiempo previsto: salida (noche anterior) y llegada (esta noche).
+    const dt = parseDate(fecha); dt.setDate(dt.getDate() - 1);
+    const ini = nocheLoc(ymd(dt)), fin = nocheLoc(fecha);
+    const w = el('div', 'ruta__block');
+    let wl = '';
+    if (ini && fin && haversine(ini, fin) >= 15) {
+      wl += meteoLinea(`Salida (${ini.label}):`, diaMeteo(ini, fecha));
+      wl += meteoLinea(`Llegada (${fin.label}):`, diaMeteo(fin, fecha));
+    } else if (fin || ini) {
+      const z = fin || ini;
+      wl += meteoLinea(`${z.label}:`, diaMeteo(z, fecha));
+    }
+    w.innerHTML = `<p class="ruta__lbl">Tiempo previsto</p>` +
+      (wl ? `<ul class="ruta__list">${wl}</ul>` : `<p class="muted">Sin alojamiento con ubicación este día.</p>`);
+    box.appendChild(w);
+
+    // Carreteras: tramos del recorrido con su estado y la lectura de sus estaciones.
+    const c = el('div', 'ruta__block');
+    const pts = day ? rutaPuntos(day) : [];
+    let html = `<p class="ruta__lbl">Carreteras del recorrido` +
+      (roads && roads.fetched ? ` <span class="muted">· estado actual, ${esc(hace(roads.fetched))}</span>` : '') + `</p>`;
+    if (!roads) {
+      html += `<p class="muted">${navigator.onLine ? 'Cargando estado de carreteras…' : 'Sin conexión: el estado de carreteras se carga cuando haya red.'}</p>`;
+    } else if (!pts.length) {
+      html += `<p class="muted">Este día no tiene paradas con ubicación.</p>`;
+    } else if (pts.length > 1 && !rutasGeo[rutaKey(pts)] && navigator.onLine && !rutaFallo(rutaKey(pts))) {
+      pedirRuta(pts);
+      html += `<p class="muted">Calculando el recorrido por carretera…</p>`;
+    } else {
+      const geo = pts.length > 1 ? rutasGeo[rutaKey(pts)] : null;
+      const est = geo ? estacionesEnRuta(geo, ROUTE_BUFFER_KM) : estacionesEnRuta(pts, pts.length > 1 ? LINE_BUFFER_KM : ROUTE_BUFFER_KM * 3);
+      const grupos = [], porId = {};
+      est.forEach(s => {
+        const id = (s.b && s.b.find(b => roads.tramos[b])) || ('st:' + s.n);
+        if (!porId[id]) {
+          const t = roads.tramos[id];
+          porId[id] = { nombre: t ? t.n : s.n, est: t ? tramoEstado(t) : { txt: 'Sin dato del tramo', lvl: 'nd' }, st: [] };
+          grupos.push(porId[id]);
+        }
+        porId[id].st.push(s);
+      });
+      if (!grupos.length) {
+        html += `<p class="muted">No hay estaciones de Vegagerðin cerca del recorrido de este día.</p>`;
+      } else {
+        const malos = grupos.filter(g => g.est.lvl === 'mal'), ojo = grupos.filter(g => g.est.lvl === 'ojo');
+        const hielo = est.filter(s => typeof s.tr === 'number' && s.tr <= 0.5);
+        const rachaMax = est.reduce((m, s) => (typeof s.g === 'number' && s.g > m ? s.g : m), 0);
+        const res = [];
+        if (malos.length) res.push(`<li class="ruta-w ruta-w--mal">⛔ ${malos.length} tramo${malos.length > 1 ? 's' : ''} cortado${malos.length > 1 ? 's' : ''} o muy difícil${malos.length > 1 ? 'es' : ''}: ${esc(malos.map(g => g.nombre).join(' · '))}. Si el GPS os manda por ahí, buscad otro camino (en umferdin.is se ve cuál está abierto).</li>`);
+        if (ojo.length) res.push(`<li class="ruta-w ruta-w--ojo">⚠️ ${ojo.length} tramo${ojo.length > 1 ? 's' : ''} con precaución: ${esc(ojo.map(g => g.nombre + ' (' + g.est.txt.toLowerCase() + ')').join(' · '))}</li>`);
+        if (hielo.length) res.push(`<li class="ruta-w ruta-w--ojo">🧊 Asfalto a 0 °C o menos en ${esc(hielo.map(s => s.n).join(', '))}: puede haber hielo</li>`);
+        if (kmh(rachaMax) >= 72) res.push(`<li class="ruta-w ruta-w--ojo">💨 Rachas de ${kmh(rachaMax)} km/h ahora mismo en la ruta</li>`);
+        if (!res.length) res.push(`<li class="ruta-w ruta-w--ok">✅ Todos los tramos despejados (${grupos.length})</li>`);
+        html += `<ul class="ruta__list">${res.join('')}</ul>`;
+
+        html += `<details class="ruta__det"><summary>Ver los ${grupos.length} tramos y sus estaciones</summary><ul class="ruta__tramos">` +
+          grupos.map(g =>
+            `<li><span class="ruta-dot ruta-dot--${g.est.lvl}" aria-hidden="true"></span>` +
+            `<div><b>${esc(g.nombre)}</b> — ${esc(g.est.txt)}` +
+            g.st.map(s => {
+              const bits = [];
+              if (typeof s.ta === 'number') bits.push(`aire ${Math.round(s.ta)} °C`);
+              if (typeof s.tr === 'number') bits.push(`asfalto ${Math.round(s.tr)} °C`);
+              if (typeof s.w === 'number') bits.push(`viento ${kmh(s.w)} km/h` + (typeof s.g === 'number' ? ` (rachas ${kmh(s.g)})` : '') + (s.dir ? ' ' + s.dir.replace(/W/g, 'O') : ''));
+              return `<p class="ruta__st">📍 ${esc(s.n)}${s.h != null ? ` <span class="muted">${s.h} m</span>` : ''}: ${esc(bits.join(' · '))}</p>`;
+            }).join('') +
+            `</div></li>`).join('') +
+          `</ul></details>`;
+      }
+      if (!geo && pts.length > 1) {
+        html += `<p class="muted">Recorrido aproximado (sin trazado por carretera): puede incluir algún tramo cercano que no vais a pisar.</p>`;
+      }
+      if (roads.fetched && Date.now() - Date.parse(roads.fetched) > 6 * 3600e3) {
+        html += `<p class="muted">Dato de ${esc(hace(roads.fetched))}: puede haber cambiado, confírmalo en umferdin.is.</p>`;
+      }
+    }
+    html += `<p class="ruta__links"><a class="reco-link" href="https://umferdin.is/en/" target="_blank" rel="noopener">umferdin.is ›</a> · ` +
+      `<a class="reco-link" href="https://en.vedur.is/" target="_blank" rel="noopener">vedur.is ›</a> · ` +
+      `<a class="reco-link" href="https://safetravel.is/" target="_blank" rel="noopener">safetravel.is ›</a></p>`;
+    c.innerHTML = html;
+    box.appendChild(c);
+  }
+
   const RECO_CAT_ICO = { Ver: '👁️', Hacer: '🎯', Comer: '🍴', Comprar: '🛍️', Consejo: '💬', Otro: '📌' };
 
   function recoSummary(it) {
@@ -3858,6 +4167,11 @@
     const body = $('#reco-body');
     if (!body) return;
     body.innerHTML = '';
+
+    const ruta = el('section', 'ruta');
+    ruta.id = 'ruta-dia';
+    body.appendChild(ruta);
+    renderRutaDia();
 
     const chips = el('div', 'chips chips--itin');
     chips.appendChild(recoChip('all', 'Todo'));
@@ -3992,7 +4306,8 @@
       setTimeout(() => { if (map) map.invalidateSize(); }, 300);
     }
     window.scrollTo(0, 0);
-    if (name === 'clima' || name === 'itinerario') refreshMeteo();
+    if (name === 'clima' || name === 'itinerario' || name === 'reco') refreshMeteo();
+    if (name === 'reco') refreshRoads();
     // La primera vez que se abre "Clima" con el viaje en curso, centra la
     // tarjeta de hoy (aquí, no en renderClima: allí la sección aún está oculta).
     // Se re-busca la tarjeta al disparar el timer: refreshMeteo puede re-pintar
@@ -4550,14 +4865,17 @@
     if (!navigator.onLine) return;
     if (!state.meta.fechaInicio || !state.meta.fechaFin) return;
     const f = state.meteo && state.meteo.fetched;
-    if (f && Date.now() - Date.parse(f) < 2 * 3600e3) return;
+    // Una caché anterior a la Ruta del día no trae `daily`: se renueva ya.
+    if (f && state.meteo.daily && Date.now() - Date.parse(f) < 2 * 3600e3) return;
 
     const locs = meteoLocs();
     if (!locs.length) return;
     const om = 'https://api.open-meteo.com/v1/forecast'
       + '?latitude=' + locs.map(l => l.lat).join(',')
       + '&longitude=' + locs.map(l => l.lng).join(',')
-      + '&hourly=cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation&wind_speed_unit=kmh&forecast_days=16&timezone=UTC';
+      + '&hourly=cloud_cover,wind_speed_10m,wind_gusts_10m,precipitation'
+      + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_gusts_10m_max'
+      + '&wind_speed_unit=kmh&forecast_days=16&timezone=UTC';
 
     meteoFetching = true;
     Promise.all([
@@ -4584,6 +4902,7 @@
         const clouds = Object.assign({}, (state.meteo && state.meteo.clouds) || {});
         const wind = Object.assign({}, (state.meteo && state.meteo.wind) || {});
         const precip = Object.assign({}, (state.meteo && state.meteo.precip) || {});
+        const daily = Object.assign({}, (state.meteo && state.meteo.daily) || {});
         results.forEach((res, i) => {
           if (!locs[i] || !res || !res.hourly || !Array.isArray(res.hourly.time)) return;
           const H = res.hourly;
@@ -4602,15 +4921,31 @@
               .map((t, j) => ({ t: t + 'Z', mm: H.precipitation[j] }))
               .filter(x => typeof x.mm === 'number' && inTrip(x.t));
           }
+          // Resumen diario (Ruta del día en Ideas): un registro por fecha del viaje.
+          const D = res.daily;
+          if (D && Array.isArray(D.time)) {
+            daily[locs[i].key] = D.time
+              .map((d, j) => ({
+                d,
+                code: D.weather_code && D.weather_code[j],
+                tmax: D.temperature_2m_max && D.temperature_2m_max[j],
+                tmin: D.temperature_2m_min && D.temperature_2m_min[j],
+                mm: D.precipitation_sum && D.precipitation_sum[j],
+                snow: D.snowfall_sum && D.snowfall_sum[j],
+                gust: D.wind_gusts_10m_max && D.wind_gusts_10m_max[j]
+              }))
+              .filter(x => x.d >= state.meta.fechaInicio && x.d <= state.meta.fechaFin && typeof x.tmax === 'number');
+          }
         });
         // Poda las claves de ubicaciones que ya no están en el viaje (alojamiento
         // cambiado/borrado): evita crecer sin límite y que una clave vieja gane
         // el match de "más cercana".
         const cur = new Set(locs.map(l => l.key));
-        [clouds, wind, precip].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
+        [clouds, wind, precip, daily].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
 
-        state.meteo = { kp, clouds, wind, precip, fetched: new Date().toISOString() };
+        state.meteo = { kp, clouds, wind, precip, daily, fetched: new Date().toISOString() };
         save();
+        renderRutaDia();
         // Clima siempre: aunque no haya datos en ventana, la línea de auroras pasa
         // de "sin datos — mira vedur.is" a "previsión disponible ~3 días antes" al
         // confirmarse el fetch. El Itinerario solo si hay datos que mostrar, y sin
@@ -4743,6 +5078,16 @@
     showScreen(location.hash.slice(1) || 'datos');
     refreshFx();
     refreshMeteo();
+    refreshRoads();
+    // Ruta del día al día sin recargar: cada 30 min con la app delante, y al
+    // volver a ella (refreshRoads se limita solo a una consulta cada 20 min).
+    setInterval(() => { if (document.visibilityState === 'visible') { refreshRoads(); refreshMeteo(); } }, 30 * 60e3);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      refreshRoads();
+      refreshMeteo();
+      renderRutaDia();   // si ha cambiado el día, pasa al de hoy
+    });
   } catch (err) {
     console.error('Error al iniciar:', err);
     const b = document.getElementById('datos-body');

@@ -1,0 +1,54 @@
+# Estado de carreteras (Vegagerðin) para «Ruta del día» en Ideas.
+# Cada 2 h genera carreteras.json y lo publica como único commit de la rama
+# «datos» (force-push: la rama no acumula historial y main no se ensucia).
+# La app lo lee de raw.githubusercontent.com, que sí permite CORS.
+name: Estado de carreteras
+
+on:
+  schedule:
+    - cron: '17 */2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: carreteras
+  cancel-in-progress: true
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ¿Viaje terminado?
+        id: fecha
+        run: |
+          # Tras el viaje (8–16 oct 2026) no hace falta seguir consultando.
+          if [ "$(date -u +%Y%m%d)" -gt 20261017 ]; then echo "fin=1" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.fecha.outputs.fin != '1'
+        with:
+          sparse-checkout: scripts
+
+      - uses: actions/setup-node@v4
+        if: steps.fecha.outputs.fin != '1'
+        with:
+          node-version: 20
+
+      - name: Descargar estado de carreteras
+        if: steps.fecha.outputs.fin != '1'
+        run: |
+          mkdir -p out
+          node scripts/carreteras.mjs out/carreteras.json
+
+      - name: Publicar en la rama «datos»
+        if: steps.fecha.outputs.fin != '1'
+        working-directory: out
+        run: |
+          git init -q -b datos
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add carreteras.json
+          git commit -q -m "Estado de carreteras $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" datos

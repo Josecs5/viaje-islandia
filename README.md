@@ -16,7 +16,12 @@ con el tipo de cambio del día (BCE vía frankfurter.dev, cacheado, con ajuste
 manual) y un resumen por categoría, una guía rápida de **supermercados baratos
 (Bónus/Krónan)** y trucos para un país caro, y una guía de **carreteras** (códigos
 de estado, F-roads cerradas en octubre, puentes de un carril, tramos que se
-cierran con temporal) con enlaces a umferdin.is y safetravel.is. El
+cierran con temporal) con enlaces a umferdin.is y safetravel.is. Arriba del
+todo, la **Ruta del día** muestra el tiempo previsto de salida y llegada
+(Open-Meteo) y el estado actual de los tramos que se pisan ese día: una GitHub
+Action (`.github/workflows/carreteras.yml`) baja cada 2 h los datos abiertos de
+Vegagerðin a la rama `datos`, y la app los cruza con el trazado real del día
+(OSRM). El
 Itinerario lista las **gasolineras fiables** de cada día y el tramo más largo
 sin ninguna, y el panel de combustible calcula la **autonomía cómoda** según
 depósito y consumo. Ideas incluye una guía de **piscinas y pozas termales**

@@ -1577,6 +1577,51 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   gap: var(--space-12);
   margin-bottom: var(--space-12);
 }
+/* Ruta del día (Ideas): fija arriba, fuera de las secciones plegables */
+.ruta {
+  margin-bottom: var(--space-20);
+  padding: var(--space-12) var(--space-16) var(--space-16);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-soft);
+  border-top: 2px solid var(--c-accent);
+  border-radius: var(--radius-m);
+}
+.ruta[hidden] { display: none; }
+.ruta__head { display: flex; align-items: center; gap: var(--space-8); }
+.ruta__titles { flex: 1; min-width: 0; text-align: center; }
+.ruta__titles h3 { margin: 0; font-size: var(--step-2); font-weight: 700; line-height: 1.2; }
+.ruta__titles p { margin: 2px 0 0; color: var(--c-text-2); font-size: var(--step-0); }
+.ruta__nav {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border: 1px solid var(--c-border-soft);
+  border-radius: 50%;
+  background: none;
+  color: var(--c-text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ruta__nav:disabled { opacity: .3; cursor: default; }
+.ruta__block { margin-top: var(--space-16); }
+.ruta__lbl { margin: 0 0 var(--space-6); font-weight: 600; font-size: var(--step-0); }
+.ruta__lbl .muted { font-weight: 400; }
+.ruta__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-6); }
+.ruta__list li { font-size: var(--step-0); line-height: 1.45; }
+.ruta-w--ok { color: var(--c-accent); }
+.ruta-w--ojo { color: var(--c-warning); }
+.ruta-w--mal { color: var(--c-danger); font-weight: 600; }
+.ruta__det { margin-top: var(--space-8); }
+.ruta__det summary { cursor: pointer; color: var(--c-text-2); font-size: var(--step-0); padding: var(--space-6) 0; }
+.ruta__tramos { list-style: none; margin: var(--space-6) 0 0; padding: 0; display: grid; gap: var(--space-12); }
+.ruta__tramos li { display: flex; gap: var(--space-8); font-size: var(--step-0); line-height: 1.4; }
+.ruta__st { margin: 2px 0 0; color: var(--c-text-2); }
+.ruta-dot { flex-shrink: 0; width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--c-text-2); }
+.ruta-dot--ok { background: var(--c-accent); }
+.ruta-dot--ojo { background: var(--c-warning); }
+.ruta-dot--mal { background: var(--c-danger); }
+.ruta__links { margin: var(--space-12) 0 0; font-size: var(--step-0); }
+
 /* Plegable: cerrada solo se ve el encabezado */
 .reco-cat:not(.reco-cat--open) { margin-bottom: var(--space-12); }
 .reco-cat__head[role="button"] {
