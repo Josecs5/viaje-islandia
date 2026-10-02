@@ -3920,6 +3920,41 @@
       const h3 = sec.querySelector('h3');
       const key = h3 && HEAD_TO_IDEAS_TOPIC[h3.textContent];
       sec.hidden = selectedRecoTopic !== 'all' && selectedRecoTopic !== key;
+      if (h3) makeRecoCollapsible(sec, h3.textContent);
+    });
+  }
+
+  // Secciones de Ideas plegadas por defecto: solo se ve el encabezado hasta
+  // pulsarlo. Lo abierto se recuerda en memoria (no en localStorage) para que
+  // un re-render, p. ej. al añadir una recomendación, no lo vuelva a cerrar,
+  // pero al abrir la app todo arranca plegado.
+  const recoOpen = new Set();
+
+  function makeRecoCollapsible(sec, name) {
+    const head = sec.querySelector('.reco-cat__head');
+    const bodyWrap = el('div', 'reco-cat__body');
+    while (head.nextSibling) bodyWrap.appendChild(head.nextSibling);
+    sec.appendChild(bodyWrap);
+
+    const isOpen = recoOpen.has(name);
+    bodyWrap.hidden = !isOpen;
+    sec.classList.toggle('reco-cat--open', isOpen);
+    head.setAttribute('role', 'button');
+    head.tabIndex = 0;
+    head.setAttribute('aria-expanded', String(isOpen));
+    head.insertAdjacentHTML('beforeend',
+      `<span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>`);
+
+    const toggle = () => {
+      const willOpen = bodyWrap.hidden;
+      bodyWrap.hidden = !willOpen;
+      sec.classList.toggle('reco-cat--open', willOpen);
+      head.setAttribute('aria-expanded', String(willOpen));
+      if (willOpen) recoOpen.add(name); else recoOpen.delete(name);
+    };
+    head.addEventListener('click', toggle);
+    head.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
     });
   }
 

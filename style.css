@@ -1577,6 +1577,17 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   gap: var(--space-12);
   margin-bottom: var(--space-12);
 }
+/* Plegable: cerrada solo se ve el encabezado */
+.reco-cat:not(.reco-cat--open) { margin-bottom: var(--space-12); }
+.reco-cat__head[role="button"] {
+  cursor: pointer;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+}
+.reco-cat:not(.reco-cat--open) > .reco-cat__head { margin-bottom: 0; }
+.reco-cat__head .chev { margin-left: auto; flex-shrink: 0; }
+.reco-cat__head[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.reco-cat__body[hidden] { display: none; }
 .reco-cat__badge {
   flex-shrink: 0;
   display: inline-flex;
