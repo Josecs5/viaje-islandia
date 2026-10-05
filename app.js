@@ -4018,15 +4018,21 @@
     return (D[best] || []).find(x => x.d === date) || null;
   }
 
-  function meteoLinea(label, m) {
-    if (!m) return `<li><b>${esc(label)}</b> <span class="muted">sin previsión todavía</span></li>`;
+  // Resumen de un día de previsión: icono, texto, cifras y si merece aviso.
+  function meteoResumen(m) {
     const [ico, txt] = wmo(m.code);
     const bits = [`${Math.round(m.tmin)}–${Math.round(m.tmax)} °C`];
     if (m.mm >= 0.5) bits.push(`${m.mm.toLocaleString('es-ES', { maximumFractionDigits: 1 })} mm`);
     if (m.snow >= 0.5) bits.push(`nieve ${m.snow.toLocaleString('es-ES', { maximumFractionDigits: 1 })} cm`);
     if (typeof m.gust === 'number') bits.push(`rachas ${Math.round(m.gust)} km/h`);
-    const warn = (m.gust >= 75 || m.snow >= 1 || m.code === 66 || m.code === 67) ? ' ruta-w--ojo' : '';
-    return `<li class="ruta-w${warn}"><b>${esc(label)}</b> ${ico} ${esc(txt)} · ${esc(bits.join(' · '))}</li>`;
+    const ojo = m.gust >= 75 || m.snow >= 1 || m.code === 66 || m.code === 67;
+    return { ico, txt, bits, ojo };
+  }
+
+  function meteoLinea(label, m) {
+    if (!m) return `<li><b>${esc(label)}</b> <span class="muted">sin previsión todavía</span></li>`;
+    const r = meteoResumen(m);
+    return `<li class="ruta-w${r.ojo ? ' ruta-w--ojo' : ''}"><b>${esc(label)}</b> ${r.ico} ${esc(r.txt)} · ${esc(r.bits.join(' · '))}</li>`;
   }
 
   const hace = iso => {
@@ -4770,6 +4776,20 @@
     const arc = sunArc(s);
     if (arc) c.appendChild(arc);
 
+    // Tiempo previsto (Open-Meteo, diario) donde se duerme ese día.
+    const m = diaMeteo(s.loc, s.date);
+    if (m) {
+      const r = meteoResumen(m);
+      const pt = skyLine(r.ico || '🌡️', `${esc(r.txt || 'Tiempo')} · ${esc(r.bits.join(' · '))}`);
+      if (r.ojo) pt.classList.add('sky-line--warm');
+      c.appendChild(pt);
+    } else {
+      const pt = skyLine('🌡️', 'tiempo: sin previsión todavía (llega ~16 días antes)');
+      const sp = pt.querySelector('span:last-child');
+      if (sp) sp.classList.add('is-dim');
+      c.appendChild(pt);
+    }
+
     // Sol: con el arco ya se ven horas y duración; la fila solo añade el cambio
     // respecto al día anterior. Sin arco (sin datos de sol) se pinta como antes.
     if (arc) {
@@ -4859,14 +4879,15 @@
   // Kp de NOAA (~3 días) + nubes y viento de Open-Meteo (~16 días) por ubicación
   // de pernocta. Cacheado en state.meteo; refresco máx. cada 2 h. Fallo silencioso
   // (solo red/HTTP/parseo; si el re-render peta, que se vea en consola).
-  let meteoFetching = false;
+  let meteoFetching = false, meteoRetry = null;
   function refreshMeteo() {
     if (meteoFetching) return;                        // ya hay una petición en curso (init + showScreen)
     if (!navigator.onLine) return;
     if (!state.meta.fechaInicio || !state.meta.fechaFin) return;
     const f = state.meteo && state.meteo.fetched;
-    // Una caché anterior a la Ruta del día no trae `daily`: se renueva ya.
-    if (f && state.meteo.daily && Date.now() - Date.parse(f) < 2 * 3600e3) return;
+    // Una caché anterior a la Ruta del día no trae `daily`, y una parcial le
+    // falta una fuente: en ambos casos se renueva ya.
+    if (f && state.meteo.daily && !state.meteo.partial && Date.now() - Date.parse(f) < 2 * 3600e3) return;
 
     const locs = meteoLocs();
     if (!locs.length) return;
@@ -4878,26 +4899,26 @@
       + '&wind_speed_unit=kmh&forecast_days=16&timezone=UTC';
 
     meteoFetching = true;
-    Promise.all([
-      fetch(NOAA_KP).then(r => (r.ok ? r.json() : Promise.reject())),
-      fetch(om).then(r => (r.ok ? r.json() : Promise.reject()))
-    ])
-      .catch(() => null)
-      .then(pair => {
+    // Cada fuente por separado: un 503 de Open-Meteo no debe tirar el Kp de NOAA
+    // (ni al revés). Lo que falle conserva lo cacheado y se reintenta en 1 min.
+    const getJson = u => fetch(u).then(r => (r.ok ? r.json() : Promise.reject())).catch(() => null);
+    Promise.all([getJson(NOAA_KP), getJson(om)])
+      .then(([kpRaw, omRaw]) => {
         meteoFetching = false;
-        if (!pair) return;
-        const [kpRaw, omRaw] = pair;
+        const falla = !kpRaw || !omRaw;
+        if (falla && !meteoRetry) meteoRetry = setTimeout(() => { meteoRetry = null; refreshMeteo(); }, 60e3);
+        if (!kpRaw && !omRaw) return;
         // Recorta las series a la ventana del viaje (± margen): evita guardar 16
         // días de datos horarios por ubicación y re-parsearlos en cada render.
         const t0 = Date.parse(state.meta.fechaInicio + 'T00:00:00Z') - 12 * 3600e3;
         const t1 = Date.parse(state.meta.fechaFin + 'T00:00:00Z') + 36 * 3600e3;
         const inTrip = iso => { const ms = Date.parse(iso); return ms >= t0 && ms <= t1; };
 
-        const kp = (Array.isArray(kpRaw) ? kpRaw : [])
+        const kp = !kpRaw ? ((state.meteo && state.meteo.kp) || []) : (Array.isArray(kpRaw) ? kpRaw : [])
           .filter(x => x && x.time_tag && typeof x.kp === 'number')
           .map(x => ({ t: x.time_tag + 'Z', kp: x.kp, pred: x.observed !== 'observed' }))
           .filter(x => inTrip(x.t));
-        const results = Array.isArray(omRaw) ? omRaw : [omRaw];
+        const results = !omRaw ? [] : Array.isArray(omRaw) ? omRaw : [omRaw];
         // Parten de lo cacheado: si Open-Meteo no devuelve una ubicación, no se pierde su serie previa.
         const clouds = Object.assign({}, (state.meteo && state.meteo.clouds) || {});
         const wind = Object.assign({}, (state.meteo && state.meteo.wind) || {});
@@ -4943,7 +4964,8 @@
         const cur = new Set(locs.map(l => l.key));
         [clouds, wind, precip, daily].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
 
-        state.meteo = { kp, clouds, wind, precip, daily, fetched: new Date().toISOString() };
+        // partial: falta una fuente → el siguiente refreshMeteo no espera las 2 h.
+        state.meteo = { kp, clouds, wind, precip, daily, fetched: new Date().toISOString(), partial: falla };
         save();
         renderRutaDia();
         // Clima siempre: aunque no haya datos en ventana, la línea de auroras pasa
@@ -5058,6 +5080,13 @@
     chips.appendChild(climaChip('all', 'Todos'));
     dates.forEach((d, i) => chips.appendChild(climaChip(d, 'Día ' + (i + 1))));
     body.appendChild(chips);
+
+    const fetched = state.meteo && state.meteo.fetched;
+    const upd = el('p', 'muted clima-upd');
+    upd.textContent = fetched
+      ? `Previsión (Open-Meteo y NOAA) actualizada ${hace(fetched)}; se renueva sola cada 2 h con conexión.`
+      : (navigator.onLine ? 'Cargando previsión…' : 'Sin conexión: la previsión se carga cuando haya red.');
+    body.appendChild(upd);
 
     const show = selectedClimaDay === 'all' ? dates : dates.filter(d => d === selectedClimaDay);
     show.forEach(d => body.appendChild(climaCard(sky(d))));
