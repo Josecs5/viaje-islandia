@@ -5,7 +5,7 @@
  */
 'use strict';
 
-const SHELL_CACHE = 'shell-v43';
+const SHELL_CACHE = 'shell-v44';
 // v2: los tiles pasaron de petición no-cors (opaca) a cors; empezar limpio.
 const TILE_CACHE  = 'tiles-v2';
 const TILE_MAX = 300;

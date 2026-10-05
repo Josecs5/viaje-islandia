@@ -204,6 +204,7 @@
     tipo: 'Ida',
     reserva: '',
     antelacion: '2 h 30 min',
+    checkinHoras: 36,
     equipaje: [
       'Por persona (según tu reserva):',
       '• 1 bolso pequeño 40×30×15 cm — debajo del asiento de delante.',
@@ -212,7 +213,7 @@
       '',
       'Restricciones: líquidos de mano solo en envases ≤ 100 ml dentro de una bolsa transparente de 1 L. Power banks y cigarrillos electrónicos únicamente en cabina, nunca en la maleta facturada. Objetos punzantes o cortantes solo en la maleta facturada.'
     ].join('\n'),
-    notas: 'Terminales: Madrid T2 · Lisboa T1 · Keflavík (terminal único). Equipaje facturado etiquetado hasta Keflavík.',
+    notas: 'Terminales: Madrid T2 · Lisboa T1 · Keflavík (terminal único). Equipaje facturado etiquetado hasta Keflavík. Escala de 3 h 30 min en Lisboa sin control de pasaportes (Portugal e Islandia son Schengen): solo seguir las pantallas hacia la puerta del TP 5618. Facturación online de TAP: se abre 36 h antes.',
     tramos: [
       {
         aerolinea: 'TAP Air Portugal', numero: 'TP 1011', clase: 'Turista', operadoPor: '',
@@ -235,6 +236,7 @@
     tipo: 'Vuelta',
     reserva: '',
     antelacion: '2 h 30 min',
+    checkinHoras: 24,
     equipaje: [
       'Por persona (según tu reserva):',
       '• 1 accesorio personal (tipo bolso, aprox. 40×30×15 cm) — debajo del asiento de delante.',
@@ -243,19 +245,26 @@
       '',
       'Restricciones: líquidos de mano solo en envases ≤ 100 ml en una bolsa transparente de 1 L. Baterías externas y vapeadores únicamente en cabina, nunca facturados. Objetos cortantes solo en la maleta facturada. En el tramo con BA CityFlyer el espacio en cabina es limitado: podrían pedir facturar en puerta la maleta de mano.'
     ].join('\n'),
-    notas: 'Viaje total 10 h 05 min (1 escala en Londres). Terminales: Keflavík (terminal único) · Londres-Heathrow T5 · Madrid T4 (por confirmar). El equipaje facturado va etiquetado hasta Madrid; en la escala solo hay que pasar de nuevo el control de seguridad. Aeropuerto y horas exactas de la conexión, por confirmar en el billete.',
+    notas: [
+      'Viaje total 10 h 05 min. OJO: en Londres se cambia de aeropuerto — se llega a Heathrow T5 (14:40) y el BA3270 sale de London City (19:15), al otro lado de la ciudad.',
+      '',
+      'En Heathrow: pasar el control de fronteras de Reino Unido (hace falta ETA aprobada para cada viajero), recoger la maleta facturada en la cinta (entre dos aeropuertos no suele ir etiquetada hasta Madrid; confírmalo al facturar en Keflavík) y salir.',
+      'Traslado: Elizabeth line desde Heathrow T5 hasta Canary Wharf y DLR hasta London City Airport, ~1 h 15–1 h 45 y pocas libras (pago con tarjeta contactless en el torno). Taxi: ~1 h 15 y mucho más caro.',
+      'En London City (terminal único): estar sobre las 17:45 para dejar la maleta y pasar seguridad; es un aeropuerto pequeño y rápido, pero el mostrador cierra pronto.',
+      'Llegada a Madrid T4S (satélite): tren interno hasta T4 para recoger la maleta.'
+    ].join('\n'),
     tramos: [
       {
         aerolinea: 'British Airways', numero: 'BA801', clase: 'Turista', operadoPor: '',
         origen: 'KEF', origenNombre: 'Reikiavik Keflavík', origenTerminal: '',
         destino: 'LHR', destinoNombre: 'Londres Heathrow', destinoTerminal: '5',
-        salida: '2026-10-16T10:30', llegada: '', duracion: ''
+        salida: '2026-10-16T10:30', llegada: '2026-10-16T14:40', duracion: '3h 10m'
       },
       {
         aerolinea: 'British Airways', numero: 'BA3270', clase: 'Turista', operadoPor: 'BA CityFlyer',
-        origen: 'LHR', origenNombre: 'Londres Heathrow', origenTerminal: '5',
-        destino: 'MAD', destinoNombre: 'Madrid Adolfo Suárez Barajas', destinoTerminal: '4',
-        salida: '', llegada: '2026-10-16T22:35', duracion: ''
+        origen: 'LCY', origenNombre: 'Londres City', origenTerminal: '',
+        destino: 'MAD', destinoNombre: 'Madrid Adolfo Suárez Barajas', destinoTerminal: '4S',
+        salida: '2026-10-16T19:15', llegada: '2026-10-16T22:35', duracion: '2h 20m'
       }
     ]
   };
@@ -563,12 +572,12 @@
   // Checklist de tareas antes de salir (no objetos que llevar, eso es
   // EQUIPAJE_SEED). "anchor" liga una tarea a un vuelo real de state.vuelos
   // ('vuelo-ida'/'vuelo-vuelta') para calcular cuándo se abre la facturación
-  // online (24 h antes de la salida del primer tramo) en vez de escribirlo a
+  // online (checkinHoras antes de la salida del primer tramo) en vez de escribirlo a
   // mano — ver anteDeadline()/anteFechaTxt(). null = sin fecha, solo texto.
   const ANTES_SEED = [
     { id: 'seed-an-1', texto: 'Facturar online el vuelo de ida (TAP)', cat: 'Vuelos', anchor: 'vuelo-ida', hecho: false },
     { id: 'seed-an-2', texto: 'Facturar online el vuelo de vuelta (British Airways)', cat: 'Vuelos', anchor: 'vuelo-vuelta', hecho: false },
-    { id: 'seed-an-8', texto: 'La semana antes de volver: comprobar que el tránsito en Heathrow sin salir del aeropuerto sigue sin pedir ETA (la exención es temporal y está en revisión)', cat: 'Vuelos', anchor: null, hecho: false },
+    { id: 'seed-an-15', texto: 'YA: pedir la ETA de Reino Unido para cada viajero (app oficial «UK ETA» o gov.uk, ~£20, con el pasaporte del viaje). En la vuelta se cambia de Heathrow a London City y hay que pasar fronteras; suele aprobarse en minutos, pero piden margen de 3 días laborables', cat: 'Vuelos', anchor: null, hecho: false },
     { id: 'seed-an-3', texto: 'Mirar en la app del banco que los pagos en el extranjero no están bloqueados', cat: 'General', anchor: null, hecho: false },
     { id: 'seed-an-4', texto: 'Confirmar que el seguro de viaje está contratado', cat: 'General', anchor: null, hecho: false },
     { id: 'seed-an-5', texto: 'Comprobar que el pasaporte no caduca durante el viaje (el DNI no vale para la escala en Reino Unido)', cat: 'General', anchor: null, hecho: false },
@@ -705,7 +714,7 @@
       EQUIPAJE_SEED.concat(ANTES_SEED, LLEVAR_SEED).forEach(it => vistos.add(it.id));
       return {
         meta: Object.assign(b.meta, p.meta || {}),
-        vuelos: (p.vuelos || []).map(migrateVuelo),
+        vuelos: syncReadOnlySeed((p.vuelos || []).map(migrateVuelo), [IDA_SEED, VUELTA_SEED]),
         coches: p.coches || [],
         alojamientos: syncReadOnlySeed(p.alojamientos, ALOJ_SEED),
         excursiones: p.excursiones || [],
@@ -1342,8 +1351,8 @@
     if (selectedDatosTopic === 'all' || selectedDatosTopic === 'llevar') body.appendChild(llevarBlock());
   }
 
-  // Cuándo se abre la facturación online de un vuelo (24 h antes de la
-  // salida del primer tramo) para la tarea "antes de viajar" que lo ancla. null si no hay anchor o no se
+  // Cuándo se abre la facturación online de un vuelo (checkinHoras antes de
+  // la salida del primer tramo; 24 h si no se indica) para la tarea "antes de viajar" que lo ancla. null si no hay anchor o no se
   // encuentra el vuelo — la tarea se pinta entonces sin fecha, como texto
   // plano igual que las que no tienen anchor.
   function anteDeadline(anchor) {
@@ -1354,7 +1363,7 @@
     if (!salida) return null;
     const d = new Date(salida);
     if (isNaN(d)) return null;
-    d.setHours(d.getHours() - 24);
+    d.setHours(d.getHours() - (v.checkinHoras || 24));
     return d;
   }
   function anteFechaTxt(anchor) {
@@ -1803,7 +1812,10 @@
         `</div>`;
       if (i < tr.length - 1) {
         const lay = layoverMin(t.llegada, tr[i + 1].salida);
-        html += `<div class="fly-lay">↕ escala en ${esc(t.destino || '')}${lay ? ' · ' + fmtDur(lay) : ''}</div>`;
+        const sig = tr[i + 1].origen;
+        const lugar = sig && t.destino && sig !== t.destino
+          ? `${esc(t.destino)} → ${esc(sig)} (cambio de aeropuerto)` : esc(t.destino || '');
+        html += `<div class="fly-lay">↕ escala en ${lugar}${lay ? ' · ' + fmtDur(lay) : ''}</div>`;
       }
     });
     html += '</div>';
