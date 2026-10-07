@@ -1199,6 +1199,7 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   color: var(--c-text-1);
 }
 .hoy-card__wind--fuerte { color: var(--c-danger); font-weight: 600; }
+.hoy-card__storm { color: var(--c-accent); font-weight: 600; }
 
 .itin-fuel, .itin-outlook {
   background: color-mix(in oklab, var(--c-surface) 70%, transparent);
@@ -2021,6 +2022,19 @@ font-size: 1.6rem; font-weight: 700; letter-spacing: -0.015em; line-height: 1.1;
   border-color: color-mix(in oklab, var(--c-accent) 55%, var(--c-border-soft));
 }
 .clima-upd { margin: calc(-1 * var(--space-12)) 0 var(--space-16); font-size: var(--step--1); }
+/* Aviso de tormenta geomagnética (NOAA Kp ≥ 5−) encima de las tarjetas. */
+.storm-alert {
+  margin: 0 0 var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid color-mix(in oklab, var(--c-accent) 55%, var(--c-border-soft));
+  border-radius: var(--radius-m);
+  background: color-mix(in oklab, var(--c-accent) 8%, var(--c-surface));
+  color: var(--c-text);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+.storm-alert b { color: var(--c-accent); }
+.storm-alert .muted { font-size: var(--step--1); }
 .sky-card.day--hoy { border-color: var(--c-accent); }
 .sky-card.day--hoy .sky-card__head { color: var(--c-accent); }
 

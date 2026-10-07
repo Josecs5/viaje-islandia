@@ -146,7 +146,7 @@
 
   const blankFx = () => ({ rate: 150, date: null, source: 'default', stamp: null });
   const blankFuel = () => ({ consumo: 7, precioL: 309, tipo: 'Diésel', deposito: 50 });
-  const blankMeteo = () => ({ kp: [], clouds: {}, wind: {}, precip: {}, fetched: null });
+  const blankMeteo = () => ({ kp: [], kp27: {}, clouds: {}, wind: {}, precip: {}, fetched: null });
 
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
@@ -2454,6 +2454,15 @@
     const pa = el('p', 'hoy-card__aurora');
     pa.innerHTML = `🌌 ${esc(aur.txt)}`;
     box.appendChild(pa);
+    // Tormenta geomagnética hoy o mañana (la madrugada de mañana es aún «esta noche»).
+    const md = parseDate(hoy);
+    md.setDate(md.getDate() + 1);
+    const manana = ymd(md);
+    tormentas().filter(t => t.d === hoy || t.d === manana).forEach(t => {
+      const ps = el('p', 'hoy-card__aurora hoy-card__storm');
+      ps.textContent = `⚡ Tormenta geomagnética · ${tormentaTxt(t)}`;
+      box.appendChild(ps);
+    });
 
     return box;
   }
@@ -4874,6 +4883,21 @@
      Clima · A2 — Previsión de auroras (NOAA Kp + Open-Meteo nubes)
      ========================================================== */
   const NOAA_KP = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json';
+  // Previsión a 27 días (texto): Kp máximo por día UTC. Cubre las noches que el
+  // Kp de 3 días aún no alcanza; orientativa, nunca da un veredicto «buena».
+  const NOAA_27D = 'https://services.swpc.noaa.gov/text/27-day-outlook.txt';
+  const MES_EN = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+    Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+
+  // «2026 Oct 09      92           5          2» → { '2026-10-09': 2 }
+  function parse27d(txt) {
+    const out = {};
+    String(txt || '').split('\n').forEach(line => {
+      const m = /^(\d{4})\s+([A-Z][a-z]{2})\s+(\d{2})\s+\d+\s+\d+\s+(\d+)$/.exec(line.trim());
+      if (m && MES_EN[m[2]]) out[`${m[1]}-${MES_EN[m[2]]}-${m[3]}`] = Number(m[4]);
+    });
+    return out;
+  }
 
   const isIceCenter = l => l && l.lat === ICE_CENTER.lat && l.lng === ICE_CENTER.lng;
 
@@ -4899,7 +4923,8 @@
     const f = state.meteo && state.meteo.fetched;
     // Una caché anterior a la Ruta del día no trae `daily`, y una parcial le
     // falta una fuente: en ambos casos se renueva ya.
-    if (f && state.meteo.daily && !state.meteo.partial && Date.now() - Date.parse(f) < 2 * 3600e3) return;
+    // Lo mismo si no trae aún la previsión de Kp a 27 días (kp27at).
+    if (f && state.meteo.daily && state.meteo.kp27at && !state.meteo.partial && Date.now() - Date.parse(f) < 2 * 3600e3) return;
 
     const locs = meteoLocs();
     if (!locs.length) return;
@@ -4914,12 +4939,13 @@
     // Cada fuente por separado: un 503 de Open-Meteo no debe tirar el Kp de NOAA
     // (ni al revés). Lo que falle conserva lo cacheado y se reintenta en 1 min.
     const getJson = u => fetch(u).then(r => (r.ok ? r.json() : Promise.reject())).catch(() => null);
-    Promise.all([getJson(NOAA_KP), getJson(om)])
-      .then(([kpRaw, omRaw]) => {
+    const getText = u => fetch(u).then(r => (r.ok ? r.text() : Promise.reject())).catch(() => null);
+    Promise.all([getJson(NOAA_KP), getJson(om), getText(NOAA_27D)])
+      .then(([kpRaw, omRaw, txt27]) => {
         meteoFetching = false;
-        const falla = !kpRaw || !omRaw;
+        const falla = !kpRaw || !omRaw || !txt27;
         if (falla && !meteoRetry) meteoRetry = setTimeout(() => { meteoRetry = null; refreshMeteo(); }, 60e3);
-        if (!kpRaw && !omRaw) return;
+        if (!kpRaw && !omRaw && !txt27) return;
         // Recorta las series a la ventana del viaje (± margen): evita guardar 16
         // días de datos horarios por ubicación y re-parsearlos en cada render.
         const t0 = Date.parse(state.meta.fechaInicio + 'T00:00:00Z') - 12 * 3600e3;
@@ -4930,7 +4956,15 @@
           .filter(x => x && x.time_tag && typeof x.kp === 'number')
           .map(x => ({ t: x.time_tag + 'Z', kp: x.kp, pred: x.observed !== 'observed' }))
           .filter(x => inTrip(x.t));
-        const results = !omRaw ? [] : Array.isArray(omRaw) ? omRaw : [omRaw];
+        // Kp a 27 días por fecha del viaje (+ la mañana siguiente a la última noche).
+        const prev27 = (state.meteo && state.meteo.kp27) || {};
+        const kp27 = {};
+        if (txt27) {
+          const all27 = parse27d(txt27);
+          Object.keys(all27).forEach(d => { if (inTrip(d + 'T12:00:00Z')) kp27[d] = all27[d]; });
+        } else Object.assign(kp27, prev27);
+        const kp27at = txt27 ? new Date().toISOString() : ((state.meteo && state.meteo.kp27at) || null);
+        const results =!omRaw ? [] : Array.isArray(omRaw) ? omRaw : [omRaw];
         // Parten de lo cacheado: si Open-Meteo no devuelve una ubicación, no se pierde su serie previa.
         const clouds = Object.assign({}, (state.meteo && state.meteo.clouds) || {});
         const wind = Object.assign({}, (state.meteo && state.meteo.wind) || {});
@@ -4977,7 +5011,7 @@
         [clouds, wind, precip, daily].forEach(m => Object.keys(m).forEach(k => { if (!cur.has(k)) delete m[k]; }));
 
         // partial: falta una fuente → el siguiente refreshMeteo no espera las 2 h.
-        state.meteo = { kp, clouds, wind, precip, daily, fetched: new Date().toISOString(), partial: falla };
+        state.meteo = { kp, kp27, kp27at, clouds, wind, precip, daily, fetched: new Date().toISOString(), partial: falla };
         save();
         renderRutaDia();
         // Clima siempre: aunque no haya datos en ventana, la línea de auroras pasa
@@ -4985,8 +5019,8 @@
         // confirmarse el fetch. El Itinerario solo si hay datos que mostrar, y sin
         // robar el foco de un campo que se esté editando (panel de combustible D2).
         renderClima();
-        const hayDatos = kp.length
-          || Object.keys(clouds).some(k => clouds[k].length)
+        const hayDatos = kp.length || Object.keys(kp27).length
+          ||Object.keys(clouds).some(k => clouds[k].length)
           || Object.keys(wind).some(k => wind[k].length)
           || Object.keys(precip).some(k => precip[k].length);
         if (hayDatos) {
@@ -4996,6 +5030,22 @@
         }
       });
   }
+
+  // Días del viaje (desde hoy) con tormenta geomagnética prevista por NOAA:
+  // Kp ≥ 5− (4,67), que es G1; escala G = Kp redondeado − 4. Ordenados por fecha.
+  function tormentas() {
+    const A = state.meteo || {};
+    const hoy = hoyYMD(), porDia = {};
+    (A.kp || []).forEach(e => {
+      if (!e.pred || e.kp < 4.67) return;
+      const d = String(e.t).slice(0, 10);
+      if (d >= hoy && (!porDia[d] || e.kp > porDia[d])) porDia[d] = e.kp;
+    });
+    return Object.keys(porDia).sort().map(d => ({
+      d, kp: porDia[d], g: 'G' + Math.min(5, Math.round(porDia[d]) - 4)
+    }));
+  }
+  const tormentaTxt = t => `${cap(fmtDiaSemana(t.d))} ${fmtFecha(t.d)}: Kp hasta ${String(Math.round(t.kp * 10) / 10).replace('.', ',')} (${t.g})`;
 
   // Kp + nubes de la noche de `s` cruzados con su ventana de oscuridad.
   function auroraFor(s) {
@@ -5020,8 +5070,14 @@
       const ms = Date.parse(e.t);
       if (ms >= ini - M && ms <= fin + M && (maxKp == null || e.kp > maxKp)) maxKp = e.kp;
     });
+    // Más allá de los ~3 días de NOAA: su Kp máximo del día a 27 días vista.
+    let largo = false;
+    if (maxKp == null && A.kp27 && typeof A.kp27[s.date] === 'number') {
+      maxKp = A.kp27[s.date];
+      largo = true;
+    }
 
-    let cloudPct = null;
+    let cloudPct = null, claros = [];
     const keys = Object.keys(A.clouds);
     if (keys.length && s.loc) {
       let best = null, bestD = Infinity;
@@ -5038,19 +5094,43 @@
           return ms >= ini && ms <= fin && typeof x.pct === 'number';
         });
         if (arr.length) cloudPct = Math.round(arr.reduce((s2, x) => s2 + x.pct, 0) / arr.length);
+        // Claros: horas seguidas con nubes ≤ 30 %. La media de la noche puede
+        // esconder un par de horas despejadas, que es justo cuando hay que salir.
+        let run = null;
+        arr.forEach(x => {
+          const ms = Date.parse(x.t);
+          if (x.pct > 30) { run = null; return; }
+          if (run && ms - run.end <= 3600e3) run.end = ms;
+          else { run = { start: ms, end: ms }; claros.push(run); }
+        });
       }
     }
+    const horasClaro = r => Math.round((r.end - r.start) / 3600e3) + 1;
+    const claroLargo = claros.some(r => horasClaro(r) >= 2);
+    const cubierto = cloudPct != null && cloudPct >= 80 && !claroLargo;
 
     // Sin Kp no hay veredicto de auroras (las nubes solas no lo indican): level null.
+    // Con el cielo cubierto tampoco hay nada que ver, por alto que esté el Kp.
     let level = null;
     if (maxKp != null) {
-      if (maxKp >= 3 && cloudPct != null && cloudPct <= 35 && s.darkWindow) level = 'alta';
-      else if ((maxKp >= 3 && (cloudPct == null || cloudPct <= 65)) || maxKp >= 5) level = 'media';
+      if (cubierto) level = 'baja';
+      else if (maxKp >= 3 && s.darkWindow && cloudPct != null && (cloudPct <= 35 || (claroLargo && cloudPct <= 50))) level = 'alta';
+      else if ((maxKp >= 3 && (cloudPct == null || cloudPct <= 65 || claroLargo)) || maxKp >= 5) level = 'media';
       else level = 'baja';
+      if (largo && level === 'alta') level = 'media';   // a 27 días vista, como mucho «posible»
     }
 
-    const kpTxt = maxKp == null ? null : (Number.isInteger(maxKp) ? String(maxKp) : maxKp.toFixed(1));
-    const palabra = level === 'alta' ? 'buena' : level === 'media' ? 'posible' : level === 'baja' ? 'floja' : '';
+    const kpNum = maxKp == null ? null : (Number.isInteger(maxKp) ? String(maxKp) : maxKp.toFixed(1).replace('.', ','));
+    const kpTxt = kpNum == null ? null : largo ? `~${kpNum} (a largo plazo)` : kpNum;
+    const palabra = cubierto ? 'cubierto'
+      : level === 'alta' ? 'buena' : level === 'media' ? 'posible' : level === 'baja' ? 'floja' : '';
+    // Las 2 rachas de claro más largas, en orden; solo si la media no lo dice ya.
+    const h2 = ms => pad2(new Date(ms).getHours());
+    const clarosTxt = cloudPct != null && cloudPct > 30 && claros.length
+      ? 'claros ' + claros.slice().sort((a, b) => horasClaro(b) - horasClaro(a)).slice(0, 2)
+        .sort((a, b) => a.start - b.start)
+        .map(r => `${h2(r.start)}–${h2(r.end + 3600e3)} h`).join(' y ')
+      : '';
     let txt;
     if (maxKp == null && cloudPct == null) {
       const lejano = Date.parse(s.date + 'T00:00:00Z') - Date.now() > 3 * 86400e3;
@@ -5064,6 +5144,7 @@
     } else {
       txt = `Kp ${kpTxt} · nubes ${cloudPct}%${palabra ? ' · ' + palabra : ''}`;
     }
+    if (clarosTxt) txt += ` · ${clarosTxt}`;
     if (stale) {
       const h = Math.round((Date.now() - Date.parse(A.fetched)) / 3600e3);
       txt += ` (hace ${h} h)`;
@@ -5099,6 +5180,15 @@
       ? `Previsión (Open-Meteo y NOAA) actualizada ${hace(fetched)}; se renueva sola cada 2 h con conexión.`
       : (navigator.onLine ? 'Cargando previsión…' : 'Sin conexión: la previsión se carga cuando haya red.');
     body.appendChild(upd);
+
+    const torm = tormentas();
+    if (torm.length) {
+      const t = el('div', 'storm-alert');
+      t.innerHTML = `<b>⚡ Tormenta geomagnética prevista (NOAA)</b>`
+        + torm.map(x => `<br>${esc(tormentaTxt(x))}`).join('')
+        + `<br><span class="muted">Más auroras e intensas si hay claros. El Kp de cada noche, abajo en su tarjeta.</span>`;
+      body.appendChild(t);
+    }
 
     const show = selectedClimaDay === 'all' ? dates : dates.filter(d => d === selectedClimaDay);
     show.forEach(d => body.appendChild(climaCard(sky(d))));
