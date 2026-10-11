@@ -423,7 +423,12 @@
       notas: '13:15–14:15: subida y vistas desde el borde del cráter.' },
     { id: 'seed-l23', nombre: 'Dettifoss', loc: { texto: 'Dettifoss, aparcamiento oeste (carretera 862)', lat: 65.81137, lng: -16.40037 },
       fecha: '2026-10-12', visita: '60', prioridad: 'Alta', orden: 950,
-      notas: '15:50–16:50. Y Selfoss si os da tiempo: está aproximadamente 1 km río arriba de Dettifoss. Después, a Húsavík: check-in en el Fosshotel sobre las 18:00, justo al atardecer.' },
+      notas: '15:50–16:50. Si os da tiempo, seguid a pie hasta Selfoss (la parada siguiente, opcional). Después, a Húsavík: check-in en el Fosshotel sobre las 18:00, justo al atardecer.' },
+    // Coordenadas del aparcamiento de Dettifoss a propósito: a Selfoss se va
+    // andando, y con las de la cascada Waze podría mandar por la otra orilla.
+    { id: 'seed-l24', nombre: 'Selfoss (opcional)', loc: { texto: 'Cascada de Selfoss, a pie desde el aparcamiento oeste de Dettifoss', lat: 65.81137, lng: -16.40037 },
+      fecha: '2026-10-12', visita: '30', prioridad: 'Baja', orden: 951,
+      notas: 'Opcional, si os da tiempo. Está aproximadamente 1 km río arriba de Dettifoss, por el sendero que sale del mismo aparcamiento: no hay que mover el coche. El circuito con las dos cascadas son unos 3 km, frente a unos 2 km solo Dettifoss. Si lo hacéis, llegaréis a Húsavík algo más tarde, ya pasado el atardecer.' },
     { id: 'seed-l20', nombre: 'Goðafoss', loc: { texto: 'Goðafoss West Bank Parking', lat: 65.68553, lng: -17.54576 },
       fecha: '2026-10-13', visita: '40', prioridad: 'Alta',
       notas: 'La "cascada de los dioses": según la leyenda, aquí se lanzaron al río las estatuillas de los dioses paganos en el año 1000, cuando Islandia adoptó el cristianismo. Está justo de camino entre Húsavík y Akureyri, así que apenas supone desvío sobre la ruta directa.' },
@@ -621,7 +626,8 @@
   const PLAN_REVS = [
     { id: 'dia5-hengifoss-dettifoss',
       lugares: ['seed-l22', 'seed-l10', 'seed-l12', 'seed-l23'], quitarLugares: ['seed-l11'],
-      comidas: ['seed-c10', 'seed-c11'] }
+      comidas: ['seed-c10', 'seed-c11'] },
+    { id: 'dia5-selfoss-opcional', lugares: ['seed-l23', 'seed-l24'] }
   ];
 
   function applyPlanRev(list, seed, poner, quitar) {
@@ -2201,6 +2207,7 @@
     { k: ['solheimasandur', 'dc-3', 'pecio', 'plane wreck'], f: 'Plane wreck of DC-3 at Sölheimsandur beach.jpg', c: 'Pecio del DC-3 (Sólheimasandur)', d: 'Fuselaje abandonado de un avión de la marina de EE. UU. en la playa negra de Sólheimasandur; se llega andando desde el aparcamiento de la Ruta 1.' },
     { k: ['seljalandsfoss'], f: 'Seljalandsfoss - panoramio (7).jpg', c: 'Cascada de Seljalandsfoss', d: 'Cascada de 60 m por la que se puede caminar por detrás de la cortina de agua (lleva ropa impermeable).' },
     { k: ['godafoss'], f: 'Goðafoss July 2014.JPG', c: 'Cascada de Goðafoss', d: 'La "cascada de los dioses": según la leyenda, aquí se arrojaron las estatuas paganas al cristianizarse Islandia en el año 1000.' },
+    { k: ['hengifoss'], f: 'Hengifoss 2009 close gg.jpg', c: 'Cascada de Hengifoss', d: 'Una de las cascadas más altas de Islandia (unos 128 m), enmarcada por capas de basalto separadas por finas franjas rojas de arcilla.' },
     // Van antes que la entrada genérica de Mývatn de abajo: son sitios
     // concretos de esa zona y deben ganar cuando el texto menciona ambos.
     { k: ['hverir', 'hverarond', 'namafjall'], f: 'Hverir geothermal area45.jpg', c: 'Zona geotérmica de Hverir', d: 'Campo geotérmico sin vegetación con pozas de barro hirviendo y fumarolas humeantes, de tierra rojiza y amarillenta.' },
@@ -2224,6 +2231,10 @@
     { k: ['skaftafell', 'vatnajokull national park'], f: 'Skaftafell Aerial 2023.jpg', c: 'Skaftafell (Vatnajökull)', d: 'Zona del Parque Nacional Vatnajökull con glaciares, cascadas y rutas de senderismo entre lenguas de hielo.' },
     { k: ['thorsmork', 'porsmork'], f: 'Þórsmörk from Valahnúksból 20090607.jpg', c: 'Valle de Þórsmörk', d: 'Valle verde entre glaciares al que solo se llega con 4x4 vadeando ríos; muy popular para senderismo.' },
     { k: ['landmannalaugar'], f: 'Landmannalaugar Campsite.jpg', c: 'Landmannalaugar', d: 'Montañas de riolita multicolor con aguas termales naturales, en las Tierras Altas del interior.' },
+    // Antes que Dettifoss: la ubicación de Selfoss menciona su aparcamiento.
+    // La clave es «cascada de selfoss» y no «selfoss» a secas, para no casar
+    // con la comida del día 2 en el pueblo de Selfoss.
+    { k: ['cascada de selfoss'], f: 'Selfoss July 2014.JPG', c: 'Cascada de Selfoss', d: 'Cascada ancha de unos 11 m en el río Jökulsá á Fjöllum, poco más arriba de Dettifoss, con el agua cayendo en muchos chorros a lo largo de una falla.' },
     { k: ['dettifoss'], f: 'Dettifoss TimBekaert.JPG', c: 'Cascada de Dettifoss', d: 'La cascada más caudalosa de Europa: un muro de agua glaciar gris que cae con un estruendo brutal.' },
     { k: ['kirkjufell'], f: 'Kirkjufell in Iceland.jpg', c: 'Montaña Kirkjufell', d: 'Montaña en forma de punta de flecha en Snæfellsnes, una de las más fotografiadas de Islandia.' },
     { k: ['arnarstapi'], f: 'Arnarstapi 2024 (0754).jpg', c: 'Arnarstapi', d: 'Pueblo costero de Snæfellsnes con acantilados de basalto, arcos de roca y colonias de aves.' },
