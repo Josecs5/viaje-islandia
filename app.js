@@ -151,7 +151,7 @@
   const blankState = () => ({
     meta: { titulo: 'Viaje a Islandia', fechaInicio: '', fechaFin: '' },
     vuelos: [], coches: [], alojamientos: [], excursiones: [], comidas: [], lugares: [], recomendaciones: [],
-    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: [], comidaLlevar: [], seedVistos: []
+    gastos: [], fx: blankFx(), combustible: blankFuel(), meteo: blankMeteo(), equipaje: [], diario: {}, antesDeViajar: [], comidaLlevar: [], seedVistos: [], planRevs: []
   });
 
   /* ==========================================================
@@ -292,12 +292,12 @@
       loc: { texto: 'Eyvindará 2, 700 Egilsstaðir', lat: 65.27595, lng: -14.3788 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/hotel-eyvindara.es.html',
       checkinDesde: '16:00', checkinHasta: '20:00', checkoutDesde: '07:00', checkoutHasta: '11:00',
-      notas: 'Desayuno incluido (la mañana del 12, antes del check-out).' },
+      notas: 'Desayuno incluido (la mañana del 12, antes del check-out). El 12, salida a las 07:45: repostad en Egilsstaðir, que os pilla de paso hacia Hengifoss.' },
     { id: 'seed-a5', nombre: 'Fosshotel Húsavík', checkin: '2026-10-12', checkout: '2026-10-13', zona: 'Húsavík',
       loc: { texto: 'Ketilsbraut 22, 640 Húsavík', lat: 66.04595, lng: -17.33886 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/husavik.es.html',
       checkinDesde: '15:00', checkinHasta: '00:00', checkoutDesde: '', checkoutHasta: '12:00',
-      notas: 'Desayuno incluido (la mañana del 13, antes del check-out).' },
+      notas: 'Llegada sobre las 18:00 desde Dettifoss, justo al atardecer. Desayuno incluido (la mañana del 13, antes del check-out).' },
     { id: 'seed-a6', nombre: 'Torg Guesthouse', checkin: '2026-10-13', checkout: '2026-10-14', zona: 'Akureyri',
       loc: { texto: 'Brekkugata 1b, 600 Akureyri', lat: 65.6824, lng: -18.09193 },
       reserva: '', enlace: 'https://www.booking.com/hotel/is/cityhall-apartment.es.html',
@@ -410,15 +410,20 @@
     { id: 'seed-l19', nombre: 'Vestrahorn · Stokksnes · Viking Village', loc: { texto: 'Viking Cafe, Stokksnes (aparcamiento)', lat: 64.255, lng: -14.993331 }, orden: 725,
       fecha: '2026-10-11', visita: '90', prioridad: 'Alta',
       notas: 'Montaña de picos afilados sobre playa de arena negra (buen reflejo con marea baja). Incluye el Viking Village (casas de turba y réplica de barco vikingo, a 10 min andando desde el mismo aparcamiento, mismo ticket) y el sendero de la playa. Entrada ~1.000 ISK/adulto, niños gratis, se paga en el Viking Cafe. Desvío corto de pista de grava justo antes del túnel de Almannaskarð, saliendo de Höfn hacia el este.' },
+    // Día 5: cada parada lleva `orden` = su hora de llegada en minutos, porque
+    // la comida en Reykjahlíð (14:25) va entre Hverfjall y Dettifoss.
+    { id: 'seed-l22', nombre: 'Hengifoss', loc: { texto: 'Hengifoss, aparcamiento (Fljótsdalur)', lat: 65.07268, lng: -14.88183 },
+      fecha: '2026-10-12', visita: '90', prioridad: 'Alta', orden: 510,
+      notas: '08:30–10:00: subida hasta la cascada y vuelta al coche. Antes, salida del Hótel Eyvindará a las 07:45 y repostaje en Egilsstaðir, que os pilla de paso. Después, unas 2 h 15 de coche hasta Hverir.' },
     { id: 'seed-l10', nombre: 'Hverir', loc: { texto: 'Hverir, Námafjall', lat: 65.6386, lng: -16.8053 },
-      fecha: '2026-10-12', visita: '45', prioridad: 'Media',
-      notas: 'Campo geotérmico. Elegir 2 de los 3 sitios de Mývatn (junto con los pseudocráteres y Hverfjall) según el tiempo disponible, ventana 11:30–14:00. Mývatn es de las mejores zonas del viaje para auroras — revisar la previsión en en.vedur.is antes de acostarse.' },
-    { id: 'seed-l11', nombre: 'Pseudocráteres de Skútustaðir', loc: { texto: 'Skútustaðir', lat: 65.5864, lng: -16.9977 },
-      fecha: '2026-10-12', visita: '40', prioridad: 'Media',
-      notas: 'Elegir 2 de los 3 sitios de Mývatn según el tiempo disponible.' },
+      fecha: '2026-10-12', visita: '45', prioridad: 'Media', orden: 735,
+      notas: '12:15–13:00. Campo geotérmico: pozas de barro hirviendo y fumarolas.' },
     { id: 'seed-l12', nombre: 'Cráter Hverfjall', loc: { texto: 'Hverfjall', lat: 65.6027, lng: -16.8637 },
-      fecha: '2026-10-12', visita: '40', prioridad: 'Media',
-      notas: 'Elegir 2 de los 3 sitios de Mývatn según el tiempo disponible.' },
+      fecha: '2026-10-12', visita: '60', prioridad: 'Media', orden: 795,
+      notas: '13:15–14:15: subida y vistas desde el borde del cráter.' },
+    { id: 'seed-l23', nombre: 'Dettifoss', loc: { texto: 'Dettifoss, aparcamiento oeste (carretera 862)', lat: 65.81137, lng: -16.40037 },
+      fecha: '2026-10-12', visita: '60', prioridad: 'Alta', orden: 950,
+      notas: '15:50–16:50. Y Selfoss si os da tiempo: está aproximadamente 1 km río arriba de Dettifoss. Después, a Húsavík: check-in en el Fosshotel sobre las 18:00, justo al atardecer.' },
     { id: 'seed-l20', nombre: 'Goðafoss', loc: { texto: 'Goðafoss West Bank Parking', lat: 65.68553, lng: -17.54576 },
       fecha: '2026-10-13', visita: '40', prioridad: 'Alta',
       notas: 'La "cascada de los dioses": según la leyenda, aquí se lanzaron al río las estatuillas de los dioses paganos en el año 1000, cuando Islandia adoptó el cristianismo. Está justo de camino entre Húsavík y Akureyri, así que apenas supone desvío sobre la ruta directa.' },
@@ -465,11 +470,11 @@
       notas: 'La opción de mejor relación calidad-precio del pueblo: cocina casera de bistró a precio razonable, plato principal aprox. 2.500-4.000 ISK. Llegáis tarde tras el día de más conducción del viaje (Jökulsárlón → Vestrahorn → Egilsstaðir, ~270 km); conviene confirmar que sigue abierto a esa hora. Alternativas: Askur Taproom & Pizzeria (pizzas y hamburguesas, ambiente más animado) o, si llegáis muy tarde, la cafetería de la gasolinera N1 del pueblo.' },
     { id: 'seed-c10', nombre: 'Comida en Reykjahlíð', tipo: 'Almuerzo',
       loc: { texto: 'Gamli Bærinn, Reykjahlíð', lat: 65.6407, lng: -16.9109 },
-      fecha: '2026-10-12', horario: '13:00',
-      notas: 'Sopa de cordero islandesa a discreción (rellenos gratis), fish & chips y hamburguesas a precio moderado ($$). En el mismo Reykjahlíð donde están Hverir y el resto de paradas de Mývatn, así que no hay que desviarse. Alternativa con más encanto (y algo más cara): Vogafjós Cowshed Café, una granja-restaurante junto al lago donde se come con las vacas al otro lado del cristal — sopa del día unos 4.950-7.160 ISK.' },
+      fecha: '2026-10-12', horario: '14:25–15:10',
+      notas: 'Después de Hverfjall y antes de seguir hacia Dettifoss. Sopa de cordero islandesa a discreción (rellenos gratis), fish & chips y hamburguesas a precio moderado ($$). En el mismo Reykjahlíð donde están Hverir y Hverfjall, así que no hay que desviarse. Alternativa con más encanto (y algo más cara): Vogafjós Cowshed Café, una granja-restaurante junto al lago donde se come con las vacas al otro lado del cristal — sopa del día unos 4.950-7.160 ISK.' },
     { id: 'seed-c11', nombre: 'Cena en Húsavík', tipo: 'Cena',
       loc: { texto: 'Gamli Baukur, Hafnarstétt, Húsavík', lat: 66.0455, lng: -17.3407 },
-      fecha: '2026-10-12', horario: '20:00', orden: 1440,
+      fecha: '2026-10-12', horario: '19:00', orden: 1440,
       notas: 'Pub-restaurante en el puerto: hamburguesas, pizza y fish & chips, aprox. 2.800-3.800 ISK. A un paseo corto del Fosshotel Húsavík. Mañana volvéis a esta misma zona del puerto para el avistamiento de ballenas y la comida de después.' },
     { id: 'seed-c12', nombre: 'Comida en Húsavík', tipo: 'Casual / rápido',
       loc: { texto: 'Fish & Chips, Hafnarstétt, Húsavík', lat: 66.0453, lng: -17.3395 },
@@ -607,6 +612,46 @@
     { id: 'seed-cl-10', texto: 'Sobres de Cola Cao', cat: '', hecho: false }
   ];
 
+  // Cambios de plan hechos con la app ya instalada. Lugares y comidas son
+  // editables y viven en localStorage, así que tocar LUGAR_SEED/COMIDA_SEED
+  // solo llega a instalaciones nuevas. Cada revisión lista los ids seed que
+  // hay que poner al día (se sustituyen por la versión actual del seed, o se
+  // añaden si faltan) y los que hay que retirar. Se aplica una sola vez por
+  // dispositivo (state.planRevs): lo que se edite después en la app no se pisa.
+  const PLAN_REVS = [
+    { id: 'dia5-hengifoss-dettifoss',
+      lugares: ['seed-l22', 'seed-l10', 'seed-l12', 'seed-l23'], quitarLugares: ['seed-l11'],
+      comidas: ['seed-c10', 'seed-c11'] }
+  ];
+
+  function applyPlanRev(list, seed, poner, quitar) {
+    const out = (Array.isArray(list) ? list : []).filter(it => quitar.indexOf(it.id) < 0);
+    const seedIdx = id => seed.findIndex(s => s.id === id);
+    poner.forEach(id => {
+      const k = seedIdx(id);
+      if (k < 0) return;
+      const fresh = JSON.parse(JSON.stringify(seed[k]));
+      const i = out.findIndex(it => it.id === id);
+      if (i > -1) { out[i] = fresh; return; }
+      // Nuevo: delante del primer ítem que en el seed va después, para que
+      // en Datos salga en su sitio y no al final de la lista.
+      let at = out.findIndex(it => seedIdx(it.id) > k);
+      if (at < 0) at = out.length;
+      out.splice(at, 0, fresh);
+    });
+    return out;
+  }
+
+  function applyPlanRevs(lugares, comidas, hechas) {
+    PLAN_REVS.forEach(r => {
+      if (hechas.has(r.id)) return;
+      lugares = applyPlanRev(lugares, LUGAR_SEED, r.lugares || [], r.quitarLugares || []);
+      comidas = applyPlanRev(comidas, COMIDA_SEED, r.comidas || [], r.quitarComidas || []);
+      hechas.add(r.id);
+    });
+    return { lugares, comidas };
+  }
+
   function seedState() {
     const s = blankState();
     s.meta.fechaInicio = '2026-10-08';
@@ -622,6 +667,7 @@
     s.antesDeViajar = JSON.parse(JSON.stringify(ANTES_SEED));
     s.comidaLlevar = JSON.parse(JSON.stringify(LLEVAR_SEED));
     s.seedVistos = EQUIPAJE_SEED.concat(ANTES_SEED, LLEVAR_SEED).map(it => it.id);
+    s.planRevs = PLAN_REVS.map(r => r.id);
     return s;
   }
 
@@ -712,14 +758,16 @@
       const antesDeViajar = p.antesDeViajar !== undefined ? syncSeedList(p.antesDeViajar, ANTES_SEED, 'seed-an-', vistos) : JSON.parse(JSON.stringify(ANTES_SEED));
       const comidaLlevar = p.comidaLlevar !== undefined ? syncSeedList(p.comidaLlevar, LLEVAR_SEED, 'seed-cl-', vistos) : JSON.parse(JSON.stringify(LLEVAR_SEED));
       EQUIPAJE_SEED.concat(ANTES_SEED, LLEVAR_SEED).forEach(it => vistos.add(it.id));
+      const revsHechas = new Set(Array.isArray(p.planRevs) ? p.planRevs : []);
+      const plan = applyPlanRevs(p.lugares, p.comidas, revsHechas);
       return {
         meta: Object.assign(b.meta, p.meta || {}),
         vuelos: syncReadOnlySeed((p.vuelos || []).map(migrateVuelo), [IDA_SEED, VUELTA_SEED]),
         coches: p.coches || [],
         alojamientos: syncReadOnlySeed(p.alojamientos, ALOJ_SEED),
         excursiones: p.excursiones || [],
-        comidas: p.comidas || [],
-        lugares: p.lugares || [],
+        comidas: plan.comidas,
+        lugares: plan.lugares,
         recomendaciones: p.recomendaciones || [],
         gastos: p.gastos || [],
         fx: Object.assign(blankFx(), p.fx || {}),
@@ -729,7 +777,8 @@
         diario: p.diario || {},
         antesDeViajar,
         comidaLlevar,
-        seedVistos: Array.from(vistos)
+        seedVistos: Array.from(vistos),
+        planRevs: Array.from(revsHechas)
       };
     } catch (e) {
       console.warn('Estado ilegible, se reinicia.', e);
@@ -795,7 +844,8 @@
     '2026-10-09': 'https://maps.app.goo.gl/3NeKbumBbfeMnYLh6',
     '2026-10-10': 'https://maps.app.goo.gl/ufBiHtm92j2CfpFt5',
     '2026-10-11': 'https://maps.app.goo.gl/USxXrb8wg8Kp7BgN9',
-    '2026-10-12': 'https://maps.app.goo.gl/vzA6v9ifXJPjmMBN8',
+    // 2026-10-12: el enlace hecho a mano era del plan anterior (sin Hengifoss
+    // ni Dettifoss); se quita y vale el botón Google Maps de la tarjeta.
     '2026-10-13': 'https://maps.app.goo.gl/65X8g8Hj4oHSBTKt6',
     '2026-10-14': 'https://maps.app.goo.gl/bfhzJUjD2K5gAJpG9',
     '2026-10-15': 'https://maps.app.goo.gl/bQJ9Rrtdh6KdNWDK9'
